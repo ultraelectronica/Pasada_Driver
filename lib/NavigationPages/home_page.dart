@@ -31,7 +31,7 @@ class HomePage extends StatefulWidget {
   final String title;
 
   @override
-  HomePageState createState() => HomePageState();
+  State<HomePage> createState() => HomePageState();
 }
 
 class HomePageState extends State<HomePage> {
@@ -156,10 +156,29 @@ class HomePageState extends State<HomePage> {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
+    // ensure that the location is fetched before building the map
+    if (_currentLocation == null) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       body: SafeArea(
         child: Stack(
           children: [
+            GoogleMap(
+              onMapCreated: _onMapCreated,
+              initialCameraPosition: CameraPosition(
+                target: LatLng(
+                  _currentLocation!.latitude!,
+                  _currentLocation!.longitude!,
+                ),
+                zoom: 15,
+              ),
+              myLocationEnabled: true,
+              myLocationButtonEnabled: true,
+              mapType: MapType.normal,
+            ),
             // Floating search bar
             Positioned(
               top: screenHeight * 0.02, // 2% from the top of the screen
