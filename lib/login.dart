@@ -3,8 +3,34 @@ import 'package:flutter_svg/flutter_svg.dart';
 // import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
 
-class LogIn extends StatelessWidget {
+class LogIn extends StatefulWidget {
   const LogIn({super.key});
+
+  @override
+  State<LogIn> createState() => _LogInState();
+}
+
+class _LogInState extends State<LogIn> {
+  final TextEditingController inputController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final String passwordSample = 'driver';
+  final String emailSample = 'driver123';
+  bool isPasswordVisible = false;
+  String errorMessage = '';
+
+  void checkPasswordEmail() {
+    if (passwordController.text == passwordSample && inputController.text == emailSample) {
+      Navigator.push(
+        context,
+          MaterialPageRoute(builder: (context) => const MainPage())
+      );
+    }
+    else {
+      setState(() {
+        errorMessage = 'Incorrect password or email. Please try again.';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +91,7 @@ class LogIn extends StatelessWidget {
                         width: double.infinity,
                         height: 45,
                         child: TextField(
+                          controller: inputController,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(7.0),
@@ -73,6 +100,7 @@ class LogIn extends StatelessWidget {
                             labelStyle: const TextStyle(
                               fontSize: 14,
                             ),
+                            errorText: errorMessage.isNotEmpty ? errorMessage : null,
                             filled: true,
                             fillColor: Colors.grey.shade200,
                             contentPadding:
@@ -111,10 +139,23 @@ class LogIn extends StatelessWidget {
                         width: double.infinity,
                         height: 45,
                         child: TextField(
-                          obscureText: true,
+                          controller: passwordController,
+                          obscureText: !isPasswordVisible,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(7.0),
+                            ),
+                            errorText: errorMessage.isNotEmpty ? errorMessage : null,
+                            suffixIcon: IconButton(
+                              color: const Color(0xFF121212),
+                              onPressed: () {
+                                setState(() {
+                                  isPasswordVisible = !isPasswordVisible;
+                                });
+                              },
+                              icon: Icon(
+                                isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                              ),
                             ),
                             labelText: 'Enter your Password here',
                             labelStyle: const TextStyle(
@@ -131,7 +172,7 @@ class LogIn extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
               //FORGOT PASSWORD BUTTON
               Container(
                 margin: const EdgeInsets.only(top: 5),
@@ -148,12 +189,7 @@ class LogIn extends StatelessWidget {
                   margin: const EdgeInsets.only(top: 120),
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const MainPage()),
-                  );
-                },
+                    onPressed: checkPasswordEmail,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5F3FC4),
                       minimumSize: const Size(240, 45),

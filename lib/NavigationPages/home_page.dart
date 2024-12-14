@@ -183,7 +183,7 @@ class HomePageState extends State<HomePage> {
             Positioned(
               top: screenHeight * 0.02, // 2% from the top of the screen
               left: screenWidth * 0.05, // 5% padding from the left
-              right: screenWidth * 0.05, // 5% padding from the right
+              right: screenWidth * 0.15, // 5% padding from the right
               child: Material(
                 elevation: 4,
                 borderRadius: BorderRadius.circular(24),
@@ -222,15 +222,15 @@ class HomePageState extends State<HomePage> {
             ),
 
             // Displaying search input for testing purposes
-            Positioned(
-              top: screenHeight * 0.12,
-              left: screenWidth * 0.05,
-              right: screenWidth * 0.05,
-              child: Text(
-                _searchText.isNotEmpty ? 'You searched for: $_searchText' : '',
-                style: const TextStyle(color: Colors.black, fontSize: 16),
-              ),
-            ),
+            // Positioned(
+            //   top: screenHeight * 0.12,
+            //   left: screenWidth * 0.05,
+            //   right: screenWidth * 0.05,
+            //   child: Text(
+            //     _searchText.isNotEmpty ? 'You searched for: $_searchText' : '',
+            //     style: const TextStyle(color: Colors.black, fontSize: 16),
+            //   ),
+            // ),
           ],
         ),
       ),

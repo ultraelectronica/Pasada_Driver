@@ -12,7 +12,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Pasada',
+      title: 'Pasada Driver',
       theme: ThemeData(
         scaffoldBackgroundColor: const Color.fromRGBO(250, 250, 250, 20),
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
