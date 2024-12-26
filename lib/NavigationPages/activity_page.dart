@@ -12,7 +12,7 @@ class ActivityPageState extends State<ActivityPage>{
   @override
   Widget build(BuildContext context) {
     return Container(
-      child: Center(
+      child: const Center(
         child: Text(
           'Activity page'
         ),

@@ -16,11 +16,11 @@ class MainPage extends StatefulWidget {
 
 class MainPageState extends State<MainPage> {
   List pages = [
-    HomeScreen(),
-    ActivityPage(),
-    NotificationPage(),
-    ProfilePage(),
-    SettingsPage(),
+    const HomeScreen(),
+    const ActivityPage(),
+    const NotificationPage(),
+    const ProfilePage(),
+    const SettingsPage(),
   ];
 
   int currentIndex = 0;

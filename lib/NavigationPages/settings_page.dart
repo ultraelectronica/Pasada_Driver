@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:pasada_driver_side/NavigationPages/main_page.dart';
 import 'package:pasada_driver_side/NavigationPages/notification_page.dart';
 
 class SettingsPage extends StatelessWidget {

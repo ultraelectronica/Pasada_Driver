@@ -18,7 +18,7 @@ class HomeScreen extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const HomePage(title: 'Pasada'),
-      routes: <String, WidgetBuilder>{
+      routes: const <String, WidgetBuilder>{
 
       },
     );
@@ -87,14 +87,14 @@ class HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Permission Required'),
-        content: Text(
+        title: const Text('Permission Required'),
+        content: const Text(
           'This app needs location permission to work. Please allow it in your settings.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Ok'),
+            child: const Text('Ok'),
           ),
         ],
       ),
@@ -105,14 +105,14 @@ class HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Enable Location Services'),
-        content: Text(
+        title: const Text('Enable Location Services'),
+        content: const Text(
           'Location services are disabled. Please enable them to use this feature.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('OK'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -123,12 +123,12 @@ class HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Location Error'),
-        content: Text('Unable to fetch the current location. Please try again later.'),
+        title: const Text('Location Error'),
+        content: const Text('Unable to fetch the current location. Please try again later.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('OK'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -139,12 +139,12 @@ class HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Error'),
+        title: const Text('Error'),
         content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('OK'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -158,7 +158,7 @@ class HomePageState extends State<HomePage> {
 
     // ensure that the location is fetched before building the map
     if (_currentLocation == null) {
-      return Scaffold(
+      return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
