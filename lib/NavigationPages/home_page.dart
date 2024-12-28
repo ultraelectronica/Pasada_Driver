@@ -32,7 +32,7 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> {
-  String _searchText = "";
+  // String _searchText = "";
   late GoogleMapController mapController;
   LocationData? _currentLocation;
   late Location _location;
@@ -201,8 +201,8 @@ class HomePageState extends State<HomePage> {
                         child: TextField(
                           onChanged: (value) {
                             setState(() {
-                              _searchText =
-                                  value; // Update state with search input
+                              // _searchText =
+                              //     value; // Update state with search input
                             });
                           },
                           decoration: InputDecoration(

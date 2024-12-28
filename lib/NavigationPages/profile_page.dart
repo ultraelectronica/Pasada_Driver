@@ -16,7 +16,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    currentStatus = widget.driverStatus; // Initialize the status
+    currentStatus = widget.driverStatus; // method to initialize the status
   }
 
   // Colors for different statuses
@@ -38,13 +38,49 @@ class _ProfilePageState extends State<ProfilePage> {
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: statusColors.keys.map((status) {
-              return ListTile(
-                leading: Icon(Icons.circle, color: statusColors[status]),
-                title: Text(status),
-                onTap: () => _updateStatus(status),
-              );
-            }).toList(),
+            children: [
+              //Line which indicates that the pop up screen is swipeable
+              Container(
+                width: 40,
+                height: 5,
+                margin: const EdgeInsets.only(top: 16.0, bottom: 16.0),
+                decoration: BoxDecoration(
+                  color: Colors.grey[600],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              // Title
+              const Padding(
+                padding: EdgeInsets.only(bottom: 10.0),
+                child: Text(
+                  'Change Status',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              ...statusColors.keys.map((status) {
+                return Column(
+                  children: [
+                    ListTile(
+                      leading: Icon(Icons.circle, color: statusColors[status]),
+                      title: Text(status),
+                      onTap: () => _updateStatus(status),
+                    ),
+                    // line below the choices
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Divider(
+                        thickness: 1.0,
+                        color: Colors.grey,
+                        height: 1.0,
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ],
           ),
         );
       },
@@ -105,6 +141,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+//driver status
   Widget _buildDriverStatus() {
     return InkWell(
       onTap: _showStatusOptions,
@@ -131,7 +168,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(width: 8), // Spacing between dot and text
+            const SizedBox(width: 8),
 
             // Status text
             Text(currentStatus),
@@ -141,6 +178,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+//driver details
   Widget _buildDriverDetails() {
     return const Column(
       children: [
@@ -175,6 +213,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 }
 
+//build all buttons
 class ProfileButton extends StatelessWidget {
   final String buttonName;
   final VoidCallback onPressed;
