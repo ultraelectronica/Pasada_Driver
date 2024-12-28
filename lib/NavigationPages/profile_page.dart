@@ -11,19 +11,52 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // Method to assign color to the driver status
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case "Online":
-        return Colors.green;
-      case "Driving":
-        return Colors.red;
-      case "Idling":
-        return Colors.orange;
-      case "Offline":
-      default:
-        return Colors.grey;
-    }
+  late String currentStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    currentStatus = widget.driverStatus; // Initialize the status
+  }
+
+  // Colors for different statuses
+  static const Map<String, Color> statusColors = {
+    "Online": Colors.green,
+    "Driving": Colors.red,
+    "Idling": Colors.orange,
+    "Offline": Colors.grey,
+  };
+
+  // Function to show a bottom sheet with status options
+  void _showStatusOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: statusColors.keys.map((status) {
+              return ListTile(
+                leading: Icon(Icons.circle, color: statusColors[status]),
+                title: Text(status),
+                onTap: () => _updateStatus(status),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  // Update driver status and close bottom sheet
+  void _updateStatus(String newStatus) {
+    setState(() {
+      currentStatus = newStatus;
+    });
+    Navigator.of(context).pop();
   }
 
   @override
@@ -37,40 +70,22 @@ class _ProfilePageState extends State<ProfilePage> {
           padding: EdgeInsets.symmetric(horizontal: paddingValue),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Driver Profile Picture
-              SizedBox(
-                height: profilePictureSize,
-                width: profilePictureSize,
-                child: SvgPicture.asset(
-                  'assets/svg/Ellipse.svg',
-                  placeholderBuilder: (_) => const CircularProgressIndicator(),
-                ),
-              ),
+              // Profile Picture
+              _buildProfilePicture(profilePictureSize),
               const SizedBox(height: 20),
 
               // Driver Status
               _buildDriverStatus(),
               const SizedBox(height: 25),
 
-              //Driver Name
-              _getDriverName(),
-              const SizedBox(height: 10),
-              //Driver Email
-              _getDriverEmail(),
-              const SizedBox(height: 10),
+              // Driver Details
+              _buildDriverDetails(),
+              const SizedBox(height: 30),
 
-              _getDriverNumber(),
-              const SizedBox(height: 10),
-
-              _updateInformationButton(),
-              const SizedBox(height: 10),
-
+              // Buttons
               ProfileButton('Update Information', onPressed: () {}),
               const SizedBox(height: 20),
-
               ProfileButton('Log Out', onPressed: () {}),
             ],
           ),
@@ -79,84 +94,97 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Widget _buildProfilePicture(double size) {
+    return SizedBox(
+      height: size,
+      width: size,
+      child: SvgPicture.asset(
+        'assets/svg/Ellipse.svg',
+        placeholderBuilder: (_) => const CircularProgressIndicator(),
+      ),
+    );
+  }
+
   Widget _buildDriverStatus() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      height: 30,
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Theme.of(context).primaryColor,
-          width: 2.0,
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Colored dot
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: _getStatusColor(widget.driverStatus),
-              shape: BoxShape.circle,
-            ),
+    return InkWell(
+      onTap: _showStatusOptions,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        height: 30,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Theme.of(context).primaryColor,
+            width: 2.0,
           ),
-          const SizedBox(width: 8), // Spacing between dot and text
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Colored dot
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: statusColors[currentStatus],
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 8), // Spacing between dot and text
 
-          // Status text
-          Text(widget.driverStatus),
-        ],
+            // Status text
+            Text(currentStatus),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _getDriverName() {
-    return const Text(
-      'Name',
-      style: TextStyle(
-        fontSize: 30,
-        fontFamily: 'Inter',
-        fontWeight: FontWeight.w700,
-      ),
+  Widget _buildDriverDetails() {
+    return const Column(
+      children: [
+        Text(
+          'Name',
+          style: TextStyle(
+            fontSize: 30,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        SizedBox(height: 10),
+        Text(
+          'pasadadriver@example.com',
+          style: TextStyle(
+            fontSize: 16,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+        SizedBox(height: 10),
+        Text(
+          '09123456789',
+          style: TextStyle(
+            fontSize: 16,
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+      ],
     );
-  }
-
-  Widget _getDriverEmail() {
-    return const Text(
-      'pasadadriver@example.com',
-      style: TextStyle(
-        fontSize: 16,
-        fontFamily: 'Inter',
-        fontWeight: FontWeight.w400,
-      ),
-    );
-  }
-
-  Widget _getDriverNumber() {
-    return const Text(
-      '09123456789',
-      style: TextStyle(
-        fontSize: 16,
-        fontFamily: 'Inter',
-        fontWeight: FontWeight.w400,
-      ),
-    );
-  }
-
-  Widget _updateInformationButton() {
-    return const SizedBox();
   }
 }
 
 class ProfileButton extends StatelessWidget {
   final String buttonName;
   final VoidCallback onPressed;
+
   const ProfileButton(this.buttonName, {super.key, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return InkWell(
+      borderRadius: BorderRadius.circular(30.0),
       onTap: onPressed,
       child: Container(
         height: 50,
