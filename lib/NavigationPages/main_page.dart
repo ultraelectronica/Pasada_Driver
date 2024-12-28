@@ -40,7 +40,7 @@ class MainPageState extends State<MainPage> {
         // type: BottomNavigationBarType.fixed,
         onTap: onTap,
         currentIndex: currentIndex,
-        unselectedItemColor: Colors.grey.withOpacity(.8),
+        unselectedItemColor: Colors.grey,
         selectedItemColor: const Color(0xFF5F3FC4),
         showSelectedLabels: true,
         showUnselectedLabels: true,
