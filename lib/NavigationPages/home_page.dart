@@ -18,13 +18,10 @@ class HomeScreen extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const HomePage(title: 'Pasada'),
-      routes: const <String, WidgetBuilder>{
-
-      },
+      routes: const <String, WidgetBuilder>{},
     );
   }
 }
-
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.title});
@@ -62,7 +59,7 @@ class HomePageState extends State<HomePage> {
       PermissionStatus permissionGranted = await _location.hasPermission();
       if (permissionGranted == PermissionStatus.denied) {
         permissionGranted = await _location.requestPermission();
-        if(permissionGranted != PermissionStatus.granted) {
+        if (permissionGranted != PermissionStatus.granted) {
           _showPermissionDialog();
           return;
         }
@@ -124,7 +121,8 @@ class HomePageState extends State<HomePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Location Error'),
-        content: const Text('Unable to fetch the current location. Please try again later.'),
+        content: const Text(
+            'Unable to fetch the current location. Please try again later.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),

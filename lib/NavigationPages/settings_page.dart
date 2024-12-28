@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:pasada_driver_side/NavigationPages/Settings/preference_page.dart';
+import 'package:pasada_driver_side/NavigationPages/Settings/support_page.dart';
 import 'package:pasada_driver_side/NavigationPages/notification_page.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -28,12 +30,22 @@ class SettingsPage extends StatelessWidget {
           const SizedBox(height: 20),
           SettingsButtons(
             'Preference',
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const PreferencePage()));
+            },
           ),
           const SizedBox(height: 20),
           SettingsButtons(
             'Support',
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const SupportPage()));
+            },
           ),
           const SizedBox(height: 20),
         ]),

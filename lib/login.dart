@@ -11,15 +11,15 @@ class LogIn extends StatefulWidget {
 }
 
 class _LogInState extends State<LogIn> {
-  final TextEditingController inputController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  final String passwordSample = 'driver';
-  final String emailSample = 'driver123';
+  final TextEditingController inputDriverIDController = TextEditingController();
+  final TextEditingController inputPasswordController = TextEditingController();
+  final String passwordSample = '';
+  final String emailSample = '';
   bool isPasswordVisible = false;
   String errorMessage = '';
 
   void checkPasswordEmail() {
-    if (passwordController.text == passwordSample && inputController.text == emailSample) {
+    if (inputPasswordController.text == passwordSample && inputDriverIDController.text == emailSample) {
       Navigator.push(
         context,
           MaterialPageRoute(builder: (context) => const MainPage())
@@ -91,7 +91,7 @@ class _LogInState extends State<LogIn> {
                         width: double.infinity,
                         height: 45,
                         child: TextField(
-                          controller: inputController,
+                          controller: inputDriverIDController,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(7.0),
@@ -139,7 +139,7 @@ class _LogInState extends State<LogIn> {
                         width: double.infinity,
                         height: 45,
                         child: TextField(
-                          controller: passwordController,
+                          controller: inputPasswordController,
                           obscureText: !isPasswordVisible,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(

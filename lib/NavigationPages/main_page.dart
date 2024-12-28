@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-// import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/NavigationPages/activity_page.dart';
 import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/notification_page.dart';
@@ -19,9 +18,10 @@ class MainPageState extends State<MainPage> {
     const HomeScreen(),
     const ActivityPage(),
     const NotificationPage(),
-    const ProfilePage(),
+    const ProfilePage(driverStatus: "Online"), //needed to connect to database to sync the driver status
     const SettingsPage(),
   ];
+  
 
   int currentIndex = 0;
   void onTap(int index) {

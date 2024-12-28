@@ -40,7 +40,6 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-
             //LOGO
             Container(
               margin: const EdgeInsets.only(top: 130),
