@@ -63,6 +63,7 @@ class HomePageState extends State<HomePage> {
           _showPermissionDialog();
           return;
         }
+        //what will happen if rejected?
       }
       // get current location
       _currentLocation = await _location.getLocation();
@@ -160,10 +161,12 @@ class HomePageState extends State<HomePage> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
+
     return Scaffold(
       body: SafeArea(
         child: Stack(
           children: [
+            // GOOGLE MAPS
             GoogleMap(
               onMapCreated: _onMapCreated,
               initialCameraPosition: CameraPosition(
@@ -174,35 +177,67 @@ class HomePageState extends State<HomePage> {
                 zoom: 15,
               ),
               myLocationEnabled: true,
-              myLocationButtonEnabled: true,
+              myLocationButtonEnabled: false, // there will be a custom button
               mapType: MapType.normal,
+              zoomControlsEnabled: false,
+              // trafficEnabled: true, // i just found this kaya try to uncomment this
             ),
-            // Floating search bar
+
+            // CUSTOM MY LOCATION BUTTON
             Positioned(
-              top: screenHeight * 0.02, // 2% from the top of the screen
-              left: screenWidth * 0.05, // 5% padding from the left
-              right: screenWidth * 0.15, // 5% padding from the right
+              bottom: screenHeight * 0.025,
+              right: screenWidth * 0.05,
+              child: SizedBox(
+                width: 50,
+                height: 50,
+                child: FloatingActionButton(
+                  onPressed: () {
+                    mapController.animateCamera(
+                      CameraUpdate.newCameraPosition(
+                        CameraPosition(
+                          target: LatLng(
+                            _currentLocation!.latitude!,
+                            _currentLocation!.longitude!,
+                          ),
+                          zoom: 15,
+                        ),
+                      ),
+                    );
+                  },
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: const Icon(Icons.my_location,
+                      color: Colors.black, size: 25),
+                ),
+              ),
+            ),
+
+            // FLOATING SEARCH BAR
+            Positioned(
+              top: screenHeight * 0.02,
+              left: screenWidth * 0.05,
+              right: screenWidth * 0.05,
               child: Material(
                 elevation: 4,
                 borderRadius: BorderRadius.circular(24),
                 child: Container(
-                  height:
-                      screenHeight * 0.06, // Adjust height based on screen size
+                  height: screenHeight * 0.06,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(24),
                     color: Colors.white,
                   ),
                   child: Row(
                     children: [
-                      const SizedBox(width: 16), // Left padding
+                      const SizedBox(width: 16),
                       const Icon(Icons.search, color: Colors.grey),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           onChanged: (value) {
                             setState(() {
-                              // _searchText =
-                              //     value; // Update state with search input
+                              // Handle search input
                             });
                           },
                           decoration: InputDecoration(
@@ -212,7 +247,7 @@ class HomePageState extends State<HomePage> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16), // Right padding
+                      const SizedBox(width: 16),
                     ],
                   ),
                 ),

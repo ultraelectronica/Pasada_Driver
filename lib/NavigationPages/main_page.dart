@@ -18,10 +18,11 @@ class MainPageState extends State<MainPage> {
     const HomeScreen(),
     const ActivityPage(),
     const NotificationPage(),
-    const ProfilePage(driverStatus: "Online"), //needed to connect to database to sync the driver status
+    const ProfilePage(
+        driverStatus:
+            "Online"), //needed to connect to database to sync the driver status
     const SettingsPage(),
   ];
-  
 
   int currentIndex = 0;
   void onTap(int index) {
