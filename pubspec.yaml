@@ -84,6 +84,7 @@ flutter:
     - assets/svg/notificationSelectedIcon.svg
     - assets/svg/profileSelectedIcon.svg
     - assets/svg/settingsSelectedIcon.svg
+    - assets/svg/message.svg
 
   # To add assets to your application, add an assets section, like this:
   # assets:

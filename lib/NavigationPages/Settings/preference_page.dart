@@ -11,7 +11,7 @@ class _PreferencePageState extends State<PreferencePage> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Text('Preference Page'),
+      body: Center(child: Text('Preference Page')),
     );
   }
 }

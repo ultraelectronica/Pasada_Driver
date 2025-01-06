@@ -11,7 +11,7 @@ class _SupportPageState extends State<SupportPage> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Text('Support Page'),
+      body: Center(child: Text('Support Page')),
     );
   }
 }

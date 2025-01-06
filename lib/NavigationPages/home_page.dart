@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:location/location.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:pasada_driver_side/global.dart';
 
 void main() => runApp(const HomeScreen());
 
@@ -37,11 +39,71 @@ class HomePageState extends State<HomePage> {
   LocationData? _currentLocation;
   late Location _location;
 
+  void _showGoOnlineDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true, // Prevent dismissing by tapping outside
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Welcome Manong!'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'To start getting passengers, go online.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                ),
+              ),
+              const SizedBox(height: 20), // Add some spacing
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      print(GlobalVar().isOnline);
+                      GlobalVar().isOnline = true;
+                      print(GlobalVar().isOnline);
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 30, vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    elevation: 8,
+                    backgroundColor: Colors.black,
+                  ),
+                  child: const Text(
+                    'Go Online',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     _location = Location();
     _checkPermissionsAndNavigate();
+
+    if (!GlobalVar().isOnline) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showGoOnlineDialog();
+      });
+    }
   }
 
   Future<void> _checkPermissionsAndNavigate() async {
@@ -209,7 +271,56 @@ class HomePageState extends State<HomePage> {
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: const Icon(Icons.my_location,
-                      color: Colors.black, size: 25),
+                      color: Colors.black, size: 26),
+                ),
+              ),
+            ),
+
+            // FLOATING MESSAGE BUTTON
+            Positioned(
+              bottom: screenHeight * 0.1,
+              right: screenWidth * 0.05,
+              child: SizedBox(
+                width: 50,
+                height: 50,
+                child: FloatingActionButton(
+                  onPressed: () {},
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: SvgPicture.asset(
+                    'assets/svg/message.svg',
+                    height: 20,
+                    width: 20,
+                  ),
+                ),
+              ),
+            ),
+
+            // PASSENGER CAPACITY
+            Positioned(
+              bottom: screenHeight * 0.175,
+              right: screenWidth * 0.05,
+              child: SizedBox(
+                width: 50,
+                height: 50,
+                child: FloatingActionButton(
+                  onPressed: () {},
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: TextButton(
+                      onPressed: () {},
+                      child: const Text(
+                        '00',
+                        style: TextStyle(
+                            fontFamily: 'Intern',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 22,
+                            color: Colors.black),
+                      )),
                 ),
               ),
             ),
