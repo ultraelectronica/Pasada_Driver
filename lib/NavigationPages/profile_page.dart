@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:pasada_driver_side/global.dart';
 
 class ProfilePage extends StatefulWidget {
   final String driverStatus;
@@ -88,11 +89,19 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // Update driver status and close bottom sheet
-  void _updateStatus(String newStatus) {
-    setState(() {
-      currentStatus = newStatus;
-    });
-    Navigator.of(context).pop();
+  void _updateStatus(String newStatus) async {
+    try {
+      setState(() {
+        currentStatus = newStatus;
+        GlobalVar().updateStatus(GlobalVar().driverStatus.indexOf(newStatus));
+      });
+      // await _updateStatusInDatabase(newStatus);
+      Navigator.of(context).pop();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update status: $e')),
+      );
+    }
   }
 
   @override
@@ -143,38 +152,40 @@ class _ProfilePageState extends State<ProfilePage> {
 
 //driver status
   Widget _buildDriverStatus() {
-    return InkWell(
-      onTap: _showStatusOptions,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        height: 30,
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: Theme.of(context).primaryColor,
-            width: 2.0,
-          ),
+    return ValueListenableBuilder<String>(
+      valueListenable: GlobalVar().currentStatusNotifier,
+      builder: (context, status, child) {
+        return InkWell(
+          onTap: _showStatusOptions,
           borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Colored dot
-            Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: statusColors[currentStatus],
-                shape: BoxShape.circle,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            height: 30,
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: Theme.of(context).primaryColor,
+                width: 2.0,
               ),
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(width: 8),
-
-            // Status text
-            Text(currentStatus),
-          ],
-        ),
-      ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: statusColors[status],
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(status),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

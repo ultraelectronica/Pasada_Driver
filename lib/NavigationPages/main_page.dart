@@ -5,6 +5,7 @@ import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/notification_page.dart';
 import 'package:pasada_driver_side/NavigationPages/profile_page.dart';
 import 'package:pasada_driver_side/NavigationPages/settings_page.dart';
+import 'package:pasada_driver_side/global.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -18,9 +19,12 @@ class MainPageState extends State<MainPage> {
     const HomeScreen(),
     const ActivityPage(),
     const NotificationPage(),
-    const ProfilePage(
-        driverStatus:
-            "Online"), //needed to connect to database to sync the driver status
+    ValueListenableBuilder<String>(
+      valueListenable: GlobalVar().currentStatusNotifier,
+      builder: (context, currentStatus, _) {
+        return ProfilePage(driverStatus: currentStatus);
+      },
+    ),
     const SettingsPage(),
   ];
 
