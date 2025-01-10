@@ -1,6 +1,6 @@
-//this class is used for data changes when a button is pressed. it doesn't work on the same class but i might implement this in the database class. for now. this is what im gonna use.
+//this class is used for driver status changes, specifically when a button is pressed. it doesn't work on the same class but i might implement this in the database class. for now. this is what im gonna use.
 
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 class GlobalVar {
   static final GlobalVar _instance = GlobalVar._internal();
@@ -16,9 +16,13 @@ class GlobalVar {
 
   void updateStatus(int index) {
     if (index >= 0 && index < driverStatus.length) {
-      print("current stastus:" + currentStatusNotifier.toString());
+      if (kDebugMode) {
+        print("current stastus:$currentStatusNotifier");
+      }
       currentStatusNotifier.value = driverStatus[index];
-      print("updated stastus:" + currentStatusNotifier.toString());
+      if (kDebugMode) {
+        print("updated stastus:$currentStatusNotifier");
+      }
     } else {
       throw RangeError("Invalid index for driverStatus.");
     }

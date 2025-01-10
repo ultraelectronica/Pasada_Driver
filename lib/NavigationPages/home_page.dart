@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:location/location.dart';
@@ -61,9 +62,13 @@ class HomePageState extends State<HomePage> {
                 child: ElevatedButton(
                   onPressed: () {
                     setState(() {
-                      print(GlobalVar().isOnline);
+                      if (kDebugMode) {
+                        print(GlobalVar().isOnline);
+                      }
                       GlobalVar().isOnline = true;
-                      print(GlobalVar().isOnline);
+                      if (kDebugMode) {
+                        print(GlobalVar().isOnline);
+                      }
                     });
                     Navigator.of(context).pop();
                   },
