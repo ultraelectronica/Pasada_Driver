@@ -9,6 +9,9 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // appBar: AppBar(
+      //   title: const Text('Settings'),
+      // ),
       body: Padding(
         padding: EdgeInsets.only(
           top: MediaQuery.of(context).size.height * 0.15, 

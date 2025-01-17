@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 // import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LogIn extends StatefulWidget {
   const LogIn({super.key});
@@ -11,12 +12,58 @@ class LogIn extends StatefulWidget {
 }
 
 class _LogInState extends State<LogIn> {
-  final TextEditingController inputDriverIDController = TextEditingController();
-  final TextEditingController inputPasswordController = TextEditingController();
+  final inputDriverIDController = TextEditingController();
+  final inputPasswordController = TextEditingController();
   final String passwordSample = '';
   final String emailSample = '';
   bool isPasswordVisible = false;
   String errorMessage = '';
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    inputDriverIDController.dispose();
+    inputPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _logIn() async {
+    setState(() {
+      _loading = true;
+    });
+
+    try {
+      final driverId = inputDriverIDController.text.trim();
+      final password = inputPasswordController.text.trim();
+
+      final response = await Supabase.instance.client.auth.signInWithPassword(
+        email: driverId,
+        password: password,
+      );
+      if (response.user != null) {
+        if (mounted) {
+          Navigator.pushReplacement(context,
+              MaterialPageRoute(builder: (context) => const MainPage()));
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Error during login')),
+            );
+          }
+        }
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error during login: ${error.toString()}')),
+        );
+      }
+    } finally {
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
 
   void checkPasswordEmail() {
     if (inputPasswordController.text == passwordSample &&
@@ -69,21 +116,24 @@ class _LogInState extends State<LogIn> {
         margin: const EdgeInsets.only(top: 120),
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: checkPasswordEmail,
+          // onPressed: checkPasswordEmail,
+          onPressed: _logIn,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF5F3FC4),
             minimumSize: const Size(240, 45),
             shadowColor: Colors.black,
           ),
-          child: const Text(
-            'Log in',
-            style: TextStyle(
-              color: Color(0xFFF2F2F2),
-              fontWeight: FontWeight.w600,
-              fontSize: 20,
-              fontFamily: 'Inter',
-            ),
-          ),
+          child: _loading
+              ? const CircularProgressIndicator()
+              : const Text(
+                  'Log in',
+                  style: TextStyle(
+                    color: Color(0xFFF2F2F2),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 20,
+                    fontFamily: 'Inter',
+                  ),
+                ),
         ),
       ),
     );
