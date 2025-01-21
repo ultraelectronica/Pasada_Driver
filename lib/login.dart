@@ -19,6 +19,7 @@ class _LogInState extends State<LogIn> {
   bool isPasswordVisible = false;
   String errorMessage = '';
   bool _loading = false;
+  String _driver_status = 'Offline';
 
   @override
   void dispose() {
@@ -27,55 +28,81 @@ class _LogInState extends State<LogIn> {
     super.dispose();
   }
 
-  Future<void> _logIn() async {
-    setState(() {
-      _loading = true;
-    });
+  Future<void> _LogIn() async {
+    final enteredDriverID = inputDriverIDController.text.trim();
+    final enteredPassword = inputPasswordController.text.trim();
+
+    if (enteredDriverID.isEmpty || enteredPassword.isEmpty) {
+      _showMessage('Please fill in all fields');
+      return;
+    }
 
     try {
-      final driverId = inputDriverIDController.text.trim();
-      final password = inputPasswordController.text.trim();
+      final response = await Supabase.instance.client
+          .from('driverTable') 
+          .select('driverID') // Only retrieve driverID
+          .eq('driverID', enteredDriverID) // Match driverID
+          .eq('driverPassword', enteredPassword) // Match password
+          .single(); // Expect one result
 
-      final response = await Supabase.instance.client.auth.signInWithPassword(
-        email: driverId,
-        password: password,
-      );
-      if (response.user != null) {
-        if (mounted) {
-          Navigator.pushReplacement(context,
-              MaterialPageRoute(builder: (context) => const MainPage()));
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Error during login')),
-            );
-          }
-        }
+      if (response != null) {
+        _showMessage('Login successful! Welcome Manong!, $enteredDriverID');
+        // Proceed to next screen or perform other actions
+        Navigator.push(
+            context, MaterialPageRoute(builder: (context) => const MainPage()));
       }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error during login: ${error.toString()}')),
-        );
-      }
-    } finally {
-      setState(() {
-        _loading = false;
-      });
+    } catch (e) {
+      _showMessage('Invalid credentials. Please try again.');
+      _debugQuery();
     }
   }
 
-  void checkPasswordEmail() {
-    if (inputPasswordController.text == passwordSample &&
-        inputDriverIDController.text == emailSample) {
-      Navigator.push(
-          context, MaterialPageRoute(builder: (context) => const MainPage()));
-    } else {
-      setState(() {
-        errorMessage = 'Incorrect password or email. Please try again.';
-      });
+// CHECK THIS BEFORE FINALIZING
+  Future<void> _debugQuery() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('driverTable') 
+          .select(); // Fetch all rows
+
+      print('Raw Response: $response');
+    } catch (e) {
+      print('Error: $e');
     }
   }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  // Future<void> _getDriverStatus() async {
+  //   final supabaseUser = Supabase.instance.client.auth.currentUser;
+
+  //   if (supabaseUser != null) {
+  //     try {
+  //       final response = await Supabase.instance.client
+  //           .from('driverTable')
+  //           .select('driverStatus')
+  //           .eq('email', supabaseUser.email)
+  //           .single();
+
+  //       if (response.data != null) {
+  //         setState(() {
+  //           _driver_status = response.data.toString();
+  //           print('Current driver status in the db: $_driver_status');
+  //         });
+  //       } else {
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           SnackBar(
+  //               content: Text('Error occured: ${response.data.toString()}')),
+  //         );
+  //       }
+  //     } catch (e) {
+  //       print(e);
+  //     }
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -116,8 +143,7 @@ class _LogInState extends State<LogIn> {
         margin: const EdgeInsets.only(top: 120),
         width: double.infinity,
         child: ElevatedButton(
-          // onPressed: checkPasswordEmail,
-          onPressed: _logIn,
+          onPressed: _LogIn,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF5F3FC4),
             minimumSize: const Size(240, 45),

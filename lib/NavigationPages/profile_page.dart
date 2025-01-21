@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/global.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfilePage extends StatefulWidget {
   final String driverStatus;
@@ -13,6 +14,8 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late String currentStatus;
+
+  // final _future = Supabase.instance.client.from('driverTable').select('driverStatus');
 
   @override
   void initState() {

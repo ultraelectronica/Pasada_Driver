@@ -41,7 +41,7 @@ dependencies:
   location: ^7.0.1
   url_launcher: ^6.3.1
   webview_flutter: ^4.10.0
-  supabase_flutter: ^1.0.0  # Use the latest version
+  supabase_flutter: ^2.0.0 
 
 
   # The following adds the Cupertino Icons font to your application.
