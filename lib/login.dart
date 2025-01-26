@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 // import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
+import 'package:pasada_driver_side/driver_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LogIn extends StatefulWidget {
@@ -39,13 +41,15 @@ class _LogInState extends State<LogIn> {
 
     try {
       final response = await Supabase.instance.client
-          .from('driverTable') 
+          .from('driverTable')
           .select('driverID') // Only retrieve driverID
           .eq('driverID', enteredDriverID) // Match driverID
           .eq('driverPassword', enteredPassword) // Match password
           .single(); // Expect one result
 
       if (response != null) {
+         context.read<DriverProvider>().setDriverID(response['driverID']);
+
         _showMessage('Login successful! Welcome Manong!, $enteredDriverID');
         // Proceed to next screen or perform other actions
         Navigator.push(
@@ -61,7 +65,7 @@ class _LogInState extends State<LogIn> {
   Future<void> _debugQuery() async {
     try {
       final response = await Supabase.instance.client
-          .from('driverTable') 
+          .from('driverTable')
           .select(); // Fetch all rows
 
       print('Raw Response: $response');

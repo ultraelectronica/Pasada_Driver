@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:pasada_driver_side/driver_provider.dart';
 import 'package:pasada_driver_side/global.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -14,6 +17,7 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late String currentStatus;
+  String _currentStatus = 'Online';
 
   // final _future = Supabase.instance.client.from('driverTable').select('driverStatus');
 
@@ -107,6 +111,23 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+//new backend
+  Future<void> _updateDriverStatus(String status) async {
+    setState(() {
+      _currentStatus = status;
+    });
+    _updateStatusToDb();
+  }
+
+  Future<void> _updateStatusToDb() async {
+    final String? userId = context
+        .read<DriverProvider>()
+        .driverID; // Get the driverID from the provider
+
+
+  }
+
+//PAGE CONTENT
   @override
   Widget build(BuildContext context) {
     final double paddingValue = MediaQuery.of(context).size.width * 0.05;
