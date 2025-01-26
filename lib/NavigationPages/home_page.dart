@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:location/location.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:pasada_driver_side/global.dart';
 
 void main() => runApp(const HomeScreen());
 
@@ -18,13 +21,10 @@ class HomeScreen extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const HomePage(title: 'Pasada'),
-      routes: <String, WidgetBuilder>{
-
-      },
+      routes: const <String, WidgetBuilder>{},
     );
   }
 }
-
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key, required this.title});
@@ -35,16 +35,80 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> {
-  String _searchText = "";
+  // String _searchText = "";
   late GoogleMapController mapController;
   LocationData? _currentLocation;
   late Location _location;
+
+  void _showGoOnlineDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true, // Prevent dismissing by tapping outside
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Welcome Manong!'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'To start getting passengers, go online.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                ),
+              ),
+              const SizedBox(height: 20), // Add some spacing
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      if (kDebugMode) {
+                        print(GlobalVar().isOnline);
+                      }
+                      GlobalVar().isOnline = true;
+                      if (kDebugMode) {
+                        print(GlobalVar().isOnline);
+                      }
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 30, vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    elevation: 8,
+                    backgroundColor: Colors.black,
+                  ),
+                  child: const Text(
+                    'Go Online',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     _location = Location();
     _checkPermissionsAndNavigate();
+
+    if (!GlobalVar().isOnline) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showGoOnlineDialog();
+      });
+    }
   }
 
   Future<void> _checkPermissionsAndNavigate() async {
@@ -62,10 +126,11 @@ class HomePageState extends State<HomePage> {
       PermissionStatus permissionGranted = await _location.hasPermission();
       if (permissionGranted == PermissionStatus.denied) {
         permissionGranted = await _location.requestPermission();
-        if(permissionGranted != PermissionStatus.granted) {
+        if (permissionGranted != PermissionStatus.granted) {
           _showPermissionDialog();
           return;
         }
+        //what will happen if rejected?
       }
       // get current location
       _currentLocation = await _location.getLocation();
@@ -87,14 +152,14 @@ class HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Permission Required'),
-        content: Text(
+        title: const Text('Permission Required'),
+        content: const Text(
           'This app needs location permission to work. Please allow it in your settings.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Ok'),
+            child: const Text('Ok'),
           ),
         ],
       ),
@@ -105,14 +170,14 @@ class HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Enable Location Services'),
-        content: Text(
+        title: const Text('Enable Location Services'),
+        content: const Text(
           'Location services are disabled. Please enable them to use this feature.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('OK'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -123,12 +188,13 @@ class HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Location Error'),
-        content: Text('Unable to fetch the current location. Please try again later.'),
+        title: const Text('Location Error'),
+        content: const Text(
+            'Unable to fetch the current location. Please try again later.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('OK'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -139,12 +205,12 @@ class HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Error'),
+        title: const Text('Error'),
         content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('OK'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -158,14 +224,16 @@ class HomePageState extends State<HomePage> {
 
     // ensure that the location is fetched before building the map
     if (_currentLocation == null) {
-      return Scaffold(
+      return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
+
     return Scaffold(
       body: SafeArea(
         child: Stack(
           children: [
+            // GOOGLE MAPS
             GoogleMap(
               onMapCreated: _onMapCreated,
               initialCameraPosition: CameraPosition(
@@ -176,35 +244,116 @@ class HomePageState extends State<HomePage> {
                 zoom: 15,
               ),
               myLocationEnabled: true,
-              myLocationButtonEnabled: true,
+              myLocationButtonEnabled: false, // there will be a custom button
               mapType: MapType.normal,
+              zoomControlsEnabled: false,
+              // trafficEnabled: true, // i just found this kaya try to uncomment this
             ),
-            // Floating search bar
+
+            // CUSTOM MY LOCATION BUTTON
             Positioned(
-              top: screenHeight * 0.02, // 2% from the top of the screen
-              left: screenWidth * 0.05, // 5% padding from the left
-              right: screenWidth * 0.05, // 5% padding from the right
+              bottom: screenHeight * 0.025,
+              right: screenWidth * 0.05,
+              child: SizedBox(
+                width: 50,
+                height: 50,
+                child: FloatingActionButton(
+                  onPressed: () {
+                    mapController.animateCamera(
+                      CameraUpdate.newCameraPosition(
+                        CameraPosition(
+                          target: LatLng(
+                            _currentLocation!.latitude!,
+                            _currentLocation!.longitude!,
+                          ),
+                          zoom: 15,
+                        ),
+                      ),
+                    );
+                  },
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: const Icon(Icons.my_location,
+                      color: Colors.black, size: 26),
+                ),
+              ),
+            ),
+
+            // FLOATING MESSAGE BUTTON
+            Positioned(
+              bottom: screenHeight * 0.1,
+              right: screenWidth * 0.05,
+              child: SizedBox(
+                width: 50,
+                height: 50,
+                child: FloatingActionButton(
+                  onPressed: () {},
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: SvgPicture.asset(
+                    'assets/svg/message.svg',
+                    height: 20,
+                    width: 20,
+                  ),
+                ),
+              ),
+            ),
+
+            // PASSENGER CAPACITY
+            Positioned(
+              bottom: screenHeight * 0.175,
+              right: screenWidth * 0.05,
+              child: SizedBox(
+                width: 50,
+                height: 50,
+                child: FloatingActionButton(
+                  onPressed: () {},
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: TextButton(
+                      onPressed: () {},
+                      child: const Text(
+                        '00',
+                        style: TextStyle(
+                            fontFamily: 'Intern',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 22,
+                            color: Colors.black),
+                      )),
+                ),
+              ),
+            ),
+
+            // FLOATING SEARCH BAR
+            Positioned(
+              top: screenHeight * 0.02,
+              left: screenWidth * 0.05,
+              right: screenWidth * 0.05,
               child: Material(
                 elevation: 4,
                 borderRadius: BorderRadius.circular(24),
                 child: Container(
-                  height:
-                      screenHeight * 0.06, // Adjust height based on screen size
+                  height: screenHeight * 0.06,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(24),
                     color: Colors.white,
                   ),
                   child: Row(
                     children: [
-                      const SizedBox(width: 16), // Left padding
+                      const SizedBox(width: 16),
                       const Icon(Icons.search, color: Colors.grey),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           onChanged: (value) {
                             setState(() {
-                              _searchText =
-                                  value; // Update state with search input
+                              // Handle search input
                             });
                           },
                           decoration: InputDecoration(
@@ -214,7 +363,7 @@ class HomePageState extends State<HomePage> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16), // Right padding
+                      const SizedBox(width: 16),
                     ],
                   ),
                 ),
@@ -222,15 +371,15 @@ class HomePageState extends State<HomePage> {
             ),
 
             // Displaying search input for testing purposes
-            Positioned(
-              top: screenHeight * 0.12,
-              left: screenWidth * 0.05,
-              right: screenWidth * 0.05,
-              child: Text(
-                _searchText.isNotEmpty ? 'You searched for: $_searchText' : '',
-                style: const TextStyle(color: Colors.black, fontSize: 16),
-              ),
-            ),
+            // Positioned(
+            //   top: screenHeight * 0.12,
+            //   left: screenWidth * 0.05,
+            //   right: screenWidth * 0.05,
+            //   child: Text(
+            //     _searchText.isNotEmpty ? 'You searched for: $_searchText' : '',
+            //     style: const TextStyle(color: Colors.black, fontSize: 16),
+            //   ),
+            // ),
           ],
         ),
       ),

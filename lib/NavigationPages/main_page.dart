@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-// import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/NavigationPages/activity_page.dart';
 import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/notification_page.dart';
 import 'package:pasada_driver_side/NavigationPages/profile_page.dart';
 import 'package:pasada_driver_side/NavigationPages/settings_page.dart';
+import 'package:pasada_driver_side/global.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -16,11 +16,16 @@ class MainPage extends StatefulWidget {
 
 class MainPageState extends State<MainPage> {
   List pages = [
-    HomeScreen(),
-    ActivityPage(),
-    NotificationPage(),
-    ProfilePage(),
-    SettingsPage(),
+    const HomeScreen(),
+    const ActivityPage(),
+    const NotificationPage(),
+    ValueListenableBuilder<String>(
+      valueListenable: GlobalVar().currentStatusNotifier,
+      builder: (context, currentStatus, _) {
+        return ProfilePage(driverStatus: currentStatus);
+      },
+    ),
+    const SettingsPage(),
   ];
 
   int currentIndex = 0;
@@ -40,7 +45,7 @@ class MainPageState extends State<MainPage> {
         // type: BottomNavigationBarType.fixed,
         onTap: onTap,
         currentIndex: currentIndex,
-        unselectedItemColor: Colors.grey.withOpacity(.8),
+        unselectedItemColor: Colors.grey,
         selectedItemColor: const Color(0xFF5F3FC4),
         showSelectedLabels: true,
         showUnselectedLabels: true,

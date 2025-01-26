@@ -41,6 +41,8 @@ dependencies:
   location: ^7.0.1
   url_launcher: ^6.3.1
   webview_flutter: ^4.10.0
+  supabase_flutter: ^2.0.0 
+
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -84,6 +86,7 @@ flutter:
     - assets/svg/notificationSelectedIcon.svg
     - assets/svg/profileSelectedIcon.svg
     - assets/svg/settingsSelectedIcon.svg
+    - assets/svg/message.svg
 
   # To add assets to your application, add an assets section, like this:
   # assets:
