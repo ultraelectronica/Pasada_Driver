@@ -48,7 +48,7 @@ class _LogInState extends State<LogIn> {
           .single(); // Expect one result
 
       if (response != null) {
-         context.read<DriverProvider>().setDriverID(response['driverID']);
+        context.read<DriverProvider>().setDriverID(response['driverID'].toString());
 
         _showMessage('Login successful! Welcome Manong!, $enteredDriverID');
         // Proceed to next screen or perform other actions

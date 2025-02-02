@@ -40,6 +40,7 @@ class HomePageState extends State<HomePage> {
   LocationData? _currentLocation;
   late Location _location;
 
+//GO ONLINE DIALOG
   void _showGoOnlineDialog() {
     showDialog(
       context: context,
