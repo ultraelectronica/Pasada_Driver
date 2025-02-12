@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 // import 'package:pasada_driver_side/NavigationPages/home_page.dart';
@@ -20,8 +21,7 @@ class _LogInState extends State<LogIn> {
   final String emailSample = '';
   bool isPasswordVisible = false;
   String errorMessage = '';
-  bool _loading = false;
-  String _driver_status = 'Offline';
+  final bool _loading = false;
 
   @override
   void dispose() {
@@ -30,7 +30,7 @@ class _LogInState extends State<LogIn> {
     super.dispose();
   }
 
-  Future<void> _LogIn() async {
+  Future<void> _logIn() async {
     final enteredDriverID = inputDriverIDController.text.trim();
     final enteredPassword = inputPasswordController.text.trim();
 
@@ -47,14 +47,15 @@ class _LogInState extends State<LogIn> {
           .eq('driverPassword', enteredPassword) // Match password
           .single(); // Expect one result
 
-      if (response != null) {
-        context.read<DriverProvider>().setDriverID(response['driverID'].toString());
-
-        _showMessage('Login successful! Welcome Manong!, $enteredDriverID');
-        // Proceed to next screen or perform other actions
-        Navigator.push(
-            context, MaterialPageRoute(builder: (context) => const MainPage()));
+      if (mounted) {
+        context
+            .read<DriverProvider>()
+            .setDriverID(response['driverID'].toString());
       }
+      _showMessage('Login successful! Welcome Manong!, $enteredDriverID');
+      // Proceed to next screen or perform other actions
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => const MainPage()));
     } catch (e) {
       _showMessage('Invalid credentials. Please try again.');
       _debugQuery();
@@ -68,9 +69,13 @@ class _LogInState extends State<LogIn> {
           .from('driverTable')
           .select(); // Fetch all rows
 
-      print('Raw Response: $response');
+      if (kDebugMode) {
+        print('Raw Response: $response');
+      }
     } catch (e) {
-      print('Error: $e');
+      if (kDebugMode) {
+        print('Error: $e');
+      }
     }
   }
 
@@ -147,7 +152,7 @@ class _LogInState extends State<LogIn> {
         margin: const EdgeInsets.only(top: 120),
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: _LogIn,
+          onPressed: _logIn,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF5F3FC4),
             minimumSize: const Size(240, 45),

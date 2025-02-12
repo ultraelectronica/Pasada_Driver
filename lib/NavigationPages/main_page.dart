@@ -42,14 +42,13 @@ class MainPageState extends State<MainPage> {
 
       //BOTTOM NAVIGATION
       bottomNavigationBar: BottomNavigationBar(
-        // type: BottomNavigationBarType.fixed,
+        type: BottomNavigationBarType.shifting,
         onTap: onTap,
         currentIndex: currentIndex,
         unselectedItemColor: Colors.grey,
         selectedItemColor: const Color(0xFF5F3FC4),
         showSelectedLabels: true,
         showUnselectedLabels: true,
-
         selectedFontSize: 14,
         unselectedFontSize: 0,
         items: [

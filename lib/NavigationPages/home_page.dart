@@ -44,7 +44,7 @@ class HomePageState extends State<HomePage> {
   void _showGoOnlineDialog() {
     showDialog(
       context: context,
-      barrierDismissible: true, // Prevent dismissing by tapping outside
+      barrierDismissible: true, // Enables dismissing dialog by tapping outside
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Welcome Manong!'),
@@ -52,7 +52,7 @@ class HomePageState extends State<HomePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'To start getting passengers, go online.',
+                'To start getting passengers, start driving.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 15,
@@ -83,7 +83,7 @@ class HomePageState extends State<HomePage> {
                     backgroundColor: Colors.black,
                   ),
                   child: const Text(
-                    'Go Online',
+                    'Start Driving',
                     style: TextStyle(
                         fontSize: 16,
                         fontFamily: 'Inter',
@@ -248,7 +248,7 @@ class HomePageState extends State<HomePage> {
               myLocationButtonEnabled: false, // there will be a custom button
               mapType: MapType.normal,
               zoomControlsEnabled: false,
-              // trafficEnabled: true, // i just found this kaya try to uncomment this
+              trafficEnabled: true, // i just found this kaya try to uncomment this
             ),
 
             // CUSTOM MY LOCATION BUTTON
