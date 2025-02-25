@@ -42,16 +42,20 @@ class _LogInState extends State<LogIn> {
     try {
       final response = await Supabase.instance.client
           .from('driverTable')
-          .select('driverID') // Only retrieve driverID
+          .select('driverID, vehicleID') // Only retrieve driverID
           .eq('driverID', enteredDriverID) // Match driverID
           .eq('driverPassword', enteredPassword) // Match password
-          .single(); // Expect one result
+          .single();
 
       if (mounted) {
         context
             .read<DriverProvider>()
             .setDriverID(response['driverID'].toString());
+
+        context.read<DriverProvider>().setVehicleID(response['vehicleID'].toString());
+        print('Vehicle ID: ${response['vehicleID']}');
       }
+
       _showMessage('Login successful! Welcome Manong!, $enteredDriverID');
       // Proceed to next screen or perform other actions
       Navigator.push(
@@ -69,8 +73,12 @@ class _LogInState extends State<LogIn> {
           .from('driverTable')
           .select(); // Fetch all rows
 
+      final vehicleResponse =
+          await Supabase.instance.client.from('vehicleTable').select();
+
       if (kDebugMode) {
-        print('Raw Response: $response');
+        print('DriverTable Response: $response');
+        print('VehicleTable Response $vehicleResponse');
       }
     } catch (e) {
       if (kDebugMode) {

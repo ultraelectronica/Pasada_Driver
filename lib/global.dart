@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:pasada_driver_side/driver_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class GlobalVar {
   static final GlobalVar _instance = GlobalVar._internal();
@@ -35,6 +36,8 @@ class GlobalVar {
 
     if (kDebugMode) {
       print('reading driver status from DB: ${response['drivingStatus']}');
+      Fluttertoast.showToast(
+          msg: 'status updated to ${response['drivingStatus']}');
     }
 
     currentStatusNotifier.value = response['drivingStatus'];
@@ -56,7 +59,9 @@ class GlobalVar {
       currentStatusNotifier.value = driverStatus[index];
 
       //updates the driver status in the provider
-      context.read<DriverProvider>().setDriverID(currentStatusNotifier.value);
+      context
+          .read<DriverProvider>()
+          .setDriverStatus(currentStatusNotifier.value);
 
       //updates the database
       updateStatusToDB(currentStatusNotifier.value, context);
@@ -87,7 +92,7 @@ class GlobalVar {
         .from('driverTable')
         .update({'drivingStatus': newStatus})
         .eq('driverID', driverID)
-        .select() //remove this to lessen the data needed to use the app's internet. this is for debugging purpose only
+        .select()
         .single();
 
     if (kDebugMode) {
