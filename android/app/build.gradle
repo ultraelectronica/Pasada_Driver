@@ -5,10 +5,21 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+apply plugin: 'com.android.application'
+
+def env = new Properties()
+def envFile = rootProject.file('.env')
+if (envFile.exists()) {
+    envFile.withReader('UTF-8') { reader ->
+        env.load(reader)
+    }
+}
+
 android {
     namespace = "com.example.pasada_driver_side"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -28,6 +39,11 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        manifestPlaceholders = [
+            mapsApiKey: env['ANDROID_MAPS_API_KEY'] ?: ""
+        ]
+
     }
 
     buildTypes {

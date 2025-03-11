@@ -33,7 +33,7 @@ dependencies:
     sdk: flutter
   flutter_animate: ^4.5.2
   flutter_svg: ^2.0.16
-  google_maps_flutter: ^2.10.0
+  google_maps_flutter: ^2.10.1
   google_maps_flutter_android: ^2.14.11
   geolocator: ^13.0.2
   geocoding: ^3.0.0
@@ -90,6 +90,7 @@ flutter:
     - assets/svg/profileSelectedIcon.svg
     - assets/svg/settingsSelectedIcon.svg
     - assets/svg/message.svg
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:

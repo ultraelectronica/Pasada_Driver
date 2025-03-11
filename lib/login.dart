@@ -40,9 +40,10 @@ class _LogInState extends State<LogIn> {
     }
 
     try {
+      //Query to get the driverID and password from the driverTable
       final response = await Supabase.instance.client
           .from('driverTable')
-          .select('driverID, vehicleID') // Only retrieve driverID
+          .select('driverID, vehicleID') // Only retrieve driverID and vehicleID
           .eq('driverID', enteredDriverID) // Match driverID
           .eq('driverPassword', enteredPassword) // Match password
           .single();
@@ -52,8 +53,11 @@ class _LogInState extends State<LogIn> {
             .read<DriverProvider>()
             .setDriverID(response['driverID'].toString());
 
+        // Saves the driver's vehicle ID to the provider
         context.read<DriverProvider>().setVehicleID(response['vehicleID'].toString());
-        print('Vehicle ID: ${response['vehicleID']}');
+        if (kDebugMode) {
+          print('Vehicle ID: ${response['vehicleID']}');
+        }
       }
 
       _showMessage('Login successful! Welcome Manong!, $enteredDriverID');

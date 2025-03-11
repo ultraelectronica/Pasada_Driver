@@ -40,7 +40,7 @@ class HomePage extends StatefulWidget {
 
 class HomePageState extends State<HomePage> {
   int Capacity = 0;
-  // String _searchText = "";
+  String _searchText = "";
   late GoogleMapController mapController;
   LocationData? _currentLocation;
   late Location _location;
@@ -309,6 +309,7 @@ class HomePageState extends State<HomePage> {
                 width: 50,
                 height: 50,
                 child: FloatingActionButton(
+                  heroTag: null,
                   onPressed: () {},
                   backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
@@ -331,6 +332,7 @@ class HomePageState extends State<HomePage> {
                 width: 50,
                 height: 50,
                 child: FloatingActionButton(
+                  heroTag: null,
                   onPressed: () {},
                   backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
