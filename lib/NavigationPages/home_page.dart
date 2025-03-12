@@ -1,9 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:location/location.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:pasada_driver_side/NavigationPages/PassengerCapacity/passenger_capacity.dart';
+import 'package:pasada_driver_side/driver_provider.dart';
 import 'package:pasada_driver_side/global.dart';
+import 'package:provider/provider.dart';
 
 void main() => runApp(const HomeScreen());
 
@@ -35,15 +39,42 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> {
-  // String _searchText = "";
+  int Capacity = 0;
+  String _searchText = "";
   late GoogleMapController mapController;
   LocationData? _currentLocation;
   late Location _location;
 
+  Future<void> getPassengerCapacity() async {
+    await PassengerCapacity().getPassengerCapacityToDB(context);
+    Capacity = context.read<DriverProvider>().passengerCapacity!;
+
+    if (Capacity != null) {
+      Fluttertoast.showToast(msg: 'Vehicle Capacity: ${Capacity.toString()}');
+    } else {
+      Fluttertoast.showToast(msg: 'Vehicle Capacity is not available.');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _location = Location();
+    _checkPermissionsAndNavigate();
+
+    if (!GlobalVar().isOnline) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showGoOnlineDialog();
+      });
+    }
+    getPassengerCapacity();
+  }
+
+//GO ONLINE DIALOG
   void _showGoOnlineDialog() {
     showDialog(
       context: context,
-      barrierDismissible: true, // Prevent dismissing by tapping outside
+      barrierDismissible: true, // Enables dismissing dialog by tapping outside
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Welcome Manong!'),
@@ -51,7 +82,7 @@ class HomePageState extends State<HomePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'To start getting passengers, go online.',
+                'To start getting passengers, start driving.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 15,
@@ -82,7 +113,7 @@ class HomePageState extends State<HomePage> {
                     backgroundColor: Colors.black,
                   ),
                   child: const Text(
-                    'Go Online',
+                    'Start Driving',
                     style: TextStyle(
                         fontSize: 16,
                         fontFamily: 'Inter',
@@ -96,19 +127,6 @@ class HomePageState extends State<HomePage> {
         );
       },
     );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _location = Location();
-    _checkPermissionsAndNavigate();
-
-    if (!GlobalVar().isOnline) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showGoOnlineDialog();
-      });
-    }
   }
 
   Future<void> _checkPermissionsAndNavigate() async {
@@ -219,6 +237,7 @@ class HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    String passengerCapacity = '0';
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
@@ -247,7 +266,8 @@ class HomePageState extends State<HomePage> {
               myLocationButtonEnabled: false, // there will be a custom button
               mapType: MapType.normal,
               zoomControlsEnabled: false,
-              // trafficEnabled: true, // i just found this kaya try to uncomment this
+              trafficEnabled:
+                  true, // i just found this kaya try to uncomment this
             ),
 
             // CUSTOM MY LOCATION BUTTON
@@ -289,6 +309,7 @@ class HomePageState extends State<HomePage> {
                 width: 50,
                 height: 50,
                 child: FloatingActionButton(
+                  heroTag: null,
                   onPressed: () {},
                   backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
@@ -311,6 +332,7 @@ class HomePageState extends State<HomePage> {
                 width: 50,
                 height: 50,
                 child: FloatingActionButton(
+                  heroTag: null,
                   onPressed: () {},
                   backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
@@ -318,9 +340,9 @@ class HomePageState extends State<HomePage> {
                   ),
                   child: TextButton(
                       onPressed: () {},
-                      child: const Text(
-                        '00',
-                        style: TextStyle(
+                      child: Text(
+                        Capacity.toString(),
+                        style: const TextStyle(
                             fontFamily: 'Intern',
                             fontWeight: FontWeight.w500,
                             fontSize: 22,

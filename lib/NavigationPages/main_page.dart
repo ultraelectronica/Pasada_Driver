@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:pasada_driver_side/NavigationPages/activity_page.dart';
 import 'package:pasada_driver_side/NavigationPages/home_page.dart';
+// import 'package:pasada_driver_side/NavigationPages/new_home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/notification_page.dart';
 import 'package:pasada_driver_side/NavigationPages/profile_page.dart';
 import 'package:pasada_driver_side/NavigationPages/settings_page.dart';
@@ -17,6 +18,7 @@ class MainPage extends StatefulWidget {
 class MainPageState extends State<MainPage> {
   List pages = [
     const HomeScreen(),
+    // const NewHomePage(),
     const ActivityPage(),
     const NotificationPage(),
     ValueListenableBuilder<String>(
@@ -42,14 +44,13 @@ class MainPageState extends State<MainPage> {
 
       //BOTTOM NAVIGATION
       bottomNavigationBar: BottomNavigationBar(
-        // type: BottomNavigationBarType.fixed,
+        type: BottomNavigationBarType.shifting,
         onTap: onTap,
         currentIndex: currentIndex,
         unselectedItemColor: Colors.grey,
         selectedItemColor: const Color(0xFF5F3FC4),
         showSelectedLabels: true,
         showUnselectedLabels: true,
-
         selectedFontSize: 14,
         unselectedFontSize: 0,
         items: [

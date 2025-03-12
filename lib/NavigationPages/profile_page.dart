@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/global.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfilePage extends StatefulWidget {
   final String driverStatus;
@@ -14,8 +13,6 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late String currentStatus;
-
-  // final _future = Supabase.instance.client.from('driverTable').select('driverStatus');
 
   @override
   void initState() {
@@ -31,72 +28,14 @@ class _ProfilePageState extends State<ProfilePage> {
     "Offline": Colors.grey,
   };
 
-  // Function to show a bottom sheet with status options
-  void _showStatusOptions() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              //Line which indicates that the pop up screen is swipeable
-              Container(
-                width: 40,
-                height: 5,
-                margin: const EdgeInsets.only(top: 16.0, bottom: 16.0),
-                decoration: BoxDecoration(
-                  color: Colors.grey[600],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              // Title
-              const Padding(
-                padding: EdgeInsets.only(bottom: 10.0),
-                child: Text(
-                  'Change Status',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              ...statusColors.keys.map((status) {
-                return Column(
-                  children: [
-                    ListTile(
-                      leading: Icon(Icons.circle, color: statusColors[status]),
-                      title: Text(status),
-                      onTap: () => _updateStatus(status),
-                    ),
-                    // line below the choices
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20.0),
-                      child: Divider(
-                        thickness: 1.0,
-                        color: Colors.grey,
-                        height: 1.0,
-                      ),
-                    ),
-                  ],
-                );
-              }),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  
 
   // Update driver status and close bottom sheet
   void _updateStatus(String newStatus) async {
     try {
       setState(() {
         currentStatus = newStatus;
-        GlobalVar().updateStatus(GlobalVar().driverStatus.indexOf(newStatus));
+        GlobalVar().updateStatus(GlobalVar().driverStatus.indexOf(newStatus), context);
       });
       // await _updateStatusInDatabase(newStatus);
       Navigator.of(context).pop();
@@ -186,6 +125,66 @@ class _ProfilePageState extends State<ProfilePage> {
                 Text(status),
               ],
             ),
+          ),
+        );
+      },
+    );
+  }
+  
+  // Function to show a bottom sheet with status options
+  void _showStatusOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              //Line which indicates that the pop up screen is swipeable
+              Container(
+                width: 40,
+                height: 5,
+                margin: const EdgeInsets.only(top: 16.0, bottom: 16.0),
+                decoration: BoxDecoration(
+                  color: Colors.grey[600],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              // Title
+              const Padding(
+                padding: EdgeInsets.only(bottom: 10.0),
+                child: Text(
+                  'Change Status',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              ...statusColors.keys.map((status) {
+                return Column(
+                  children: [
+                    ListTile(
+                      leading: Icon(Icons.circle, color: statusColors[status]),
+                      title: Text(status),
+                      onTap: () => _updateStatus(status),
+                    ),
+                    // line below the choices
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Divider(
+                        thickness: 1.0,
+                        color: Colors.grey,
+                        height: 1.0,
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ],
           ),
         );
       },

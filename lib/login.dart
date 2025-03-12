@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 // import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
+import 'package:pasada_driver_side/driver_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LogIn extends StatefulWidget {
@@ -18,8 +21,7 @@ class _LogInState extends State<LogIn> {
   final String emailSample = '';
   bool isPasswordVisible = false;
   String errorMessage = '';
-  bool _loading = false;
-  String _driver_status = 'Offline';
+  final bool _loading = false;
 
   @override
   void dispose() {
@@ -28,7 +30,7 @@ class _LogInState extends State<LogIn> {
     super.dispose();
   }
 
-  Future<void> _LogIn() async {
+  Future<void> _logIn() async {
     final enteredDriverID = inputDriverIDController.text.trim();
     final enteredPassword = inputPasswordController.text.trim();
 
@@ -38,19 +40,30 @@ class _LogInState extends State<LogIn> {
     }
 
     try {
+      //Query to get the driverID and password from the driverTable
       final response = await Supabase.instance.client
-          .from('driverTable') 
-          .select('driverID') // Only retrieve driverID
+          .from('driverTable')
+          .select('driverID, vehicleID') // Only retrieve driverID and vehicleID
           .eq('driverID', enteredDriverID) // Match driverID
           .eq('driverPassword', enteredPassword) // Match password
-          .single(); // Expect one result
+          .single();
 
-      if (response != null) {
-        _showMessage('Login successful! Welcome Manong!, $enteredDriverID');
-        // Proceed to next screen or perform other actions
-        Navigator.push(
-            context, MaterialPageRoute(builder: (context) => const MainPage()));
+      if (mounted) {
+        context
+            .read<DriverProvider>()
+            .setDriverID(response['driverID'].toString());
+
+        // Saves the driver's vehicle ID to the provider
+        context.read<DriverProvider>().setVehicleID(response['vehicleID'].toString());
+        if (kDebugMode) {
+          print('Vehicle ID: ${response['vehicleID']}');
+        }
       }
+
+      _showMessage('Login successful! Welcome Manong!, $enteredDriverID');
+      // Proceed to next screen or perform other actions
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => const MainPage()));
     } catch (e) {
       _showMessage('Invalid credentials. Please try again.');
       _debugQuery();
@@ -61,12 +74,20 @@ class _LogInState extends State<LogIn> {
   Future<void> _debugQuery() async {
     try {
       final response = await Supabase.instance.client
-          .from('driverTable') 
+          .from('driverTable')
           .select(); // Fetch all rows
 
-      print('Raw Response: $response');
+      final vehicleResponse =
+          await Supabase.instance.client.from('vehicleTable').select();
+
+      if (kDebugMode) {
+        print('DriverTable Response: $response');
+        print('VehicleTable Response $vehicleResponse');
+      }
     } catch (e) {
-      print('Error: $e');
+      if (kDebugMode) {
+        print('Error: $e');
+      }
     }
   }
 
@@ -143,7 +164,7 @@ class _LogInState extends State<LogIn> {
         margin: const EdgeInsets.only(top: 120),
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: _LogIn,
+          onPressed: _logIn,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF5F3FC4),
             minimumSize: const Size(240, 45),
