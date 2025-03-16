@@ -15,6 +15,20 @@ if (envFile.exists()) {
     }
 }
 
+def getLocalProperties = {
+    Properties properties = new Properties()
+    def localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.withReader("UTF-8") { reader ->
+            properties.load(reader)
+        }
+    }
+    return properties
+}
+
+def properties = getLocalProperties()
+def mapsApiKey = properties.getProperty("mapsApiKey", "")
+
 android {
     namespace = "com.example.pasada_driver_side"
     compileSdk = flutter.compileSdkVersion
@@ -41,7 +55,8 @@ android {
         versionName = flutter.versionName
 
         manifestPlaceholders = [
-            mapsApiKey: env['ANDROID_MAPS_API_KEY'] ?: ""
+            // mapsApiKey: env['ANDROID_MAPS_API_KEY'] ?: ""
+            mapsApiKey: mapsApiKey, applicationName: "io.flutter.app.FlutterApplication"
         ]
 
     }

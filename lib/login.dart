@@ -54,7 +54,9 @@ class _LogInState extends State<LogIn> {
             .setDriverID(response['driverID'].toString());
 
         // Saves the driver's vehicle ID to the provider
-        context.read<DriverProvider>().setVehicleID(response['vehicleID'].toString());
+        context
+            .read<DriverProvider>()
+            .setVehicleID(response['vehicleID'].toString());
         if (kDebugMode) {
           print('Vehicle ID: ${response['vehicleID']}');
         }
@@ -166,9 +168,13 @@ class _LogInState extends State<LogIn> {
         child: ElevatedButton(
           onPressed: _logIn,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF5F3FC4),
+            backgroundColor: const Color.fromARGB(255, 0, 0, 0),
             minimumSize: const Size(240, 45),
             shadowColor: Colors.black,
+            elevation: 5,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15.0),
+            ),
           ),
           child: _loading
               ? const CircularProgressIndicator()
@@ -192,7 +198,10 @@ class _LogInState extends State<LogIn> {
       alignment: Alignment.centerRight,
       child: TextButton(
         onPressed: () {},
-        child: const Text('Forgot Password?'),
+        child: const Text(
+          'Forgot Password?',
+          style: TextStyle(color: Colors.black),
+        ),
       ),
     );
   }
@@ -304,12 +313,13 @@ class _LogInState extends State<LogIn> {
 
   Column _buildHeader() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          alignment: Alignment.centerLeft,
+          alignment: Alignment.center,
           // margin: const EdgeInsets.only(top: 60),
-          width: 60,
-          height: 60,
+          width: 70,
+          height: 70,
           child: SvgPicture.asset('assets/svg/Ellipse.svg'),
         ),
         Container(

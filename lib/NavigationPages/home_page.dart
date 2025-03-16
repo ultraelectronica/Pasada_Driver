@@ -1,9 +1,14 @@
+// ignore_for_file: non_constant_identifier_names, constant_identifier_names
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:location/location.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:pasada_driver_side/NavigationPages/Map/google_map.dart';
+import 'package:pasada_driver_side/NavigationPages/Map/route_location.dart';
 import 'package:pasada_driver_side/NavigationPages/PassengerCapacity/passenger_capacity.dart';
 import 'package:pasada_driver_side/driver_provider.dart';
 import 'package:pasada_driver_side/global.dart';
@@ -25,7 +30,9 @@ class HomeScreen extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const HomePage(title: 'Pasada'),
-      routes: const <String, WidgetBuilder>{},
+      routes: <String, WidgetBuilder>{
+        'map': (BuildContext context) => const MapScreen(),
+      },
     );
   }
 }
@@ -40,13 +47,30 @@ class HomePage extends StatefulWidget {
 
 class HomePageState extends State<HomePage> {
   int Capacity = 0;
-  String _searchText = "";
   late GoogleMapController mapController;
   LocationData? _currentLocation;
   late Location _location;
 
+  //para makuha yung route ng driver
+  RouteLocation? InitialLocation; // 14.721061, 121.037486  savemore novaliches
+  RouteLocation? FinalLocation; // 14.692621, 120.969886 valenzuela peoples park
+  static const LatLng StartingLocation =
+      LatLng(14.721957951314671, 121.03660698876655);
+  static const LatLng EndingLocation =
+      LatLng(14.693043926864853, 120.96837288743365);
+
+  //used to access MapScreenState
+  final GlobalKey<MapScreenState> mapScreenKey = GlobalKey<MapScreenState>();
+
+  final GlobalKey containerKey = GlobalKey();
+  double containerHeight = 0;
+
   Future<void> getPassengerCapacity() async {
-    await PassengerCapacity().getPassengerCapacityToDB(context);
+    await FloatingPassengerCapacity(
+      screenHeight: MediaQuery.of(context).size.height,
+      screenWidth: MediaQuery.of(context).size.width,
+      Capacity: context.read<DriverProvider>().passengerCapacity!,
+    ).getPassengerCapacityToDB(context);
     Capacity = context.read<DriverProvider>().passengerCapacity!;
 
     if (Capacity != null) {
@@ -60,7 +84,7 @@ class HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _location = Location();
-    _checkPermissionsAndNavigate();
+    // _checkPermissionsAndNavigate();
 
     if (!GlobalVar().isOnline) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -68,6 +92,16 @@ class HomePageState extends State<HomePage> {
       });
     }
     getPassengerCapacity();
+  }
+
+  void measureContainer() {
+    final RenderBox? box =
+        containerKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box != null) {
+      setState(() {
+        containerHeight = box.size.height;
+      });
+    }
   }
 
 //GO ONLINE DIALOG
@@ -126,6 +160,45 @@ class HomePageState extends State<HomePage> {
           ),
         );
       },
+    );
+  }
+
+  // helper function for showing alert dialogs to reduce repetition
+  void showAlertDialog(String title, String content) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // specific error dialog using the helper function
+  void showLocationErrorDialog() {
+    showAlertDialog(
+      'Location Error',
+      'Unable to fetch the current location. Please try again later.',
+    );
+  }
+
+  // generic error dialog using the helper function
+  void showError(String message) {
+    showAlertDialog('Error', message);
+  }
+
+  void showDebugToast(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_LONG,
+      backgroundColor: Colors.black87,
+      textColor: Colors.white,
     );
   }
 
@@ -241,156 +314,28 @@ class HomePageState extends State<HomePage> {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    // ensure that the location is fetched before building the map
-    if (_currentLocation == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return Scaffold(
-      body: SafeArea(
+      body: SizedBox(
         child: Stack(
           children: [
-            // GOOGLE MAPS
-            GoogleMap(
-              onMapCreated: _onMapCreated,
-              initialCameraPosition: CameraPosition(
-                target: LatLng(
-                  _currentLocation!.latitude!,
-                  _currentLocation!.longitude!,
-                ),
-                zoom: 15,
-              ),
-              myLocationEnabled: true,
-              myLocationButtonEnabled: false, // there will be a custom button
-              mapType: MapType.normal,
-              zoomControlsEnabled: false,
-              trafficEnabled:
-                  true, // i just found this kaya try to uncomment this
-            ),
-
-            // CUSTOM MY LOCATION BUTTON
-            Positioned(
-              bottom: screenHeight * 0.025,
-              right: screenWidth * 0.05,
-              child: SizedBox(
-                width: 50,
-                height: 50,
-                child: FloatingActionButton(
-                  onPressed: () {
-                    mapController.animateCamera(
-                      CameraUpdate.newCameraPosition(
-                        CameraPosition(
-                          target: LatLng(
-                            _currentLocation!.latitude!,
-                            _currentLocation!.longitude!,
-                          ),
-                          zoom: 15,
-                        ),
-                      ),
-                    );
-                  },
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: const Icon(Icons.my_location,
-                      color: Colors.black, size: 26),
-                ),
-              ),
+            // Update the MapScreen widget in the HomePage's build method
+            MapScreen(
+              key: mapScreenKey,
+              initialLocation: StartingLocation,
+              finalLocation: EndingLocation,
             ),
 
             // FLOATING MESSAGE BUTTON
-            Positioned(
-              bottom: screenHeight * 0.1,
-              right: screenWidth * 0.05,
-              child: SizedBox(
-                width: 50,
-                height: 50,
-                child: FloatingActionButton(
-                  heroTag: null,
-                  onPressed: () {},
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: SvgPicture.asset(
-                    'assets/svg/message.svg',
-                    height: 20,
-                    width: 20,
-                  ),
-                ),
-              ),
-            ),
+            FloatingMessageButton(
+                screenHeight: screenHeight, screenWidth: screenWidth),
 
             // PASSENGER CAPACITY
-            Positioned(
-              bottom: screenHeight * 0.175,
-              right: screenWidth * 0.05,
-              child: SizedBox(
-                width: 50,
-                height: 50,
-                child: FloatingActionButton(
-                  heroTag: null,
-                  onPressed: () {},
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: TextButton(
-                      onPressed: () {},
-                      child: Text(
-                        Capacity.toString(),
-                        style: const TextStyle(
-                            fontFamily: 'Intern',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 22,
-                            color: Colors.black),
-                      )),
-                ),
-              ),
-            ),
+            FloatingPassengerCapacity(
+                screenHeight: screenHeight,
+                screenWidth: screenWidth,
+                Capacity: Capacity),
 
             // FLOATING SEARCH BAR
-            Positioned(
-              top: screenHeight * 0.02,
-              left: screenWidth * 0.05,
-              right: screenWidth * 0.05,
-              child: Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(24),
-                child: Container(
-                  height: screenHeight * 0.06,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    color: Colors.white,
-                  ),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 16),
-                      const Icon(Icons.search, color: Colors.grey),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          onChanged: (value) {
-                            setState(() {
-                              // Handle search input
-                            });
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Search for routes',
-                            border: InputBorder.none,
-                            hintStyle: TextStyle(color: Colors.grey[500]),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                    ],
-                  ),
-                ),
-              ),
-            ),
 
             // Displaying search input for testing purposes
             // Positioned(
@@ -405,26 +350,88 @@ class HomePageState extends State<HomePage> {
           ],
         ),
       ),
+    );
+  }
+}
 
-      // // Bottom Navigation Bar
-      // bottomNavigationBar: BottomNavigationBar(
-      //   currentIndex: _selectedIndex,
-      //   onTap: _onItemTapped,
-      //   items: const [
-      //     BottomNavigationBarItem(
-      //       label: 'Home',
-      //       icon: Icon(Icons.home),
-      //     ),
-      //     BottomNavigationBarItem(
-      //       label: 'Activity',
-      //       icon: Icon(Icons.local_activity),
-      //     ),
-      //     BottomNavigationBarItem(
-      //       label: 'Profile',
-      //       icon: Icon(Icons.person),
-      //     ),
-      //   ],
-      // ),
+class FloatingMessageButton extends StatelessWidget {
+  const FloatingMessageButton({
+    super.key,
+    required this.screenHeight,
+    required this.screenWidth,
+  });
+
+  final double screenHeight;
+  final double screenWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: screenHeight * 0.1,
+      right: screenWidth * 0.05,
+      child: SizedBox(
+        width: 50,
+        height: 50,
+        child: FloatingActionButton(
+          heroTag: null,
+          onPressed: () {},
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: SvgPicture.asset(
+            'assets/svg/message.svg',
+            height: 20,
+            width: 20,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class FloatingPassengerCapacity extends StatelessWidget {
+  Future<void> getPassengerCapacityToDB(BuildContext context) async {
+    // Add your implementation here
+  }
+  const FloatingPassengerCapacity({
+    super.key,
+    required this.screenHeight,
+    required this.screenWidth,
+    required this.Capacity,
+  });
+
+  final double screenHeight;
+  final double screenWidth;
+  final int Capacity;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: screenHeight * 0.175,
+      right: screenWidth * 0.05,
+      child: SizedBox(
+        width: 50,
+        height: 50,
+        child: FloatingActionButton(
+          heroTag: null,
+          onPressed: () {},
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: TextButton(
+              onPressed: () {},
+              child: Text(
+                Capacity.toString(),
+                style: const TextStyle(
+                    fontFamily: 'Intern',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 22,
+                    color: Colors.black),
+              )),
+        ),
+      ),
     );
   }
 }

@@ -1,0 +1,2 @@
+C:/PASADA APP/PASADA_DRIVER/android/app/.cxx/RelWithDebInfo/1006el4v/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/PASADA APP/PASADA_DRIVER/android/app/.cxx/RelWithDebInfo/1006el4v/arm64-v8a/CMakeFiles/rebuild_cache.dir
