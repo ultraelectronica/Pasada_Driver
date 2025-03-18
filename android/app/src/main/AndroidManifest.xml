@@ -36,9 +36,8 @@
             android:value="2" />
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="${mapsApiKey}"
-            />
-            <!-- android:value="${mapsApiKey}" -->
+            android:value="AIzaSyAPCBttjYmWAWgsVJlCdC6EBf2y0XpOHPo"/>
+
 
             
 <!--            android:value="AIzaSyBBxx4zox2QbVv1BB9_GTsf9ywp24-K9-g"/>-->

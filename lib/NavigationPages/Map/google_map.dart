@@ -29,18 +29,23 @@ class MapScreen extends StatefulWidget {
 
 class MapScreenState extends State<MapScreen> {
   LatLng? currentLocation; // Location Data
+  LocationData? locationData;
   final Location location = Location();
-  GoogleMapController? _mapController; // Add this
+  GoogleMapController? _mapController;
 
-  static const LatLng StartingLocation = LatLng(14.721957951314671,
+  final GlobalKey<MapScreenState> mapScreenKey = GlobalKey<MapScreenState>();
+
+  // <<-- POLYLINES -->>
+  Map<PolylineId, Polyline> polylines = {};
+
+  // <<-- DEFAULT LOCATIONS -->>
+  LatLng StartingLocation = LatLng(14.721957951314671,
       121.03660698876655); // 14.721061, 121.037486  savemore novaliches
-  static const LatLng EndingLocation = LatLng(14.693043926864853,
+  LatLng EndingLocation = LatLng(14.693043926864853,
       120.96837288743365); // 14.692621, 120.969886 valenzuela peoples park
 
   final Completer<GoogleMapController> _mapControllerCompleter = Completer();
   final String apiKey = dotenv.env['ANDROID_MAPS_API_KEY']!;
-
-  Map<PolylineId, Polyline> polylines = {};
 
   // <<-- DRIVER ROUTE -->>
   LatLng? initialLocation, finalLocation;
@@ -57,43 +62,25 @@ class MapScreenState extends State<MapScreen> {
     _mapController = controller;
   }
 
-  GoogleMapController? get mapController => _mapController;
-
-  late final LatLng _initialPosition;
-  bool _controllerReady = false;
-
   @override
   void initState() {
     super.initState();
-    _initialCameraPosition = CameraPosition(
-      target: widget.currentLocation ?? const LatLng(14.617494, 120.971770),
-      zoom: 15.0,
-    );
 
-    _initialPosition = widget.currentLocation ??
-        widget.initialLocation ??
-        const LatLng(14.617494, 120.971770);
-
-    // if (widget.currentLocation != null) {
-    //   currentLocation = widget.currentLocation; // Use the passed location
-    // } else {
-    //   initLocation(); // Fallback if not provided
-    // }
     getLocationUpdates();
+    generatePolylineBetween(StartingLocation, EndingLocation);
   }
 
   // <<-- LOCATION SERVICES -->>
-
-  Future<void> initLocation() async {
-    await location.getLocation().then((location) {
-      setState(() =>
-          currentLocation = LatLng(location.latitude!, location.longitude!));
-    });
-    location.onLocationChanged.listen((location) {
-      setState(() =>
-          currentLocation = LatLng(location.latitude!, location.longitude!));
-    });
-  }
+  // Future<void> initLocation() async {
+  //   await location.getLocation().then((location) {
+  //     setState(() =>
+  //         currentLocation = LatLng(location.latitude!, location.longitude!));
+  //   });
+  //   location.onLocationChanged.listen((location) {
+  //     setState(() =>
+  //         currentLocation = LatLng(location.latitude!, location.longitude!));
+  //   });
+  // }
 
   Future<void> getLocationUpdates() async {
     try {
@@ -144,7 +131,6 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // <<-- ERROR HANDLING & TOAST -->>
-
   // helper function for showing alert dialogs to reduce repetition
   void showAlertDialog(String title, String content) {
     showDialog(
@@ -185,34 +171,21 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // <<-- ANIMATION -->>
-
   // animate yung camera papunta sa current location ng user
   Future<void> animateToLocation(LatLng target) async {
-    if (_mapController == null) return;
-    final GoogleMapController controller = await _mapControllerCompleter.future;
+    final GoogleMapController controller =
+        await _mapControllerCompleter.future; // Changed here
     controller.animateCamera(
       CameraUpdate.newCameraPosition(CameraPosition(
         target: target,
-        zoom: 17.0,
+        zoom: 16.0,
       )),
     );
-
-    pulseCurrentLocationMarker();
-  }
-
-  void pulseCurrentLocationMarker() {
-    setState(() => isAnimatingLocation = true);
-
-    // reset ng animation after ng delay
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() => isAnimatingLocation = false);
-      }
-    });
   }
 
   // <<-- LOCATION -->>
 
+  @override
   void didUpdateWidget(MapScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.initialLocation != oldWidget.initialLocation ||
@@ -228,16 +201,15 @@ class MapScreenState extends State<MapScreen> {
     }
   }
 
-  // ito yung method para sa initial and final route
+  // ito yung method para sa pick-up and drop-off location
   void updateLocations({LatLng? pickup, LatLng? dropoff}) {
-    if (pickup != null) initialLocation = pickup;
+    if (pickup != null) StartingLocation = pickup;
 
-    if (dropoff != null) finalLocation = dropoff;
+    if (dropoff != null) EndingLocation = dropoff;
 
-    if (initialLocation != null && finalLocation != null) {
-      generatePolylineBetween(initialLocation!, finalLocation!);
+    if (StartingLocation != null && EndingLocation != null) {
+      generatePolylineBetween(StartingLocation!, EndingLocation!);
     }
-    // if naset na parehas yung pick-up and yung drop-off, maggegenerate na sila ng polyline
   }
 
   // <<-- POLYLINES -->>
@@ -338,7 +310,7 @@ class MapScreenState extends State<MapScreen> {
               const PolylineId('route'): Polyline(
                 polylineId: const PolylineId('route'),
                 points: polylineCoordinates,
-                color: Color(0xFFD7481D),
+                color: const Color.fromARGB(255, 255, 35, 35),
                 width: 8,
               )
             };
@@ -380,8 +352,8 @@ class MapScreenState extends State<MapScreen> {
     return markers;
   }
 
-  late final CameraPosition _initialCameraPosition;
-  final Completer<GoogleMapController> _controllerCompleter = Completer();
+  // late final CameraPosition _initialCameraPosition;
+  // final Completer<GoogleMapController> _controllerCompleter = Completer();
 
   @override
   Widget build(BuildContext context) {
@@ -404,10 +376,6 @@ class MapScreenState extends State<MapScreen> {
                     zoom: 15,
                   ),
                   markers: {
-                    Marker(
-                      markerId: const MarkerId('m1'),
-                      position: currentLocation!,
-                    ),
                     Marker(
                       markerId: const MarkerId('StartingLocation'),
                       position: StartingLocation,
@@ -444,17 +412,7 @@ class MapScreenState extends State<MapScreen> {
             height: 50,
             child: FloatingActionButton(
               onPressed: () {
-                mapController?.animateCamera(
-                  CameraUpdate.newCameraPosition(
-                    CameraPosition(
-                      target: LatLng(
-                        currentLocation!.latitude,
-                        currentLocation!.longitude,
-                      ),
-                      zoom: 15,
-                    ),
-                  ),
-                );
+                animateToLocation(currentLocation!);
               },
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(

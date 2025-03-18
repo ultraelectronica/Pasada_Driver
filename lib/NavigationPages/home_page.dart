@@ -66,12 +66,10 @@ class HomePageState extends State<HomePage> {
   double containerHeight = 0;
 
   Future<void> getPassengerCapacity() async {
-    await FloatingPassengerCapacity(
-      screenHeight: MediaQuery.of(context).size.height,
-      screenWidth: MediaQuery.of(context).size.width,
-      Capacity: context.read<DriverProvider>().passengerCapacity!,
-    ).getPassengerCapacityToDB(context);
-    Capacity = context.read<DriverProvider>().passengerCapacity!;
+    await PassengerCapacity().getPassengerCapacityToDB(context);
+    setState(() {
+      Capacity = context.read<DriverProvider>().passengerCapacity!;
+    });
 
     if (Capacity != null) {
       Fluttertoast.showToast(msg: 'Vehicle Capacity: ${Capacity.toString()}');
@@ -335,18 +333,37 @@ class HomePageState extends State<HomePage> {
                 screenWidth: screenWidth,
                 Capacity: Capacity),
 
-            // FLOATING SEARCH BAR
-
-            // Displaying search input for testing purposes
+            //     // CUSTOM MY LOCATION BUTTON
             // Positioned(
-            //   top: screenHeight * 0.12,
-            //   left: screenWidth * 0.05,
+            //   bottom: screenHeight * 0.025,
             //   right: screenWidth * 0.05,
-            //   child: Text(
-            //     _searchText.isNotEmpty ? 'You searched for: $_searchText' : '',
-            //     style: const TextStyle(color: Colors.black, fontSize: 16),
+            //   child: SizedBox(
+            //     width: 50,
+            //     height: 50,
+            //     child: FloatingActionButton(
+            //       onPressed: () {
+            //         mapController.animateCamera(
+            //           CameraUpdate.newCameraPosition(
+            //             CameraPosition(
+            //               target: LatLng(
+            //                 _currentLocation!.latitude!,
+            //                 _currentLocation!.longitude!,
+            //               ),
+            //               zoom: 15,
+            //             ),
+            //           ),
+            //         );
+            //       },
+            //       backgroundColor: Colors.white,
+            //       shape: RoundedRectangleBorder(
+            //         borderRadius: BorderRadius.circular(15),
+            //       ),
+            //       child: const Icon(Icons.my_location,
+            //           color: Colors.black, size: 26),
+            //     ),
             //   ),
             // ),
+
           ],
         ),
       ),
@@ -391,9 +408,7 @@ class FloatingMessageButton extends StatelessWidget {
 }
 
 class FloatingPassengerCapacity extends StatelessWidget {
-  Future<void> getPassengerCapacityToDB(BuildContext context) async {
-    // Add your implementation here
-  }
+
   const FloatingPassengerCapacity({
     super.key,
     required this.screenHeight,

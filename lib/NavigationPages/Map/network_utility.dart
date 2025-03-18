@@ -29,10 +29,8 @@ class NetworkUtility {
         return response.body;
       } else {
         // captures API error message
-        final errorMessage =
-            json.decode(response.body)['error']['message'] ?? 'Unknown error';
-        debugPrint(
-            'POST Request Failed: (${response.statusCode}): $errorMessage');
+        final errorMessage = json.decode(response.body)['error']['message'] ?? 'Unknown error';
+        debugPrint('POST Request Failed: (${response.statusCode}): $errorMessage');
       }
     } catch (e) {
       debugPrint('Error making POST request: $e');
