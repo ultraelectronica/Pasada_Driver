@@ -332,38 +332,6 @@ class HomePageState extends State<HomePage> {
                 screenHeight: screenHeight,
                 screenWidth: screenWidth,
                 Capacity: Capacity),
-
-            //     // CUSTOM MY LOCATION BUTTON
-            // Positioned(
-            //   bottom: screenHeight * 0.025,
-            //   right: screenWidth * 0.05,
-            //   child: SizedBox(
-            //     width: 50,
-            //     height: 50,
-            //     child: FloatingActionButton(
-            //       onPressed: () {
-            //         mapController.animateCamera(
-            //           CameraUpdate.newCameraPosition(
-            //             CameraPosition(
-            //               target: LatLng(
-            //                 _currentLocation!.latitude!,
-            //                 _currentLocation!.longitude!,
-            //               ),
-            //               zoom: 15,
-            //             ),
-            //           ),
-            //         );
-            //       },
-            //       backgroundColor: Colors.white,
-            //       shape: RoundedRectangleBorder(
-            //         borderRadius: BorderRadius.circular(15),
-            //       ),
-            //       child: const Icon(Icons.my_location,
-            //           color: Colors.black, size: 26),
-            //     ),
-            //   ),
-            // ),
-
           ],
         ),
       ),
@@ -408,7 +376,6 @@ class FloatingMessageButton extends StatelessWidget {
 }
 
 class FloatingPassengerCapacity extends StatelessWidget {
-
   const FloatingPassengerCapacity({
     super.key,
     required this.screenHeight,

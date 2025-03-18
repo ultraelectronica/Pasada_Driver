@@ -31,7 +31,6 @@ class MapScreenState extends State<MapScreen> {
   LatLng? currentLocation; // Location Data
   LocationData? locationData;
   final Location location = Location();
-  GoogleMapController? _mapController;
 
   final GlobalKey<MapScreenState> mapScreenKey = GlobalKey<MapScreenState>();
 
@@ -39,10 +38,14 @@ class MapScreenState extends State<MapScreen> {
   Map<PolylineId, Polyline> polylines = {};
 
   // <<-- DEFAULT LOCATIONS -->>
-  LatLng StartingLocation = LatLng(14.721957951314671,
-      121.03660698876655); // 14.721061, 121.037486  savemore novaliches
-  LatLng EndingLocation = LatLng(14.693043926864853,
-      120.96837288743365); // 14.692621, 120.969886 valenzuela peoples park
+  LatLng StartingLocation = const LatLng(
+      14.721957951314671, 121.03660698876655); // savemore novaliches
+  LatLng MiddleLocation =
+      const LatLng(14.711095415234702, 120.99311060642324); // VGC bus terminal
+  LatLng IntermediateLocation =
+      const LatLng(14.701160828529744, 120.98308262221344);
+  LatLng EndingLocation = const LatLng(
+      14.693028415325333, 120.96837623290318); // valenzuela peoples park
 
   final Completer<GoogleMapController> _mapControllerCompleter = Completer();
   final String apiKey = dotenv.env['ANDROID_MAPS_API_KEY']!;
@@ -51,23 +54,17 @@ class MapScreenState extends State<MapScreen> {
   LatLng? initialLocation, finalLocation;
   Marker? initialMarker, finalMarker;
 
-  // <<-- DEFAULT LOCATIONS -->>
-  static const LatLng defaultSource = LatLng(14.617494, 120.971770);
-  static const LatLng defaultDestination = LatLng(14.619620, 120.971219);
-
   // animation ng location to kapag pinindot yung custom my location button
   bool isAnimatingLocation = false;
-
-  void onMapCreated(GoogleMapController controller) {
-    _mapController = controller;
-  }
 
   @override
   void initState() {
     super.initState();
 
     getLocationUpdates();
-    generatePolylineBetween(StartingLocation, EndingLocation);
+    generatePolylineBetween(
+        StartingLocation, MiddleLocation, IntermediateLocation, EndingLocation);
+    // generatePolylineBetween(MiddleLocation, EndingLocation);
   }
 
   // <<-- LOCATION SERVICES -->>
@@ -185,21 +182,21 @@ class MapScreenState extends State<MapScreen> {
 
   // <<-- LOCATION -->>
 
-  @override
-  void didUpdateWidget(MapScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.initialLocation != oldWidget.initialLocation ||
-        widget.finalLocation != oldWidget.finalLocation) {
-      handleLocationUpdates();
-    }
-  }
+  // @override
+  // void didUpdateWidget(MapScreen oldWidget) {
+  //   super.didUpdateWidget(oldWidget);
+  //   if (widget.initialLocation != oldWidget.initialLocation ||
+  //       widget.finalLocation != oldWidget.finalLocation) {
+  //     handleLocationUpdates();
+  //   }
+  // }
 
-  void handleLocationUpdates() {
-    if (widget.initialLocation != null && widget.finalLocation != null) {
-      generatePolylineBetween(widget.initialLocation!, widget.finalLocation!);
-      showDebugToast('Generating route');
-    }
-  }
+  // void handleLocationUpdates() {
+  //   if (widget.initialLocation != null && widget.finalLocation != null) {
+  //     // generatePolylineBetween(widget.initialLocation!, widget.finalLocation!);
+  //     showDebugToast('Generating route');
+  //   }
+  // }
 
   // ito yung method para sa pick-up and drop-off location
   void updateLocations({LatLng? pickup, LatLng? dropoff}) {
@@ -207,14 +204,19 @@ class MapScreenState extends State<MapScreen> {
 
     if (dropoff != null) EndingLocation = dropoff;
 
-    if (StartingLocation != null && EndingLocation != null) {
-      generatePolylineBetween(StartingLocation!, EndingLocation!);
+    if (StartingLocation != null &&
+        MiddleLocation != null &&
+        IntermediateLocation != null &&
+        EndingLocation != null) {
+      generatePolylineBetween(StartingLocation, MiddleLocation,
+          IntermediateLocation, EndingLocation);
     }
   }
 
   // <<-- POLYLINES -->>
 
-  Future<void> generatePolylineBetween(LatLng start, LatLng destination) async {
+  Future<void> generatePolylineBetween(LatLng start, LatLng intermediate1,
+      LatLng intermediate2, LatLng destination) async {
     try {
       final String apiKey = dotenv.env['ANDROID_MAPS_API_KEY']!;
       if (apiKey == null) {
@@ -246,6 +248,24 @@ class MapScreenState extends State<MapScreen> {
             },
           },
         },
+        "intermediates": [
+          {
+            "location": {
+              "latLng": {
+                "latitude": intermediate1.latitude,
+                "longitude": intermediate1.longitude
+              }
+            }
+          },
+          {
+            "location": {
+              "latLng": {
+                "latitude": intermediate2.latitude,
+                "longitude": intermediate2.longitude
+              }
+            }
+          },
+        ],
         'destination': {
           'location': {
             'latLng': {
@@ -256,8 +276,8 @@ class MapScreenState extends State<MapScreen> {
         },
         'travelMode': 'DRIVE',
         'polylineEncoding': 'ENCODED_POLYLINE',
-        'computeAlternativeRoutes': false,
-        'routingPreference': 'TRAFFIC_AWARE',
+        'computeAlternativeRoutes': true,
+        'routingPreference': 'TRAFFIC_AWARE_OPTIMAL',
       });
 
       debugPrint('Request Body: $body');
@@ -379,6 +399,12 @@ class MapScreenState extends State<MapScreen> {
                     Marker(
                       markerId: const MarkerId('StartingLocation'),
                       position: StartingLocation,
+                      icon: BitmapDescriptor.defaultMarkerWithHue(
+                          BitmapDescriptor.hueGreen),
+                    ),
+                    Marker(
+                      markerId: const MarkerId('MiddleLocation'),
+                      position: MiddleLocation,
                       icon: BitmapDescriptor.defaultMarkerWithHue(
                           BitmapDescriptor.hueGreen),
                     ),
