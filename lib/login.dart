@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 // import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
 import 'package:pasada_driver_side/driver_provider.dart';
@@ -46,6 +47,7 @@ class _LogInState extends State<LogIn> {
           .select('driverID, vehicleID') // Only retrieve driverID and vehicleID
           .eq('driverID', enteredDriverID) // Match driverID
           .eq('driverPassword', enteredPassword) // Match password
+          .select('firstName')
           .single();
 
       if (mounted) {
@@ -62,70 +64,92 @@ class _LogInState extends State<LogIn> {
         }
       }
 
-      _showMessage('Login successful! Welcome Manong!, $enteredDriverID');
-      // Proceed to next screen or perform other actions
+      _setStatusToOnline(enteredDriverID);
+
+      _showToastTop('Welcome Manong ${response['firstName']}!');
+
+      // move to the main page once the driver successfuly logs in
       Navigator.push(
           context, MaterialPageRoute(builder: (context) => const MainPage()));
     } catch (e) {
-      _showMessage('Invalid credentials. Please try again.');
-      _debugQuery();
+      _showToast('Invalid credentials. Please try again.');
+      // _debugQuery();
     }
   }
 
-// CHECK THIS BEFORE FINALIZING
-  Future<void> _debugQuery() async {
+  // Update the driver's status to 'Online' in the database when they log in
+  Future<void> _setStatusToOnline(String enteredDriverID) async {
     try {
       final response = await Supabase.instance.client
           .from('driverTable')
-          .select(); // Fetch all rows
+          .update({'drivingStatus': 'Online'})
+          .eq('driverID', enteredDriverID)
+          .select('drivingStatus')
+          .single();
 
-      final vehicleResponse =
-          await Supabase.instance.client.from('vehicleTable').select();
-
-      if (kDebugMode) {
-        print('DriverTable Response: $response');
-        print('VehicleTable Response $vehicleResponse');
+      if (response != null) {
+        _showToast('status updated to ${response['drivingStatus'].toString()}');
+      } else {
+        _showToast('Error updating status');
       }
     } catch (e) {
+      _showToast('Error: $e');
+
       if (kDebugMode) {
         print('Error: $e');
       }
     }
   }
 
+// // CHECK THIS BEFORE FINALIZING
+//   Future<void> _debugQuery() async {
+//     try {
+//       final response = await Supabase.instance.client
+//           .from('driverTable')
+//           .select(); // Fetch all rows
+
+//       final vehicleResponse =
+//           await Supabase.instance.client.from('vehicleTable').select();
+
+//       if (kDebugMode) {
+//         print('DriverTable Response: $response');
+//         print('VehicleTable Response $vehicleResponse');
+//       }
+//     } catch (e) {
+//       if (kDebugMode) {
+//         print('Error: $e');
+//       }
+//     }
+//   }
+
+// TOASTS AND SNACKBARS
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
   }
 
-  // Future<void> _getDriverStatus() async {
-  //   final supabaseUser = Supabase.instance.client.auth.currentUser;
+  void _showToast(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.black,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
+  }
 
-  //   if (supabaseUser != null) {
-  //     try {
-  //       final response = await Supabase.instance.client
-  //           .from('driverTable')
-  //           .select('driverStatus')
-  //           .eq('email', supabaseUser.email)
-  //           .single();
-
-  //       if (response.data != null) {
-  //         setState(() {
-  //           _driver_status = response.data.toString();
-  //           print('Current driver status in the db: $_driver_status');
-  //         });
-  //       } else {
-  //         ScaffoldMessenger.of(context).showSnackBar(
-  //           SnackBar(
-  //               content: Text('Error occured: ${response.data.toString()}')),
-  //         );
-  //       }
-  //     } catch (e) {
-  //       print(e);
-  //     }
-  //   }
-  // }
+  void _showToastTop(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_LONG,
+      gravity: ToastGravity.TOP,
+      backgroundColor: Colors.black,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

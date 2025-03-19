@@ -30,7 +30,7 @@ class ActivityPageState extends State<ActivityPage> {
   @override
   void initState() {
     super.initState();
-    getPassengerCapacity();
+    // getPassengerCapacity();
   }
 
   @override
