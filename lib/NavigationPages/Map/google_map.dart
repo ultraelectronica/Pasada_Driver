@@ -1,7 +1,7 @@
+// ignore_for_file: non_constant_identifier_names
+
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -204,14 +204,9 @@ class MapScreenState extends State<MapScreen> {
 
     if (dropoff != null) EndingLocation = dropoff;
 
-    if (StartingLocation != null &&
-        MiddleLocation != null &&
-        IntermediateLocation != null &&
-        EndingLocation != null) {
-      generatePolylineBetween(StartingLocation, MiddleLocation,
-          IntermediateLocation, EndingLocation);
+    generatePolylineBetween(StartingLocation, MiddleLocation,
+        IntermediateLocation, EndingLocation);
     }
-  }
 
   // <<-- POLYLINES -->>
 
@@ -219,13 +214,6 @@ class MapScreenState extends State<MapScreen> {
       LatLng intermediate2, LatLng destination) async {
     try {
       final String apiKey = dotenv.env['ANDROID_MAPS_API_KEY']!;
-      if (apiKey == null) {
-        showDebugToast('API key not found');
-        if (kDebugMode) {
-          print('API key not found');
-        }
-        return;
-      }
 
       final polylinePoints = PolylinePoints();
 
@@ -315,6 +303,7 @@ class MapScreenState extends State<MapScreen> {
         return;
       }
 
+      // ignore: unnecessary_null_comparison
       if (response != null) {
         final data = json.decode(response);
         if (data['routes']?.isNotEmpty ?? false) {

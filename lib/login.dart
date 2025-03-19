@@ -68,8 +68,10 @@ class _LogInState extends State<LogIn> {
       _showToastTop('Welcome Manong ${response['firstName']}!');
 
       // move to the main page once the driver successfuly logs in
-      Navigator.push(
-          context, MaterialPageRoute(builder: (context) => const MainPage()));
+      if (mounted) {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => const MainPage()));
+      }
     } catch (e) {
       _showToast('Invalid credentials. Please try again.');
       // _debugQuery();
@@ -86,12 +88,8 @@ class _LogInState extends State<LogIn> {
           .select('drivingStatus')
           .single();
 
-      if (response != null) {
-        _showToast('status updated to ${response['drivingStatus'].toString()}');
-      } else {
-        _showToast('Error updating status');
-      }
-    } catch (e) {
+      _showToast('status updated to ${response['drivingStatus'].toString()}');
+        } catch (e) {
       _showToast('Error: $e');
 
       if (kDebugMode) {

@@ -2,10 +2,8 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:location/location.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pasada_driver_side/NavigationPages/Map/google_map.dart';
 import 'package:pasada_driver_side/NavigationPages/Map/route_location.dart';
@@ -49,8 +47,8 @@ class HomePage extends StatefulWidget {
 class HomePageState extends State<HomePage> {
   int Capacity = 0;
   late GoogleMapController mapController;
-  LocationData? _currentLocation;
-  late Location _location;
+  // LocationData? _currentLocation;
+  // late Location _location;
 
   //para makuha yung route ng driver
   RouteLocation? InitialLocation; // 14.721061, 121.037486  savemore novaliches
@@ -72,17 +70,13 @@ class HomePageState extends State<HomePage> {
       Capacity = context.read<DriverProvider>().passengerCapacity!;
     });
 
-    if (Capacity != null) {
-      Fluttertoast.showToast(msg: 'Vehicle Capacity: ${Capacity.toString()}');
-    } else {
-      Fluttertoast.showToast(msg: 'Vehicle Capacity is not available.');
+    Fluttertoast.showToast(msg: 'Vehicle Capacity: ${Capacity.toString()}');
     }
-  }
 
   @override
   void initState() {
     super.initState();
-    _location = Location();
+    // _location = Location();
     // _checkPermissionsAndNavigate();
 
     if (!GlobalVar().isOnline) {
@@ -166,12 +160,8 @@ class HomePageState extends State<HomePage> {
           .select('drivingStatus')
           .single();
 
-      if (response != null) {
-        _showToast('status updated to ${response['drivingStatus'].toString()}');
-      } else {
-        _showToast('Error updating status');
-      }
-    } catch (e) {
+      _showToast('status updated to ${response['drivingStatus'].toString()}');
+        } catch (e) {
       _showToast('Error: $e');
 
       if (kDebugMode) {
@@ -192,7 +182,6 @@ class HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    String passengerCapacity = '0';
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
