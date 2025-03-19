@@ -13,6 +13,7 @@ import 'package:pasada_driver_side/NavigationPages/PassengerCapacity/passenger_c
 import 'package:pasada_driver_side/driver_provider.dart';
 import 'package:pasada_driver_side/global.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() => runApp(const HomeScreen());
 
@@ -86,24 +87,14 @@ class HomePageState extends State<HomePage> {
 
     if (!GlobalVar().isOnline) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showGoOnlineDialog();
+        _showStartDrivingDialog();
       });
     }
     getPassengerCapacity();
   }
 
-  void measureContainer() {
-    final RenderBox? box =
-        containerKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box != null) {
-      setState(() {
-        containerHeight = box.size.height;
-      });
-    }
-  }
-
 //GO ONLINE DIALOG
-  void _showGoOnlineDialog() {
+  void _showStartDrivingDialog() {
     showDialog(
       context: context,
       barrierDismissible: true, // Enables dismissing dialog by tapping outside
@@ -124,6 +115,11 @@ class HomePageState extends State<HomePage> {
               Center(
                 child: ElevatedButton(
                   onPressed: () {
+                    //Updates driving status to 'Driving' in the database
+                    final String driverID =
+                        context.read<DriverProvider>().driverID!;
+                    _setStatusToDriving(driverID);
+
                     setState(() {
                       if (kDebugMode) {
                         print(GlobalVar().isOnline);
@@ -161,148 +157,36 @@ class HomePageState extends State<HomePage> {
     );
   }
 
-  // helper function for showing alert dialogs to reduce repetition
-  void showAlertDialog(String title, String content) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // specific error dialog using the helper function
-  void showLocationErrorDialog() {
-    showAlertDialog(
-      'Location Error',
-      'Unable to fetch the current location. Please try again later.',
-    );
-  }
-
-  // generic error dialog using the helper function
-  void showError(String message) {
-    showAlertDialog('Error', message);
-  }
-
-  void showDebugToast(String message) {
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_LONG,
-      backgroundColor: Colors.black87,
-      textColor: Colors.white,
-    );
-  }
-
-  Future<void> _checkPermissionsAndNavigate() async {
+  Future<void> _setStatusToDriving(String driverID) async {
     try {
-      // check if location service is enabled
-      bool serviceEnabled = await _location.serviceEnabled();
-      if (!serviceEnabled) {
-        serviceEnabled = await _location.serviceEnabled();
-        if (!serviceEnabled) {
-          _showLocationServicesDialog();
-          return;
-        }
-      }
-      // check for and request location permissions
-      PermissionStatus permissionGranted = await _location.hasPermission();
-      if (permissionGranted == PermissionStatus.denied) {
-        permissionGranted = await _location.requestPermission();
-        if (permissionGranted != PermissionStatus.granted) {
-          _showPermissionDialog();
-          return;
-        }
-        //what will happen if rejected?
-      }
-      // get current location
-      _currentLocation = await _location.getLocation();
-      if (_currentLocation != null) {
-        setState(() {});
+      final response = await Supabase.instance.client
+          .from('driverTable')
+          .update({'drivingStatus': 'Driving'})
+          .eq('driverID', driverID)
+          .select('drivingStatus')
+          .single();
+
+      if (response != null) {
+        _showToast('status updated to ${response['drivingStatus'].toString()}');
       } else {
-        _showLocationErrorDialog();
+        _showToast('Error updating status');
       }
     } catch (e) {
-      _showErrorDialog("An error occured while fetching the location.");
+      _showToast('Error: $e');
+
+      if (kDebugMode) {
+        print('Error: $e');
+      }
     }
   }
 
-  void _onMapCreated(GoogleMapController controller) {
-    mapController = controller;
-  }
-
-  void _showPermissionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Permission Required'),
-        content: const Text(
-          'This app needs location permission to work. Please allow it in your settings.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Ok'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showLocationServicesDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Enable Location Services'),
-        content: const Text(
-          'Location services are disabled. Please enable them to use this feature.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showLocationErrorDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Location Error'),
-        content: const Text(
-            'Unable to fetch the current location. Please try again later.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+  void _showToast(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.black,
+      textColor: Colors.white,
     );
   }
 

@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-// import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
 import 'package:pasada_driver_side/driver_provider.dart';
 import 'package:provider/provider.dart';
@@ -47,7 +46,7 @@ class _LogInState extends State<LogIn> {
           .select('driverID, vehicleID') // Only retrieve driverID and vehicleID
           .eq('driverID', enteredDriverID) // Match driverID
           .eq('driverPassword', enteredPassword) // Match password
-          .select('firstName')
+          .select('firstName, driverID, vehicleID')
           .single();
 
       if (mounted) {
@@ -136,7 +135,6 @@ class _LogInState extends State<LogIn> {
       gravity: ToastGravity.BOTTOM,
       backgroundColor: Colors.black,
       textColor: Colors.white,
-      fontSize: 16.0,
     );
   }
 
@@ -147,7 +145,6 @@ class _LogInState extends State<LogIn> {
       gravity: ToastGravity.TOP,
       backgroundColor: Colors.black,
       textColor: Colors.white,
-      fontSize: 16.0,
     );
   }
 
