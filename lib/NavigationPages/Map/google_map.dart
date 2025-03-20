@@ -10,6 +10,9 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:pasada_driver_side/NavigationPages/Map/network_utility.dart';
+import 'package:pasada_driver_side/driver_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MapScreen extends StatefulWidget {
   final LatLng? initialLocation, finalLocation, currentLocation;
@@ -38,14 +41,27 @@ class MapScreenState extends State<MapScreen> {
   Map<PolylineId, Polyline> polylines = {};
 
   // <<-- DEFAULT LOCATIONS -->>
-  LatLng StartingLocation = const LatLng(
-      14.721957951314671, 121.03660698876655); // savemore novaliches
-  LatLng MiddleLocation =
-      const LatLng(14.711095415234702, 120.99311060642324); // VGC bus terminal
+
+  // Novaliches to Malinta
+  // LatLng StartingLocation = const LatLng(
+  //     14.721957951314671, 121.03660698876655); // savemore novaliches
+  // LatLng MiddleLocation =
+  //     const LatLng(14.711095415234702, 120.99311060642324); // VGC bus terminal
+  // LatLng IntermediateLocation =
+  //     const LatLng(14.701160828529744, 120.98308262221344);
+  // LatLng EndingLocation = const LatLng(
+  //     14.693028415325333, 120.96837623290318); // valenzuela peoples park
+
+  // Malinta to Novaliches
+  LatLng StartingLocation =
+      const LatLng(14.694370509154878, 120.97003705410779);
+
+  LatLng MiddleLocation = const LatLng(14.7111498286728, 120.99310735112863);
+
   LatLng IntermediateLocation =
-      const LatLng(14.701160828529744, 120.98308262221344);
-  LatLng EndingLocation = const LatLng(
-      14.693028415325333, 120.96837623290318); // valenzuela peoples park
+      const LatLng(14.71772512210624, 121.00429667924092);
+
+  LatLng EndingLocation = const LatLng(14.721876764899815, 121.0366831829442);
 
   final Completer<GoogleMapController> _mapControllerCompleter = Completer();
   final String apiKey = dotenv.env['ANDROID_MAPS_API_KEY']!;
@@ -109,6 +125,15 @@ class MapScreenState extends State<MapScreen> {
 
       // kuha ng current location
       LocationData locationData = await location.getLocation();
+
+      Fluttertoast.showToast(
+        msg:
+            'Location fetched successfully: ${locationData.latitude}, ${locationData.longitude}',
+        toastLength: Toast.LENGTH_LONG,
+        backgroundColor: Colors.black87,
+        textColor: Colors.white,
+      );
+
       setState(() {
         currentLocation =
             LatLng(locationData.latitude!, locationData.longitude!);
@@ -116,6 +141,18 @@ class MapScreenState extends State<MapScreen> {
       // listen sa location updates
       location.onLocationChanged.listen((LocationData newLocation) {
         if (newLocation.latitude != null && newLocation.longitude != null) {
+          //save location to DB
+          final String vehicleID = context.read<DriverProvider>().vehicleID!;
+
+          _updateVehicleLocationToDB(vehicleID, newLocation);
+
+          // Fluttertoast.showToast(
+          //   msg:
+          //       'Location updated: ${newLocation.latitude}, ${newLocation.longitude}',
+          //   toastLength: Toast.LENGTH_LONG,
+          //   backgroundColor: Colors.black87,
+          //   textColor: Colors.white,
+          // );
           setState(() {
             currentLocation =
                 LatLng(newLocation.latitude!, newLocation.longitude!);
@@ -124,6 +161,30 @@ class MapScreenState extends State<MapScreen> {
       });
     } catch (e) {
       showError('An error occurred while fetching the location.');
+    }
+  }
+
+  // <<-- UPDATE LOCATOIN TO DATABASE -->>
+  Future<void> _updateVehicleLocationToDB(
+      String vehicleID, LocationData newLocation) async {
+    try {
+      final response = await Supabase.instance.client
+          .from('vehicleTable')
+          .update({
+          'vehicleLocation': '${newLocation.latitude}, ${newLocation.longitude}'
+        })
+          .eq('vehicleID', vehicleID)
+          .select('vehicleLocation');
+
+      if (kDebugMode) {
+        // Fluttertoast.showToast(
+        //   msg: 'Location updated to: ${response[0]['vehicleLocation']}',
+        //   toastLength: Toast.LENGTH_SHORT,
+        // );
+        print('Location updated to: ${response[0]['vehicleLocation']}');
+      }
+    } catch (e) {
+      Fluttertoast.showToast(msg: 'Error: $e');
     }
   }
 
@@ -204,9 +265,9 @@ class MapScreenState extends State<MapScreen> {
 
     if (dropoff != null) EndingLocation = dropoff;
 
-    generatePolylineBetween(StartingLocation, MiddleLocation,
-        IntermediateLocation, EndingLocation);
-    }
+    generatePolylineBetween(
+        StartingLocation, MiddleLocation, IntermediateLocation, EndingLocation);
+  }
 
   // <<-- POLYLINES -->>
 
@@ -441,4 +502,6 @@ class MapScreenState extends State<MapScreen> {
       ],
     ));
   }
+
+  
 }

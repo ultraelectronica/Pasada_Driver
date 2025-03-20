@@ -1,10 +1,15 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:pasada_driver_side/NavigationPages/activity_page.dart';
 import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/profile_page.dart';
 import 'package:pasada_driver_side/NavigationPages/settings_page.dart';
+import 'package:pasada_driver_side/driver_provider.dart';
 import 'package:pasada_driver_side/global.dart';
+import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -13,7 +18,7 @@ class MainPage extends StatefulWidget {
   MainPageState createState() => MainPageState();
 }
 
-class MainPageState extends State<MainPage> {
+class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   int _currentIndex = 0;
 
   final List<Widget> pages = [
@@ -32,6 +37,37 @@ class MainPageState extends State<MainPage> {
     setState(() {
       _currentIndex = newIndex;
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    Fluttertoast.showToast(msg: 'App is in the background');
+
+    WidgetsBinding.instance.removeObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    final String driverID = context.read<DriverProvider>().driverID!;
+
+    if (state != AppLifecycleState.inactive) {
+      // set driving status to Online
+      _setStatusToidling(driverID, 'Online');
+      Fluttertoast.showToast(msg: 'App is running');
+    } else {
+      // set driving status to idling
+      _setStatusToidling(driverID, 'Idling');
+      Fluttertoast.showToast(msg: 'App is closed');
+    }
   }
 
   @override
@@ -94,6 +130,35 @@ class MainPageState extends State<MainPage> {
               width: 24,
               height: 24,
             ),
+    );
+  }
+
+  Future<void> _setStatusToidling(String driverID, String status) async {
+    try {
+      final response = await Supabase.instance.client
+          .from('driverTable')
+          .update({'drivingStatus': status})
+          .eq('driverID', driverID)
+          .select('drivingStatus')
+          .single();
+
+      _showToast('status updated to ${response['drivingStatus'].toString()}');
+    } catch (e) {
+      _showToast('Error: $e');
+
+      if (kDebugMode) {
+        print('Error: $e');
+      }
+    }
+  }
+
+  void _showToast(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.black,
+      textColor: Colors.white,
     );
   }
 }

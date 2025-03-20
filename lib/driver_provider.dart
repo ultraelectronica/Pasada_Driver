@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 class DriverProvider with ChangeNotifier {
   String? _driverID;
   String? _vehicleID;
-  String _driverStatus = 'Online';
+  String? _driverStatus;
   int? _passengerCapacity;
 
   String? get driverID => _driverID;
   String? get vehicleID => _vehicleID;
-  String get driverStatus => _driverStatus;
+  String?get driverStatus => _driverStatus;
   int? get passengerCapacity => _passengerCapacity;
 
   void setDriverID(String? value) {
