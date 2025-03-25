@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:pasada_driver_side/global.dart';
+import 'package:pasada_driver_side/Database/global.dart';
 
-class ProfilePage extends StatefulWidget {
+class OldProfilePage extends StatefulWidget {
   final String driverStatus;
 
-  const ProfilePage({super.key, required this.driverStatus});
+  const OldProfilePage({super.key, required this.driverStatus});
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  State<OldProfilePage> createState() => _OldProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _OldProfilePageState extends State<OldProfilePage> {
   late String currentStatus;
 
   @override

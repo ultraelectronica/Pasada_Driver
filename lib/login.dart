@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
-import 'package:pasada_driver_side/driver_provider.dart';
+import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -43,7 +43,8 @@ class _LogInState extends State<LogIn> {
       //Query to get the driverID and password from the driverTable
       final response = await Supabase.instance.client
           .from('driverTable')
-          .select('driver_id, vehicle_id') // Only retrieve driverID and vehicleID
+          .select(
+              'driver_id, vehicle_id') // Only retrieve driverID and vehicleID
           .eq('driver_id', enteredDriverID) // Match driverID
           .eq('driver_password', enteredPassword) // Match password
           .select('first_name, driver_id, vehicle_id')
@@ -58,6 +59,10 @@ class _LogInState extends State<LogIn> {
         context
             .read<DriverProvider>()
             .setVehicleID(response['vehicle_id'].toString());
+
+        context.read<DriverProvider>().getPassengerCapacity(context);
+
+        context.read<DriverProvider>().setDriverStatus('Online');
         if (kDebugMode) {
           print('Vehicle ID: ${response['vehicle_id']}');
         }
@@ -89,7 +94,7 @@ class _LogInState extends State<LogIn> {
           .single();
 
       _showToast('status updated to ${response['driving_status'].toString()}');
-        } catch (e) {
+    } catch (e) {
       _showToast('Error: $e');
 
       if (kDebugMode) {
@@ -197,13 +202,10 @@ class _LogInState extends State<LogIn> {
           ),
           child: _loading
               ? const CircularProgressIndicator()
-              : const Text(
+              : Text(
                   'Log in',
-                  style: TextStyle(
-                    color: Color(0xFFF2F2F2),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 20,
-                    fontFamily: 'Inter',
+                  style: textStyle(20, FontWeight.w600).copyWith(
+                    color: const Color(0xFFF2F2F2),
                   ),
                 ),
         ),
@@ -217,9 +219,9 @@ class _LogInState extends State<LogIn> {
       alignment: Alignment.centerRight,
       child: TextButton(
         onPressed: () {},
-        child: const Text(
+        child: Text(
           'Forgot Password?',
-          style: TextStyle(color: Colors.black),
+          style: textStyle(14, FontWeight.w700),
         ),
       ),
     );
@@ -266,16 +268,15 @@ class _LogInState extends State<LogIn> {
   Container _buildPasswordText() {
     return Container(
       margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.03),
-      child: const Row(
+      child: Row(
         children: [
           Text(
             'Enter your ',
+            style: textStyle(14, FontWeight.normal),
           ),
           Text(
             'Password',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-            ),
+            style: textStyle(14, FontWeight.w700),
           ),
         ],
       ),
@@ -287,18 +288,20 @@ class _LogInState extends State<LogIn> {
   Container _buildDriverIDText() {
     return Container(
       margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.1),
-      child: const Row(
+      child: Row(
         children: [
           Text(
             'Enter your ',
+            style: textStyle(14, FontWeight.normal),
           ),
           Text(
             'Driver ID',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-            ),
+            style: textStyle(14, FontWeight.w700),
           ),
-          Text(' to continue')
+          // Text(
+          //   ' to continue',
+          //   style: textStyle(14, FontWeight.normal),
+          // )
         ],
       ),
     );
@@ -343,15 +346,20 @@ class _LogInState extends State<LogIn> {
         ),
         Container(
           margin: const EdgeInsets.only(top: 30),
-          child: const Text(
+          child: Text(
             'Log-in to your account',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w700,
-            ),
+            style: textStyle(18, FontWeight.w700),
           ),
         ),
       ],
     );
+  }
+
+  TextStyle textStyle(double size, FontWeight weight) {
+    return TextStyle(
+        fontSize: size,
+        fontFamily: 'Inter',
+        fontWeight: weight,
+        color: Colors.black87);
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart' show SvgPicture;
-import 'package:pasada_driver_side/global.dart';
+import 'package:pasada_driver_side/Database/driver_provider.dart';
+// import 'package:pasada_driver_side/Database/global.dart';
+import 'package:provider/provider.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -17,6 +19,12 @@ class ProfilePageState extends State<ProfilePage> {
     "Idling": Colors.orange,
     "Offline": Colors.grey,
   };
+
+  @override
+  void initState() {
+    super.initState();
+    currentStatus = context.read<DriverProvider>().driverStatus!;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -152,12 +160,13 @@ class ProfilePageState extends State<ProfilePage> {
   ListTile statusOption(String status) {
     return ListTile(
       leading: Icon(Icons.circle, color: statusColors[status]),
-      title: Text(status, style: textStyle(16, FontWeight.w600)),
+      title: Text(status, style: textStyle(16, FontWeight.w500)),
       onTap: () {
         setState(() {
           currentStatus = status;
-          GlobalVar()
-              .updateStatus(GlobalVar().driverStatus.indexOf(status), context);
+          context.read<DriverProvider>().updateStatusToDB(status, context);
+          // GlobalVar()
+          //     .updateStatus(GlobalVar().driverStatus.indexOf(status), context);
         });
 
         Navigator.of(context).pop();

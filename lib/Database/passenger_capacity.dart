@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:pasada_driver_side/driver_provider.dart';
+import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -21,8 +21,8 @@ class PassengerCapacity {
 
       final getPassengerCapacity = await supabase
           .from('vehicleTable')
-          .select('passengerCapacity')
-          .eq('vehicleID', vehicleID)
+          .select('passenger_capacity')
+          .eq('vehicle_id', vehicleID)
           .single();
 
       if (kDebugMode) {
@@ -31,19 +31,19 @@ class PassengerCapacity {
 
       context
           .read<DriverProvider>()
-          .setPassengerCapacity(getPassengerCapacity['passengerCapacity']);
+          .setPassengerCapacity(getPassengerCapacity['passenger_capacity']);
 
-      print(
+      if (kDebugMode) {
+        print(
           'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
+      }
 
       // Fluttertoast.showToast(msg: msg)
     } catch (e) {
-      print('Error: $e');
+      if (kDebugMode) {
+        print('Error: $e');
+      }
     }
-    // final response = await supabase
-    //     .from('vechicleTable')
-    //     .select('passengerCapacity')
-    //     .eq('vehicleID', vehicleID)
-    //     .single();
+
   }
 }

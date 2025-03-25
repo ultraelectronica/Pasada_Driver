@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:pasada_driver_side/PassengerCapacity/passenger_capacity.dart';
-import 'package:pasada_driver_side/driver_provider.dart';
+import 'package:pasada_driver_side/Database/passenger_capacity.dart';
+import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:provider/provider.dart';
 
 class ActivityPage extends StatefulWidget {
@@ -15,13 +15,13 @@ class ActivityPageState extends State<ActivityPage> {
   int capacity = 1;
   Future<void> getPassengerCapacity() async {
     await PassengerCapacity().getPassengerCapacityToDB(context);
-    
+
     setState(() {
       capacity = context.read<DriverProvider>().passengerCapacity!;
     });
 
     Fluttertoast.showToast(msg: 'Vehicle Capacity: ${capacity.toString()}');
-    }
+  }
 
   @override
   void initState() {
@@ -39,7 +39,8 @@ class ActivityPageState extends State<ActivityPage> {
           const SizedBox(height: 30),
           ElevatedButton(
               onPressed: () {
-                PassengerCapacity().getPassengerCapacityToDB(context);
+                context.read<DriverProvider>().getPassengerCapacity(context);
+                // PassengerCapacity().getPassengerCapacityToDB(context);
               },
               child: const Text('sample')),
           const SizedBox(

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:pasada_driver_side/driver_provider.dart';
+import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -95,8 +95,17 @@ class GlobalVar {
 
     if (kDebugMode) {
       print('new data: ${response['driving_status']}');
-      Fluttertoast.showToast(
-          msg: 'status updated to ${response['driving_status']}');
+      _showToast('status updated to ${response['driving_status']}');
     }
+  }
+
+  void _showToast(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.black,
+      textColor: Colors.white,
+    );
   }
 }
