@@ -51,8 +51,12 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    super.dispose();
     WidgetsBinding.instance.removeObserver(this);
+
+    String driverID = '1';
+    _setDriverStatus(driverID, 'Offline');
+
+    super.dispose();
   }
 
   @override
@@ -61,20 +65,19 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
     final String driverID = context.read<DriverProvider>().driverID!;
 
-    if (state != AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.resumed) {
       // set driving status to Online
       _setDriverStatus(driverID, 'Online');
       // Fluttertoast.showToast(msg: 'App is running');
     } else if (state == AppLifecycleState.inactive) {
       // set driving status to idling
       _setDriverStatus(driverID, 'Idling');
+
       // Fluttertoast.showToast(msg: 'App is Idle');
     } else if (state == AppLifecycleState.detached) {
       _setDriverStatus(driverID, 'Offline');
       Fluttertoast.showToast(msg: 'App is detached');
     }
-
-    Fluttertoast.showToast(msg: 'App is $state');
   }
 
   @override

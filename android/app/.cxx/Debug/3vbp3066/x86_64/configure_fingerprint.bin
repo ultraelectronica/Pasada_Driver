@@ -2,6 +2,7 @@ C/C++ Structured Logc
 a
 _C:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\x86_64\additional_project_files.txtC
 A
+<<<<<<< HEAD
 ?com.android.build.gradle.internal.cxx.io.EncodedFileFingerPrint	Î¬óÜ2 æÁ ®Ø2`
 ^
 \C:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\x86_64\android_gradle_build.json	Î¬óÜ2° èÁ ®Ø2e
@@ -26,3 +27,29 @@ UC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\x86_64\prefab_confi
 ZC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\x86_64\symbol_folder_index.txt	Î¬óÜ2Q ëÁ ®Ø2\
 Z
 XC:\Users\adrian\dev\flutter\packages\flutter_tools\gradle\src\main\groovy\CMakeLists.txt	Î¬óÜ2§ ôï­˜Ó2
+=======
+?com.android.build.gradle.internal.cxx.io.EncodedFileFingerPrint	ÕùšÂÝ2 æÁ ®Ø2`
+^
+\C:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\x86_64\android_gradle_build.json	ÕùšÂÝ2° èÁ ®Ø2e
+c
+aC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\x86_64\android_gradle_build_mini.json	ÕùšÂÝ2‰ êÁ ®Ø2R
+P
+NC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\x86_64\build.ninja	ÕùšÂÝ2× ÇÁ ®Ø2V
+T
+RC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\x86_64\build.ninja.txt	ÕùšÂÝ2[
+Y
+WC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\x86_64\build_file_index.txt	ÕùšÂÝ2X ìÁ ®Ø2\
+Z
+XC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\x86_64\compile_commands.json	ÕùšÂÝ2`
+^
+\C:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\x86_64\compile_commands.json.bin	ÕùšÂÝ2	f
+d
+bC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\x86_64\metadata_generation_command.txt	ÕùšÂÝ2
+¶ êÁ ®Ø2Y
+W
+UC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\x86_64\prefab_config.json	ÕùšÂÝ2( ëÁ ®Ø2^
+\
+ZC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\x86_64\symbol_folder_index.txt	ÕùšÂÝ2Q ëÁ ®Ø2\
+Z
+XC:\Users\adrian\dev\flutter\packages\flutter_tools\gradle\src\main\groovy\CMakeLists.txt	ÕùšÂÝ2§ ôï­˜Ó2
+>>>>>>> 47be4a2 (some testing)
