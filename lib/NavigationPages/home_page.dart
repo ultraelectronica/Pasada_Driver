@@ -7,9 +7,9 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pasada_driver_side/Map/google_map.dart';
 import 'package:pasada_driver_side/Map/route_location.dart';
-import 'package:pasada_driver_side/PassengerCapacity/passenger_capacity.dart';
-import 'package:pasada_driver_side/driver_provider.dart';
-import 'package:pasada_driver_side/global.dart';
+import 'package:pasada_driver_side/Database/passenger_capacity.dart';
+import 'package:pasada_driver_side/Database/driver_provider.dart';
+import 'package:pasada_driver_side/Database/global.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -69,14 +69,8 @@ class HomePageState extends State<HomePage> {
     setState(() {
       Capacity = context.read<DriverProvider>().passengerCapacity!;
     });
-
-Fluttertoast.showToast(
-      msg: 'Vehicle capacity: $Capacity',
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.black,
-      textColor: Colors.white,
-    );  }
+    // _showToast('Vehicle capacity: $Capacity');
+  }
 
   @override
   void initState() {
@@ -84,12 +78,16 @@ Fluttertoast.showToast(
     // _location = Location();
     // _checkPermissionsAndNavigate();
 
-    if (!GlobalVar().isDriving) {
+    if (GlobalVar().isDriving == false) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _showStartDrivingDialog();
       });
     }
     getPassengerCapacity();
+  }
+
+  TextStyle textStyle(double size, FontWeight weight) {
+    return TextStyle(fontFamily: 'Inter', fontSize: size, fontWeight: weight);
   }
 
 //GO ONLINE DIALOG
@@ -99,16 +97,18 @@ Fluttertoast.showToast(
       barrierDismissible: true, // Enables dismissing dialog by tapping outside
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Welcome Manong!'),
+          title: Text(
+            'Welcome Manong!',
+            textAlign: TextAlign.center,
+            style: textStyle(22, FontWeight.w700),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'To start getting passengers, start driving.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                ),
+                style: textStyle(15, FontWeight.normal),
               ),
               const SizedBox(height: 20), // Add some spacing
               Center(
@@ -118,6 +118,8 @@ Fluttertoast.showToast(
                     final String driverID =
                         context.read<DriverProvider>().driverID!;
                     _setStatusToDriving(driverID);
+
+                    context.read<DriverProvider>().setDriverStatus('Driving');
 
                     setState(() {
                       if (kDebugMode) {
@@ -139,14 +141,9 @@ Fluttertoast.showToast(
                     elevation: 8,
                     backgroundColor: Colors.black,
                   ),
-                  child: const Text(
-                    'Start Driving',
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white),
-                  ),
+                  child: Text('Start Driving',
+                      style: textStyle(16, FontWeight.normal)
+                          .copyWith(color: Colors.white)),
                 ),
               ),
             ],

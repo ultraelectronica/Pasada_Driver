@@ -4,11 +4,12 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:pasada_driver_side/NavigationPages/activity_page.dart';
 import 'package:pasada_driver_side/NavigationPages/home_page.dart';
+import 'package:pasada_driver_side/NavigationPages/profile_page.dart';
+
 // import 'package:pasada_driver_side/tester_files/profile_page.dart';
 // import 'package:pasada_driver_side/NavigationPages/settings_page.dart';
-import 'package:pasada_driver_side/driver_provider.dart';
-import 'package:pasada_driver_side/global.dart';
-import 'package:pasada_driver_side/NavigationPages/new_profile_page.dart';
+import 'package:pasada_driver_side/Database/driver_provider.dart';
+import 'package:pasada_driver_side/Database/global.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -26,7 +27,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     const HomeScreen(),
     const ActivityPage(),
     const ProfilePage(),
-    
+
     // ValueListenableBuilder<String>(
     //   valueListenable: GlobalVar().currentStatusNotifier,
     //   builder: (context, currentStatus, _) {
@@ -68,7 +69,12 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
       // set driving status to idling
       _setDriverStatus(driverID, 'Idling');
       // Fluttertoast.showToast(msg: 'App is Idle');
+    } else if (state == AppLifecycleState.detached) {
+      _setDriverStatus(driverID, 'Offline');
+      Fluttertoast.showToast(msg: 'App is detached');
     }
+
+    Fluttertoast.showToast(msg: 'App is $state');
   }
 
   @override
@@ -76,7 +82,6 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F2F2),
       body: IndexedStack(
-        // Use IndexedStack to preserve state
         index: _currentIndex,
         children: pages,
       ),
@@ -91,15 +96,10 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
       onTap: onTap,
       showSelectedLabels: true,
       showUnselectedLabels: false,
-      selectedLabelStyle: const TextStyle(
-        color: Color(0xFF121212),
-        fontFamily: 'Inter',
-        fontSize: 12,
+      selectedLabelStyle: textStyle(12).copyWith(
+        color: const Color(0xFF121212),
       ),
-      unselectedLabelStyle: const TextStyle(
-        fontFamily: 'Inter',
-        fontSize: 12,
-      ),
+      unselectedLabelStyle: textStyle(12),
       selectedItemColor: const Color(0xff067837),
       type: BottomNavigationBarType.fixed,
       items: [
@@ -163,6 +163,11 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
         print('Error: $e');
       }
     }
+  }
+
+  TextStyle textStyle(double size) {
+    return TextStyle(
+        fontFamily: 'Inter', fontSize: size, fontWeight: FontWeight.w700);
   }
 
   void _showToast(String message) {
