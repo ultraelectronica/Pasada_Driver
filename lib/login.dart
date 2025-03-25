@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-// import 'package:pasada_driver_side/NavigationPages/home_page.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
 import 'package:pasada_driver_side/driver_provider.dart';
 import 'package:provider/provider.dart';
@@ -43,87 +43,108 @@ class _LogInState extends State<LogIn> {
       //Query to get the driverID and password from the driverTable
       final response = await Supabase.instance.client
           .from('driverTable')
-          .select('driverID, vehicleID') // Only retrieve driverID and vehicleID
-          .eq('driverID', enteredDriverID) // Match driverID
-          .eq('driverPassword', enteredPassword) // Match password
+          .select('driver_id, vehicle_id') // Only retrieve driverID and vehicleID
+          .eq('driver_id', enteredDriverID) // Match driverID
+          .eq('driver_password', enteredPassword) // Match password
+          .select('first_name, driver_id, vehicle_id')
           .single();
 
       if (mounted) {
         context
             .read<DriverProvider>()
-            .setDriverID(response['driverID'].toString());
+            .setDriverID(response['driver_id'].toString());
 
         // Saves the driver's vehicle ID to the provider
-        context.read<DriverProvider>().setVehicleID(response['vehicleID'].toString());
+        context
+            .read<DriverProvider>()
+            .setVehicleID(response['vehicle_id'].toString());
         if (kDebugMode) {
-          print('Vehicle ID: ${response['vehicleID']}');
+          print('Vehicle ID: ${response['vehicle_id']}');
         }
       }
 
-      _showMessage('Login successful! Welcome Manong!, $enteredDriverID');
-      // Proceed to next screen or perform other actions
-      Navigator.push(
-          context, MaterialPageRoute(builder: (context) => const MainPage()));
+      _setStatusToOnline(enteredDriverID);
+
+      _showToastTop('Welcome Manong ${response['first_name']}!');
+
+      // move to the main page once the driver successfuly logs in
+      if (mounted) {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => const MainPage()));
+      }
     } catch (e) {
-      _showMessage('Invalid credentials. Please try again.');
-      _debugQuery();
+      _showToast('Invalid credentials. Please try again.');
+      // _debugQuery();
     }
   }
 
-// CHECK THIS BEFORE FINALIZING
-  Future<void> _debugQuery() async {
+  // Update the driver's status to 'Online' in the database when they log in
+  Future<void> _setStatusToOnline(String enteredDriverID) async {
     try {
       final response = await Supabase.instance.client
           .from('driverTable')
-          .select(); // Fetch all rows
+          .update({'driving_status': 'Online'})
+          .eq('driver_id', enteredDriverID)
+          .select('driving_status')
+          .single();
 
-      final vehicleResponse =
-          await Supabase.instance.client.from('vehicleTable').select();
+      _showToast('status updated to ${response['driving_status'].toString()}');
+        } catch (e) {
+      _showToast('Error: $e');
 
-      if (kDebugMode) {
-        print('DriverTable Response: $response');
-        print('VehicleTable Response $vehicleResponse');
-      }
-    } catch (e) {
       if (kDebugMode) {
         print('Error: $e');
       }
     }
   }
 
+// // CHECK THIS BEFORE FINALIZING
+//   Future<void> _debugQuery() async {
+//     try {
+//       final response = await Supabase.instance.client
+//           .from('driverTable')
+//           .select(); // Fetch all rows
+
+//       final vehicleResponse =
+//           await Supabase.instance.client.from('vehicleTable').select();
+
+//       if (kDebugMode) {
+//         print('DriverTable Response: $response');
+//         print('VehicleTable Response $vehicleResponse');
+//       }
+//     } catch (e) {
+//       if (kDebugMode) {
+//         print('Error: $e');
+//       }
+//     }
+//   }
+
+// TOASTS AND SNACKBARS
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
   }
 
-  // Future<void> _getDriverStatus() async {
-  //   final supabaseUser = Supabase.instance.client.auth.currentUser;
+  void _showToast(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.black,
+      textColor: Colors.white,
+    );
+  }
 
-  //   if (supabaseUser != null) {
-  //     try {
-  //       final response = await Supabase.instance.client
-  //           .from('driverTable')
-  //           .select('driverStatus')
-  //           .eq('email', supabaseUser.email)
-  //           .single();
-
-  //       if (response.data != null) {
-  //         setState(() {
-  //           _driver_status = response.data.toString();
-  //           print('Current driver status in the db: $_driver_status');
-  //         });
-  //       } else {
-  //         ScaffoldMessenger.of(context).showSnackBar(
-  //           SnackBar(
-  //               content: Text('Error occured: ${response.data.toString()}')),
-  //         );
-  //       }
-  //     } catch (e) {
-  //       print(e);
-  //     }
-  //   }
-  // }
+  void _showToastTop(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_LONG,
+      gravity: ToastGravity.TOP,
+      backgroundColor: Colors.black,
+      textColor: Colors.white,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -166,9 +187,13 @@ class _LogInState extends State<LogIn> {
         child: ElevatedButton(
           onPressed: _logIn,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF5F3FC4),
+            backgroundColor: const Color.fromARGB(255, 0, 0, 0),
             minimumSize: const Size(240, 45),
             shadowColor: Colors.black,
+            elevation: 5,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15.0),
+            ),
           ),
           child: _loading
               ? const CircularProgressIndicator()
@@ -192,7 +217,10 @@ class _LogInState extends State<LogIn> {
       alignment: Alignment.centerRight,
       child: TextButton(
         onPressed: () {},
-        child: const Text('Forgot Password?'),
+        child: const Text(
+          'Forgot Password?',
+          style: TextStyle(color: Colors.black),
+        ),
       ),
     );
   }
@@ -304,12 +332,13 @@ class _LogInState extends State<LogIn> {
 
   Column _buildHeader() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          alignment: Alignment.centerLeft,
+          alignment: Alignment.center,
           // margin: const EdgeInsets.only(top: 60),
-          width: 60,
-          height: 60,
+          width: 70,
+          height: 70,
           child: SvgPicture.asset('assets/svg/Ellipse.svg'),
         ),
         Container(

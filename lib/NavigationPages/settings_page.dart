@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:pasada_driver_side/NavigationPages/Settings/preference_page.dart';
-import 'package:pasada_driver_side/NavigationPages/Settings/support_page.dart';
-import 'package:pasada_driver_side/NavigationPages/Settings/notification_page.dart';
+import 'package:pasada_driver_side/Settings/preference_page.dart';
+import 'package:pasada_driver_side/Settings/support_page.dart';
+import 'package:pasada_driver_side/Settings/notification_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -9,17 +9,13 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   title: const Text('Settings'),
-      // ),
       body: Padding(
         padding: EdgeInsets.only(
-          top: MediaQuery.of(context).size.height * 0.15, 
+          top: MediaQuery.of(context).size.height * 0.15,
           left: MediaQuery.of(context).size.width * 0.05,
           right: MediaQuery.of(context).size.width * 0.05,
         ),
         child: Column(children: [
-
           //NOTIFICATION BUTTON
           SettingsButtons(
             'Notification',
@@ -33,9 +29,9 @@ class SettingsPage extends StatelessWidget {
           const SizedBox(height: 20),
 
           //ALTERNATIVE ROUTE SUGGESTION BUTTON
-          const RouteSuggestionToggleButton('Alternative Route Suggestion'),
-          const SizedBox(height: 20),
-          
+          // const RouteSuggestionToggleButton('Alternative Route Suggestion'),
+          // const SizedBox(height: 20),
+
           //PREFERENCE BUTTON
           SettingsButtons(
             'Preference',
@@ -52,21 +48,16 @@ class SettingsPage extends StatelessWidget {
           SettingsButtons(
             'Support',
             onPressed: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const SupportPage()));
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => const SupportPage()));
             },
           ),
           const SizedBox(height: 20),
-
-
         ]),
       ),
     );
   }
 }
-
 
 // CLASS TO BUILD THE BUTTON
 class SettingsButtons extends StatelessWidget {
@@ -101,7 +92,6 @@ class SettingsButtons extends StatelessWidget {
     );
   }
 }
-
 
 // CLASS FOR TOGGLE BUTTON
 class RouteSuggestionToggleButton extends StatefulWidget {

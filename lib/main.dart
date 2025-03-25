@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/driver_provider.dart';
 import 'package:pasada_driver_side/login.dart';
@@ -13,13 +14,16 @@ Future<void> main() async {
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90YndoaXR3cm1uZnFncG1uanZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzOTk5MzQsImV4cCI6MjA0ODk3NTkzNH0.f8JOv0YvKPQy8GWYGIdXfkIrKcqw0733QY36wJjG1Fw',
       url: 'https://otbwhitwrmnfqgpmnjvf.supabase.co');
 
+  await dotenv.load(fileName: ".env");
+
   runApp(
     ChangeNotifierProvider(
       create: (context) => DriverProvider(),
       child: const MyApp(),
-    ), );
+    ),
+  );
 }
-
+  
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -97,9 +101,13 @@ class _MyHomePageState extends State<MyHomePage> {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5F3FC4),
+                  backgroundColor: const Color.fromARGB(255, 0, 0, 0),
                   minimumSize: const Size(240, 45),
                   shadowColor: Colors.black,
+                  elevation: 5,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
                 child: const Text(
                   'Log in',

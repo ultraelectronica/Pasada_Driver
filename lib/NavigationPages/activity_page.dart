@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:pasada_driver_side/NavigationPages/PassengerCapacity/passenger_capacity.dart';
+import 'package:pasada_driver_side/PassengerCapacity/passenger_capacity.dart';
 import 'package:pasada_driver_side/driver_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -12,25 +12,21 @@ class ActivityPage extends StatefulWidget {
 }
 
 class ActivityPageState extends State<ActivityPage> {
-  int Capacity = 1;
+  int capacity = 1;
   Future<void> getPassengerCapacity() async {
     await PassengerCapacity().getPassengerCapacityToDB(context);
     
     setState(() {
-      Capacity = context.read<DriverProvider>().passengerCapacity!;
+      capacity = context.read<DriverProvider>().passengerCapacity!;
     });
 
-    if (Capacity != null) {
-      Fluttertoast.showToast(msg: 'Vehicle Capacity: ${Capacity.toString()}');
-    } else {
-      Fluttertoast.showToast(msg: 'Vehicle Capacity is not available.');
+    Fluttertoast.showToast(msg: 'Vehicle Capacity: ${capacity.toString()}');
     }
-  }
 
   @override
   void initState() {
     super.initState();
-    getPassengerCapacity();
+    // getPassengerCapacity();
   }
 
   @override
@@ -57,9 +53,9 @@ class ActivityPageState extends State<ActivityPage> {
                 borderRadius: BorderRadius.circular(20)),
             child: Center(
               child: Text(
-                Capacity.toString(),
+                capacity.toString(),
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w500,
                 ),

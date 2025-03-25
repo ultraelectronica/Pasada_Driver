@@ -1,13 +1,17 @@
+// ignore_for_file: non_constant_identifier_names, constant_identifier_names
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:location/location.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:pasada_driver_side/NavigationPages/PassengerCapacity/passenger_capacity.dart';
+import 'package:pasada_driver_side/Map/google_map.dart';
+import 'package:pasada_driver_side/Map/route_location.dart';
+import 'package:pasada_driver_side/PassengerCapacity/passenger_capacity.dart';
 import 'package:pasada_driver_side/driver_provider.dart';
 import 'package:pasada_driver_side/global.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() => runApp(const HomeScreen());
 
@@ -25,7 +29,9 @@ class HomeScreen extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const HomePage(title: 'Pasada'),
-      routes: const <String, WidgetBuilder>{},
+      routes: <String, WidgetBuilder>{
+        'map': (BuildContext context) => const MapScreen(),
+      },
     );
   }
 }
@@ -40,38 +46,54 @@ class HomePage extends StatefulWidget {
 
 class HomePageState extends State<HomePage> {
   int Capacity = 0;
-  String _searchText = "";
   late GoogleMapController mapController;
-  LocationData? _currentLocation;
-  late Location _location;
+  // LocationData? _currentLocation;
+  // late Location _location;
+
+  //para makuha yung route ng driver
+  RouteLocation? InitialLocation; // 14.721061, 121.037486  savemore novaliches
+  RouteLocation? FinalLocation; // 14.692621, 120.969886 valenzuela peoples park
+  static const LatLng StartingLocation =
+      LatLng(14.721957951314671, 121.03660698876655);
+  static const LatLng EndingLocation =
+      LatLng(14.693043926864853, 120.96837288743365);
+
+  //used to access MapScreenState
+  final GlobalKey<MapScreenState> mapScreenKey = GlobalKey<MapScreenState>();
+
+  final GlobalKey containerKey = GlobalKey();
+  double containerHeight = 0;
 
   Future<void> getPassengerCapacity() async {
     await PassengerCapacity().getPassengerCapacityToDB(context);
-    Capacity = context.read<DriverProvider>().passengerCapacity!;
+    setState(() {
+      Capacity = context.read<DriverProvider>().passengerCapacity!;
+    });
 
-    if (Capacity != null) {
-      Fluttertoast.showToast(msg: 'Vehicle Capacity: ${Capacity.toString()}');
-    } else {
-      Fluttertoast.showToast(msg: 'Vehicle Capacity is not available.');
-    }
-  }
+Fluttertoast.showToast(
+      msg: 'Vehicle capacity: $Capacity',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.black,
+      textColor: Colors.white,
+    );  }
 
   @override
   void initState() {
     super.initState();
-    _location = Location();
-    _checkPermissionsAndNavigate();
+    // _location = Location();
+    // _checkPermissionsAndNavigate();
 
-    if (!GlobalVar().isOnline) {
+    if (!GlobalVar().isDriving) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showGoOnlineDialog();
+        _showStartDrivingDialog();
       });
     }
     getPassengerCapacity();
   }
 
 //GO ONLINE DIALOG
-  void _showGoOnlineDialog() {
+  void _showStartDrivingDialog() {
     showDialog(
       context: context,
       barrierDismissible: true, // Enables dismissing dialog by tapping outside
@@ -92,13 +114,18 @@ class HomePageState extends State<HomePage> {
               Center(
                 child: ElevatedButton(
                   onPressed: () {
+                    //Updates driving status to 'Driving' in the database
+                    final String driverID =
+                        context.read<DriverProvider>().driverID!;
+                    _setStatusToDriving(driverID);
+
                     setState(() {
                       if (kDebugMode) {
-                        print(GlobalVar().isOnline);
+                        print(GlobalVar().isDriving);
                       }
-                      GlobalVar().isOnline = true;
+                      GlobalVar().isDriving = true;
                       if (kDebugMode) {
-                        print(GlobalVar().isOnline);
+                        print(GlobalVar().isDriving);
                       }
                     });
                     Navigator.of(context).pop();
@@ -129,302 +156,145 @@ class HomePageState extends State<HomePage> {
     );
   }
 
-  Future<void> _checkPermissionsAndNavigate() async {
+  Future<void> _setStatusToDriving(String driverID) async {
     try {
-      // check if location service is enabled
-      bool serviceEnabled = await _location.serviceEnabled();
-      if (!serviceEnabled) {
-        serviceEnabled = await _location.serviceEnabled();
-        if (!serviceEnabled) {
-          _showLocationServicesDialog();
-          return;
-        }
+      final response = await Supabase.instance.client
+          .from('driverTable')
+          .update({'driving_status': 'Driving'})
+          .eq('driver_id', driverID)
+          .select('driving_status')
+          .single();
+      if (mounted) {
+        GlobalVar()
+            .updateStatus(GlobalVar().driverStatus.indexOf('Driving'), context);
       }
-      // check for and request location permissions
-      PermissionStatus permissionGranted = await _location.hasPermission();
-      if (permissionGranted == PermissionStatus.denied) {
-        permissionGranted = await _location.requestPermission();
-        if (permissionGranted != PermissionStatus.granted) {
-          _showPermissionDialog();
-          return;
-        }
-        //what will happen if rejected?
-      }
-      // get current location
-      _currentLocation = await _location.getLocation();
-      if (_currentLocation != null) {
-        setState(() {});
-      } else {
-        _showLocationErrorDialog();
-      }
+      _showToast('status updated to ${response['driving_status'].toString()}');
     } catch (e) {
-      _showErrorDialog("An error occured while fetching the location.");
+      _showToast('Error: $e');
+
+      if (kDebugMode) {
+        print('Error: $e');
+      }
     }
   }
 
-  void _onMapCreated(GoogleMapController controller) {
-    mapController = controller;
-  }
-
-  void _showPermissionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Permission Required'),
-        content: const Text(
-          'This app needs location permission to work. Please allow it in your settings.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Ok'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showLocationServicesDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Enable Location Services'),
-        content: const Text(
-          'Location services are disabled. Please enable them to use this feature.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showLocationErrorDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Location Error'),
-        content: const Text(
-            'Unable to fetch the current location. Please try again later.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+  void _showToast(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.black,
+      textColor: Colors.white,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    String passengerCapacity = '0';
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    // ensure that the location is fetched before building the map
-    if (_currentLocation == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return Scaffold(
-      body: SafeArea(
+      body: SizedBox(
         child: Stack(
           children: [
-            // GOOGLE MAPS
-            GoogleMap(
-              onMapCreated: _onMapCreated,
-              initialCameraPosition: CameraPosition(
-                target: LatLng(
-                  _currentLocation!.latitude!,
-                  _currentLocation!.longitude!,
-                ),
-                zoom: 15,
-              ),
-              myLocationEnabled: true,
-              myLocationButtonEnabled: false, // there will be a custom button
-              mapType: MapType.normal,
-              zoomControlsEnabled: false,
-              trafficEnabled:
-                  true, // i just found this kaya try to uncomment this
-            ),
-
-            // CUSTOM MY LOCATION BUTTON
-            Positioned(
-              bottom: screenHeight * 0.025,
-              right: screenWidth * 0.05,
-              child: SizedBox(
-                width: 50,
-                height: 50,
-                child: FloatingActionButton(
-                  onPressed: () {
-                    mapController.animateCamera(
-                      CameraUpdate.newCameraPosition(
-                        CameraPosition(
-                          target: LatLng(
-                            _currentLocation!.latitude!,
-                            _currentLocation!.longitude!,
-                          ),
-                          zoom: 15,
-                        ),
-                      ),
-                    );
-                  },
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: const Icon(Icons.my_location,
-                      color: Colors.black, size: 26),
-                ),
-              ),
+            // Update the MapScreen widget in the HomePage's build method
+            MapScreen(
+              key: mapScreenKey,
+              initialLocation: StartingLocation,
+              finalLocation: EndingLocation,
             ),
 
             // FLOATING MESSAGE BUTTON
-            Positioned(
-              bottom: screenHeight * 0.1,
-              right: screenWidth * 0.05,
-              child: SizedBox(
-                width: 50,
-                height: 50,
-                child: FloatingActionButton(
-                  heroTag: null,
-                  onPressed: () {},
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: SvgPicture.asset(
-                    'assets/svg/message.svg',
-                    height: 20,
-                    width: 20,
-                  ),
-                ),
-              ),
-            ),
+            FloatingMessageButton(
+                screenHeight: screenHeight, screenWidth: screenWidth),
 
             // PASSENGER CAPACITY
-            Positioned(
-              bottom: screenHeight * 0.175,
-              right: screenWidth * 0.05,
-              child: SizedBox(
-                width: 50,
-                height: 50,
-                child: FloatingActionButton(
-                  heroTag: null,
-                  onPressed: () {},
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: TextButton(
-                      onPressed: () {},
-                      child: Text(
-                        Capacity.toString(),
-                        style: const TextStyle(
-                            fontFamily: 'Intern',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 22,
-                            color: Colors.black),
-                      )),
-                ),
-              ),
-            ),
-
-            // FLOATING SEARCH BAR
-            Positioned(
-              top: screenHeight * 0.02,
-              left: screenWidth * 0.05,
-              right: screenWidth * 0.05,
-              child: Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(24),
-                child: Container(
-                  height: screenHeight * 0.06,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    color: Colors.white,
-                  ),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 16),
-                      const Icon(Icons.search, color: Colors.grey),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          onChanged: (value) {
-                            setState(() {
-                              // Handle search input
-                            });
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Search for routes',
-                            border: InputBorder.none,
-                            hintStyle: TextStyle(color: Colors.grey[500]),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Displaying search input for testing purposes
-            // Positioned(
-            //   top: screenHeight * 0.12,
-            //   left: screenWidth * 0.05,
-            //   right: screenWidth * 0.05,
-            //   child: Text(
-            //     _searchText.isNotEmpty ? 'You searched for: $_searchText' : '',
-            //     style: const TextStyle(color: Colors.black, fontSize: 16),
-            //   ),
-            // ),
+            FloatingPassengerCapacity(
+                screenHeight: screenHeight,
+                screenWidth: screenWidth,
+                Capacity: Capacity),
           ],
         ),
       ),
+    );
+  }
+}
 
-      // // Bottom Navigation Bar
-      // bottomNavigationBar: BottomNavigationBar(
-      //   currentIndex: _selectedIndex,
-      //   onTap: _onItemTapped,
-      //   items: const [
-      //     BottomNavigationBarItem(
-      //       label: 'Home',
-      //       icon: Icon(Icons.home),
-      //     ),
-      //     BottomNavigationBarItem(
-      //       label: 'Activity',
-      //       icon: Icon(Icons.local_activity),
-      //     ),
-      //     BottomNavigationBarItem(
-      //       label: 'Profile',
-      //       icon: Icon(Icons.person),
-      //     ),
-      //   ],
-      // ),
+class FloatingMessageButton extends StatelessWidget {
+  const FloatingMessageButton({
+    super.key,
+    required this.screenHeight,
+    required this.screenWidth,
+  });
+
+  final double screenHeight;
+  final double screenWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: screenHeight * 0.1,
+      right: screenWidth * 0.05,
+      child: SizedBox(
+        width: 50,
+        height: 50,
+        child: FloatingActionButton(
+          heroTag: null,
+          onPressed: () {},
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: SvgPicture.asset(
+            'assets/svg/message.svg',
+            height: 20,
+            width: 20,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class FloatingPassengerCapacity extends StatelessWidget {
+  const FloatingPassengerCapacity({
+    super.key,
+    required this.screenHeight,
+    required this.screenWidth,
+    required this.Capacity,
+  });
+
+  final double screenHeight;
+  final double screenWidth;
+  final int Capacity;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: screenHeight * 0.175,
+      right: screenWidth * 0.05,
+      child: SizedBox(
+        width: 50,
+        height: 50,
+        child: FloatingActionButton(
+          heroTag: null,
+          onPressed: () {},
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: TextButton(
+              onPressed: () {},
+              child: Text(
+                Capacity.toString(),
+                style: const TextStyle(
+                    fontFamily: 'Intern',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 22,
+                    color: Colors.black),
+              )),
+        ),
+      ),
     );
   }
 }

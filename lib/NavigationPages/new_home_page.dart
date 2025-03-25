@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:pasada_driver_side/NavigationPages/Map/google_map.dart';
+import 'package:pasada_driver_side/Map/google_map.dart';
 
 class NewHomePage extends StatelessWidget {
   const NewHomePage({super.key});
 
-  @override
   NewHomePageState createState() => NewHomePageState();
 
   @override
@@ -39,17 +38,12 @@ class NewHomePageState extends State<HomeScrenStateful> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       body: LayoutBuilder(builder: (context, constraints) {
         final screenWidth = constraints.maxWidth;
-        final screenHeight = constraints.maxHeight;
         final responsivePadding = screenWidth * 0.05;
-        final iconSize = screenWidth * 0.06;
-        final bottomNavBarHeight = 20.0;
-        final double fabVerticalSpacing = 10.0;
+        const bottomNavBarHeight = 20.0;
 
         return Stack(
           children: [
