@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:pasada_driver_side/NavigationPages/PassengerCapacity/passenger_capacity.dart';
+import 'package:pasada_driver_side/PassengerCapacity/passenger_capacity.dart';
 import 'package:pasada_driver_side/driver_provider.dart';
 import 'package:provider/provider.dart';
 

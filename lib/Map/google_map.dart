@@ -9,7 +9,7 @@ import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
-import 'package:pasada_driver_side/NavigationPages/Map/network_utility.dart';
+import 'package:pasada_driver_side/Map/network_utility.dart';
 import 'package:pasada_driver_side/driver_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -126,13 +126,13 @@ class MapScreenState extends State<MapScreen> {
       // kuha ng current location
       LocationData locationData = await location.getLocation();
 
-      Fluttertoast.showToast(
-        msg:
-            'Location fetched successfully: ${locationData.latitude}, ${locationData.longitude}',
-        toastLength: Toast.LENGTH_LONG,
-        backgroundColor: Colors.black87,
-        textColor: Colors.white,
-      );
+      // Fluttertoast.showToast(
+      //   msg:
+      //       'Location fetched successfully: ${locationData.latitude}, ${locationData.longitude}',
+      //   toastLength: Toast.LENGTH_LONG,
+      //   backgroundColor: Colors.black87,
+      //   textColor: Colors.white,
+      // );
 
       setState(() {
         currentLocation =
@@ -171,17 +171,18 @@ class MapScreenState extends State<MapScreen> {
       final response = await Supabase.instance.client
           .from('vehicleTable')
           .update({
-          'vehicleLocation': '${newLocation.latitude}, ${newLocation.longitude}'
-        })
-          .eq('vehicleID', vehicleID)
-          .select('vehicleLocation');
+            'vehicle_location':
+                '${newLocation.latitude}, ${newLocation.longitude}'
+          })
+          .eq('vehicle_id', vehicleID)
+          .select('vehicle_location');
 
       if (kDebugMode) {
         // Fluttertoast.showToast(
         //   msg: 'Location updated to: ${response[0]['vehicleLocation']}',
         //   toastLength: Toast.LENGTH_SHORT,
         // );
-        print('Location updated to: ${response[0]['vehicleLocation']}');
+        print('Location updated to: ${response[0]['vehicle_location']}');
       }
     } catch (e) {
       Fluttertoast.showToast(msg: 'Error: $e');
@@ -502,6 +503,4 @@ class MapScreenState extends State<MapScreen> {
       ],
     ));
   }
-
-  
 }

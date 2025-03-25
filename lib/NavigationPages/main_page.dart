@@ -4,10 +4,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:pasada_driver_side/NavigationPages/activity_page.dart';
 import 'package:pasada_driver_side/NavigationPages/home_page.dart';
-import 'package:pasada_driver_side/NavigationPages/profile_page.dart';
-import 'package:pasada_driver_side/NavigationPages/settings_page.dart';
+// import 'package:pasada_driver_side/tester_files/profile_page.dart';
+// import 'package:pasada_driver_side/NavigationPages/settings_page.dart';
 import 'package:pasada_driver_side/driver_provider.dart';
 import 'package:pasada_driver_side/global.dart';
+import 'package:pasada_driver_side/NavigationPages/new_profile_page.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -24,13 +25,15 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   final List<Widget> pages = [
     const HomeScreen(),
     const ActivityPage(),
-    ValueListenableBuilder<String>(
-      valueListenable: GlobalVar().currentStatusNotifier,
-      builder: (context, currentStatus, _) {
-        return ProfilePage(driverStatus: currentStatus);
-      },
-    ),
-    const SettingsPage(),
+    const ProfilePage(),
+    
+    // ValueListenableBuilder<String>(
+    //   valueListenable: GlobalVar().currentStatusNotifier,
+    //   builder: (context, currentStatus, _) {
+    //     return ProfilePage(driverStatus: currentStatus);
+    //   },
+    // ),
+    // const SettingsPage(),
   ];
 
   void onTap(int newIndex) {
@@ -48,8 +51,6 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     super.dispose();
-    Fluttertoast.showToast(msg: 'App is in the background');
-
     WidgetsBinding.instance.removeObserver(this);
   }
 
@@ -61,12 +62,12 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
     if (state != AppLifecycleState.inactive) {
       // set driving status to Online
-      _setStatusToidling(driverID, 'Online');
-      Fluttertoast.showToast(msg: 'App is running');
-    } else {
+      _setDriverStatus(driverID, 'Online');
+      // Fluttertoast.showToast(msg: 'App is running');
+    } else if (state == AppLifecycleState.inactive) {
       // set driving status to idling
-      _setStatusToidling(driverID, 'Idling');
-      Fluttertoast.showToast(msg: 'App is closed');
+      _setDriverStatus(driverID, 'Idling');
+      // Fluttertoast.showToast(msg: 'App is Idle');
     }
   }
 
@@ -107,8 +108,8 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
             1, 'Activity', 'activitySelectedIcon.svg', 'activityIcon.svg'),
         _buildNavItem(
             2, 'Profile', 'accountSelectedIcon.svg', 'profileIcon.svg'),
-        _buildNavItem(
-            3, 'Settings', 'settingsSelectedIcon.svg', 'settingsIcon.svg'),
+        // _buildNavItem(
+        //     3, 'Settings', 'settingsSelectedIcon.svg', 'settingsIcon.svg'),
       ],
     );
   }
@@ -133,16 +134,28 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     );
   }
 
-  Future<void> _setStatusToidling(String driverID, String status) async {
+  Future<void> _setDriverStatus(String driverID, String status) async {
     try {
       final response = await Supabase.instance.client
           .from('driverTable')
-          .update({'drivingStatus': status})
-          .eq('driverID', driverID)
-          .select('drivingStatus')
+          .update({'driving_status': status})
+          .eq('driver_id', driverID)
+          .select('driving_status')
           .single();
 
-      _showToast('status updated to ${response['drivingStatus'].toString()}');
+      //updates the status in the global variable
+      if (mounted) {
+        GlobalVar()
+            .updateStatus(GlobalVar().driverStatus.indexOf(status), context);
+      }
+      //updates the status in the provider
+      if (status != 'Driving') {
+        setState(() {
+          GlobalVar().isDriving = false;
+        });
+      }
+
+      _showToast('status updated to ${response['driving_status'].toString()}');
     } catch (e) {
       _showToast('Error: $e');
 

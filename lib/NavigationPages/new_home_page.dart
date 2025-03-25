@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:pasada_driver_side/NavigationPages/Map/google_map.dart';
+import 'package:pasada_driver_side/Map/google_map.dart';
 
 class NewHomePage extends StatelessWidget {
   const NewHomePage({super.key});

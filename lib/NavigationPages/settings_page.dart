@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:pasada_driver_side/NavigationPages/Settings/preference_page.dart';
-import 'package:pasada_driver_side/NavigationPages/Settings/support_page.dart';
-import 'package:pasada_driver_side/NavigationPages/Settings/notification_page.dart';
+import 'package:pasada_driver_side/Settings/preference_page.dart';
+import 'package:pasada_driver_side/Settings/support_page.dart';
+import 'package:pasada_driver_side/Settings/notification_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});

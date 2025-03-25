@@ -43,29 +43,29 @@ class _LogInState extends State<LogIn> {
       //Query to get the driverID and password from the driverTable
       final response = await Supabase.instance.client
           .from('driverTable')
-          .select('driverID, vehicleID') // Only retrieve driverID and vehicleID
-          .eq('driverID', enteredDriverID) // Match driverID
-          .eq('driverPassword', enteredPassword) // Match password
-          .select('firstName, driverID, vehicleID')
+          .select('driver_id, vehicle_id') // Only retrieve driverID and vehicleID
+          .eq('driver_id', enteredDriverID) // Match driverID
+          .eq('driver_password', enteredPassword) // Match password
+          .select('first_name, driver_id, vehicle_id')
           .single();
 
       if (mounted) {
         context
             .read<DriverProvider>()
-            .setDriverID(response['driverID'].toString());
+            .setDriverID(response['driver_id'].toString());
 
         // Saves the driver's vehicle ID to the provider
         context
             .read<DriverProvider>()
-            .setVehicleID(response['vehicleID'].toString());
+            .setVehicleID(response['vehicle_id'].toString());
         if (kDebugMode) {
-          print('Vehicle ID: ${response['vehicleID']}');
+          print('Vehicle ID: ${response['vehicle_id']}');
         }
       }
 
       _setStatusToOnline(enteredDriverID);
 
-      _showToastTop('Welcome Manong ${response['firstName']}!');
+      _showToastTop('Welcome Manong ${response['first_name']}!');
 
       // move to the main page once the driver successfuly logs in
       if (mounted) {
@@ -83,12 +83,12 @@ class _LogInState extends State<LogIn> {
     try {
       final response = await Supabase.instance.client
           .from('driverTable')
-          .update({'drivingStatus': 'Online'})
-          .eq('driverID', enteredDriverID)
-          .select('drivingStatus')
+          .update({'driving_status': 'Online'})
+          .eq('driver_id', enteredDriverID)
+          .select('driving_status')
           .single();
 
-      _showToast('status updated to ${response['drivingStatus'].toString()}');
+      _showToast('status updated to ${response['driving_status'].toString()}');
         } catch (e) {
       _showToast('Error: $e');
 

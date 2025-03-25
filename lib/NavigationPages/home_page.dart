@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:pasada_driver_side/NavigationPages/Map/google_map.dart';
-import 'package:pasada_driver_side/NavigationPages/Map/route_location.dart';
-import 'package:pasada_driver_side/NavigationPages/PassengerCapacity/passenger_capacity.dart';
+import 'package:pasada_driver_side/Map/google_map.dart';
+import 'package:pasada_driver_side/Map/route_location.dart';
+import 'package:pasada_driver_side/PassengerCapacity/passenger_capacity.dart';
 import 'package:pasada_driver_side/driver_provider.dart';
 import 'package:pasada_driver_side/global.dart';
 import 'package:provider/provider.dart';
@@ -70,8 +70,13 @@ class HomePageState extends State<HomePage> {
       Capacity = context.read<DriverProvider>().passengerCapacity!;
     });
 
-    Fluttertoast.showToast(msg: 'Vehicle Capacity: ${Capacity.toString()}');
-    }
+Fluttertoast.showToast(
+      msg: 'Vehicle capacity: $Capacity',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.black,
+      textColor: Colors.white,
+    );  }
 
   @override
   void initState() {
@@ -79,7 +84,7 @@ class HomePageState extends State<HomePage> {
     // _location = Location();
     // _checkPermissionsAndNavigate();
 
-    if (!GlobalVar().isOnline) {
+    if (!GlobalVar().isDriving) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _showStartDrivingDialog();
       });
@@ -116,11 +121,11 @@ class HomePageState extends State<HomePage> {
 
                     setState(() {
                       if (kDebugMode) {
-                        print(GlobalVar().isOnline);
+                        print(GlobalVar().isDriving);
                       }
-                      GlobalVar().isOnline = true;
+                      GlobalVar().isDriving = true;
                       if (kDebugMode) {
-                        print(GlobalVar().isOnline);
+                        print(GlobalVar().isDriving);
                       }
                     });
                     Navigator.of(context).pop();
@@ -155,13 +160,16 @@ class HomePageState extends State<HomePage> {
     try {
       final response = await Supabase.instance.client
           .from('driverTable')
-          .update({'drivingStatus': 'Driving'})
-          .eq('driverID', driverID)
-          .select('drivingStatus')
+          .update({'driving_status': 'Driving'})
+          .eq('driver_id', driverID)
+          .select('driving_status')
           .single();
-
-      _showToast('status updated to ${response['drivingStatus'].toString()}');
-        } catch (e) {
+      if (mounted) {
+        GlobalVar()
+            .updateStatus(GlobalVar().driverStatus.indexOf('Driving'), context);
+      }
+      _showToast('status updated to ${response['driving_status'].toString()}');
+    } catch (e) {
       _showToast('Error: $e');
 
       if (kDebugMode) {
