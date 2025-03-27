@@ -2,6 +2,7 @@ C/C++ Structured Logf
 d
 bC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\arm64-v8a\additional_project_files.txtC
 A
+<<<<<<< HEAD
 ?com.android.build.gradle.internal.cxx.io.EncodedFileFingerPrint	¦¬óÜ2 Ð¤ ®Ø2c
 a
 _C:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\arm64-v8a\android_gradle_build.json	¦¬óÜ2¶ Ö¤ ®Ø2h
@@ -26,3 +27,29 @@ _
 ]C:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\arm64-v8a\symbol_folder_index.txt	¦¬óÜ2T ç¤ ®Ø2\
 Z
 XC:\Users\adrian\dev\flutter\packages\flutter_tools\gradle\src\main\groovy\CMakeLists.txt	¦¬óÜ2§ ôï­˜Ó2
+=======
+?com.android.build.gradle.internal.cxx.io.EncodedFileFingerPrint	‘ùšÂÝ2 Ð¤ ®Ø2c
+a
+_C:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\arm64-v8a\android_gradle_build.json	‘ùšÂÝ2¶ Ö¤ ®Ø2h
+f
+dC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\arm64-v8a\android_gradle_build_mini.json	‘ùšÂÝ2 ã¤ ®Ø2U
+S
+QC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\arm64-v8a\build.ninja	‘ùšÂÝ2Ÿ× ­£ ®Ø2Y
+W
+UC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\arm64-v8a\build.ninja.txt	‘ùšÂÝ2^
+\
+ZC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\arm64-v8a\build_file_index.txt	‘ùšÂÝ2X ç¤ ®Ø2_
+]
+[C:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\arm64-v8a\compile_commands.json	‘ùšÂÝ2c
+a
+_C:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\arm64-v8a\compile_commands.json.bin	‘ùšÂÝ2	i
+g
+eC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\arm64-v8a\metadata_generation_command.txt	‘ùšÂÝ2
+Å æ¤ ®Ø2\
+Z
+XC:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\arm64-v8a\prefab_config.json	‘ùšÂÝ2( ç¤ ®Ø2a
+_
+]C:\PASADA APP\PASADA_DRIVER\android\app\.cxx\Debug\3vbp3066\arm64-v8a\symbol_folder_index.txt	‘ùšÂÝ2T ç¤ ®Ø2\
+Z
+XC:\Users\adrian\dev\flutter\packages\flutter_tools\gradle\src\main\groovy\CMakeLists.txt	‘ùšÂÝ2§ ôï­˜Ó2
+>>>>>>> 47be4a2 (some testing)
