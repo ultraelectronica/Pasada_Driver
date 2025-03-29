@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:pasada_driver_side/Messages/message.dart';
 import 'package:pasada_driver_side/NavigationPages/activity_page.dart';
 import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/profile_page.dart';
@@ -52,10 +53,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-
-    String driverID = '1';
-    _setDriverStatus(driverID, 'Offline');
-
+    // context.read<DriverProvider>().updateStatusToDB('Offline', context);
     super.dispose();
   }
 
@@ -63,21 +61,17 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
-    final String driverID = context.read<DriverProvider>().driverID!;
-
     if (state == AppLifecycleState.resumed) {
       // set driving status to Online
-      _setDriverStatus(driverID, 'Online');
-      // Fluttertoast.showToast(msg: 'App is resumed');
+      // _setDriverStatus(driverID, 'Online');
 
+      context.read<DriverProvider>().updateStatusToDB('Online', context);
+      ShowMessage().showToast('App is resumed');
     } else if (state == AppLifecycleState.paused) {
       // set driving status to idling
-      _setDriverStatus(driverID, 'Idling');
 
-      // Fluttertoast.showToast(msg: 'App is paused');
-    } else if (state == AppLifecycleState.detached) {
-      _setDriverStatus(driverID, 'Offline');
-      Fluttertoast.showToast(msg: 'App is detached');
+      context.read<DriverProvider>().updateStatusToDB('Idling', context);
+      ShowMessage().showToast('App is paused');
     }
   }
 
@@ -138,49 +132,8 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     );
   }
 
-  Future<void> _setDriverStatus(String driverID, String status) async {
-    try {
-      final response = await Supabase.instance.client
-          .from('driverTable')
-          .update({'driving_status': status})
-          .eq('driver_id', driverID)
-          .select('driving_status')
-          .single();
-
-      //updates the status in the global variable
-      if (mounted) {
-        GlobalVar()
-            .updateStatus(GlobalVar().driverStatus.indexOf(status), context);
-      }
-      //updates the status in the provider
-      if (status != 'Driving') {
-        setState(() {
-          GlobalVar().isDriving = false;
-        });
-      }
-
-      _showToast('status updated to ${response['driving_status'].toString()}');
-    } catch (e) {
-      _showToast('Error: $e');
-
-      if (kDebugMode) {
-        print('Error: $e');
-      }
-    }
-  }
-
   TextStyle textStyle(double size) {
     return TextStyle(
         fontFamily: 'Inter', fontSize: size, fontWeight: FontWeight.w700);
-  }
-
-  void _showToast(String message) {
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.black,
-      textColor: Colors.white,
-    );
   }
 }

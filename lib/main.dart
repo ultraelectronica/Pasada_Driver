@@ -55,72 +55,113 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             //LOGO
-            Container(
-              margin: const EdgeInsets.only(top: 130),
-              width: 130,
-              height: 130,
-              child: SvgPicture.asset('assets/svg/Ellipse.svg'),
-            ),
+            Logo(),
             //WELCOME MESSAGE
-            Container(
-              margin: const EdgeInsets.only(top: 70),
-              child: const Text(
-                'Hi there!',
-                style: TextStyle(
-                  fontSize: 40,
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Padding(
-              padding: EdgeInsets.only(bottom: 30),
-              child: Text(
-                'Welcome to Pasada Driver',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                ),
-              ),
-            ),
+            WelcomeMessage(),
+            SizedBox(height: 8),
+            WelcomeAppMessage(),
 
             //LOG IN BUTTON
-            Container(
-              margin: const EdgeInsets.only(top: 250),
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LogIn()),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-                  minimumSize: const Size(240, 45),
-                  shadowColor: Colors.black,
-                  elevation: 5,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                child: const Text(
-                  'Log in',
-                  style: TextStyle(
-                    color: Color(0xFFF2F2F2),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 20,
-                    fontFamily: 'Inter',
-                  ),
-                ),
-              ),
-            ),
+            _LogInButton(),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class Logo extends StatelessWidget {
+  const Logo({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 130),
+      width: 130,
+      height: 130,
+      child: SvgPicture.asset('assets/svg/Ellipse.svg'),
+    );
+  }
+}
+
+class WelcomeAppMessage extends StatelessWidget {
+  const WelcomeAppMessage({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(bottom: 30),
+      child: Text(
+        'Welcome to Pasada Driver',
+        style: TextStyle(
+          fontFamily: 'Inter',
+        ),
+      ),
+    );
+  }
+}
+
+class WelcomeMessage extends StatelessWidget {
+  const WelcomeMessage({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 70),
+      child: const Text(
+        'Hi there!',
+        style: TextStyle(
+          fontSize: 40,
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _LogInButton extends StatelessWidget {
+  const _LogInButton();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 250),
+      child: ElevatedButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const LogIn()),
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+          minimumSize: const Size(240, 45),
+          shadowColor: Colors.black,
+          elevation: 5,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+        child: const Text(
+          'Log in',
+          style: TextStyle(
+            color: Color(0xFFF2F2F2),
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+            fontFamily: 'Inter',
+          ),
         ),
       ),
     );

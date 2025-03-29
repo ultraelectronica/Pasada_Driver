@@ -10,6 +10,7 @@ import 'package:pasada_driver_side/Map/route_location.dart';
 import 'package:pasada_driver_side/Database/passenger_capacity.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/global.dart';
+import 'package:pasada_driver_side/Messages/message.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -165,24 +166,14 @@ class HomePageState extends State<HomePage> {
         GlobalVar()
             .updateStatus(GlobalVar().driverStatus.indexOf('Driving'), context);
       }
-      _showToast('status updated to ${response['driving_status'].toString()}');
+      ShowMessage().showToast('status updated to ${response['driving_status'].toString()}');
     } catch (e) {
-      _showToast('Error: $e');
+      ShowMessage().showToast('Error: $e');
 
       if (kDebugMode) {
         print('Error: $e');
       }
     }
-  }
-
-  void _showToast(String message) {
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.black,
-      textColor: Colors.white,
-    );
   }
 
   @override

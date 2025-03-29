@@ -59,3 +59,25 @@
             //     ),
             //   ),
             // ),
+
+
+// // CHECK THIS BEFORE FINALIZING
+//   Future<void> _debugQuery() async {
+//     try {
+//       final response = await Supabase.instance.client
+//           .from('driverTable')
+//           .select(); // Fetch all rows
+
+//       final vehicleResponse =
+//           await Supabase.instance.client.from('vehicleTable').select();
+
+//       if (kDebugMode) {
+//         print('DriverTable Response: $response');
+//         print('VehicleTable Response $vehicleResponse');
+//       }
+//     } catch (e) {
+//       if (kDebugMode) {
+//         print('Error: $e');
+//       }
+//     }
+//   }

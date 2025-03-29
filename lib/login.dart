@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:pasada_driver_side/Messages/message.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:provider/provider.dart';
@@ -35,7 +35,7 @@ class _LogInState extends State<LogIn> {
     final enteredPassword = inputPasswordController.text.trim();
 
     if (enteredDriverID.isEmpty || enteredPassword.isEmpty) {
-      _showMessage('Please fill in all fields');
+      ShowMessage().showSnackBar(context, 'Please fill in all fields');
       return;
     }
 
@@ -50,7 +50,9 @@ class _LogInState extends State<LogIn> {
           .select('first_name, driver_id, vehicle_id')
           .single();
 
+      // Saves driver data to the provider
       if (mounted) {
+        //Saves driver_id to the provider
         context
             .read<DriverProvider>()
             .setDriverID(response['driver_id'].toString());
@@ -68,88 +70,23 @@ class _LogInState extends State<LogIn> {
         }
       }
 
-      _setStatusToOnline(enteredDriverID);
-
-      _showToastTop('Welcome Manong ${response['first_name']}!');
-
       // move to the main page once the driver successfuly logs in
       if (mounted) {
+        // _setStatusToOnline(enteredDriverID);
+        context.read<DriverProvider>().updateStatusToDB('Online', context);
+
+        ShowMessage().showToastTop('Welcome Manong ${response['first_name']}!');
+
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (context) => const MainPage()));
       }
     } catch (e) {
-      _showToast('Invalid credentials. Please try again.');
+      ShowMessage().showToast('Invalid credentials. Please try again.');
       // _debugQuery();
     }
   }
 
-  // Update the driver's status to 'Online' in the database when they log in
-  Future<void> _setStatusToOnline(String enteredDriverID) async {
-    try {
-      final response = await Supabase.instance.client
-          .from('driverTable')
-          .update({'driving_status': 'Online'})
-          .eq('driver_id', enteredDriverID)
-          .select('driving_status')
-          .single();
 
-      _showToast('status updated to ${response['driving_status'].toString()}');
-    } catch (e) {
-      _showToast('Error: $e');
-
-      if (kDebugMode) {
-        print('Error: $e');
-      }
-    }
-  }
-
-// // CHECK THIS BEFORE FINALIZING
-//   Future<void> _debugQuery() async {
-//     try {
-//       final response = await Supabase.instance.client
-//           .from('driverTable')
-//           .select(); // Fetch all rows
-
-//       final vehicleResponse =
-//           await Supabase.instance.client.from('vehicleTable').select();
-
-//       if (kDebugMode) {
-//         print('DriverTable Response: $response');
-//         print('VehicleTable Response $vehicleResponse');
-//       }
-//     } catch (e) {
-//       if (kDebugMode) {
-//         print('Error: $e');
-//       }
-//     }
-//   }
-
-// TOASTS AND SNACKBARS
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-
-  void _showToast(String message) {
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.black,
-      textColor: Colors.white,
-    );
-  }
-
-  void _showToastTop(String message) {
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_LONG,
-      gravity: ToastGravity.TOP,
-      backgroundColor: Colors.black,
-      textColor: Colors.white,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:pasada_driver_side/Messages/message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // this class is used to store values just like a global variable
@@ -47,7 +48,7 @@ class DriverProvider with ChangeNotifier {
 
     if (kDebugMode) {
       print('New status: ${response['driving_status']}');
-      _showToast('New status: ${response['driving_status']}');
+      ShowMessage().showToast('New status: ${response['driving_status']}');
     }
 
     _driverStatus = newStatus;
@@ -71,22 +72,12 @@ class DriverProvider with ChangeNotifier {
 
       if (kDebugMode) {
         print('Capacity: ${response['passenger_capacity'].toString()}');
-        _showToast('Capacity: ${response['passenger_capacity'].toString()}');
+        ShowMessage().showToast('Capacity: ${response['passenger_capacity'].toString()}');
       }
 
       _passengerCapacity = response['passenger_capacity'];
     } catch (e) {
-      _showToast('Error: $e');
+      ShowMessage().showToast('Error: $e');
     }
-  }
-
-  void _showToast(String message) {
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.black,
-      textColor: Colors.white,
-    );
   }
 }
