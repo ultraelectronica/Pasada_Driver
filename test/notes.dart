@@ -81,3 +81,9 @@
 //       }
 //     }
 //   }
+
+// items: [
+//         _buildNavItem(0, 'Home', 'homefilled.svg', 'home.svg'),
+//         _buildNavItem(1, 'Activity', 'recentfilled.svg', 'recent.svg'),
+//         _buildNavItem(2, 'Profile', 'profilefilled.svg', 'profile.svg'),
+//       ],

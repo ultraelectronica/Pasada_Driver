@@ -12,6 +12,10 @@ class DriverProvider with ChangeNotifier {
   int _passengerCapacity = 0;
   bool _isDriving = false;
 
+  String? _driverFirstName;
+  String? _driverLastName;
+  String? _driverNumber;
+
   final SupabaseClient supabase = Supabase.instance.client;
 
   String? get driverID => _driverID;
@@ -20,6 +24,10 @@ class DriverProvider with ChangeNotifier {
   String? get lastDriverStatus => _lastDriverStatus;
   int? get passengerCapacity => _passengerCapacity;
   bool get isDriving => _isDriving;
+
+  String? get driverFirstName => _driverFirstName;
+  String? get driverLastName => _driverLastName;
+  String? get driverNumber => _driverNumber;
 
   void setDriverID(String? value) {
     _driverID = value;
@@ -49,6 +57,22 @@ class DriverProvider with ChangeNotifier {
 
   void setIsDriving(bool value) {
     _isDriving = value;
+    notifyListeners();
+  }
+
+  // Driver Creds
+  void setDriverFirstName(String? value) {
+    _driverFirstName = value;
+    notifyListeners();
+  }
+
+  void setDriverLastName(String? value) {
+    _driverLastName = value;
+    notifyListeners();
+  }
+
+  void setDriverNumber(String? value) {
+    _driverNumber = value;
     notifyListeners();
   }
 
@@ -94,6 +118,24 @@ class DriverProvider with ChangeNotifier {
 
       // sets the capacity to the provider
       _passengerCapacity = response['passenger_capacity'];
+    } catch (e) {
+      ShowMessage().showToast('Error: $e');
+    }
+  }
+
+  Future<void> getDriverCreds() async {
+    try {
+      final response = await supabase
+          .from('driverTable')
+          .select('first_name, last_name, driver_number')
+          .eq('driver_id', _driverID!)
+          .single();
+
+      ShowMessage().showToast(response.toString());
+
+      _driverFirstName = response['first_name'].toString();
+      _driverLastName = response['last_name'].toString();
+      _driverNumber = response['driver_number'].toString();
     } catch (e) {
       ShowMessage().showToast('Error: $e');
     }

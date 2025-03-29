@@ -118,9 +118,11 @@ class HomePageState extends State<HomePage> {
                 child: ElevatedButton(
                   onPressed: () {
                     //Updates driving status to 'Driving' in the database
-                    final String driverID =
-                        context.read<DriverProvider>().driverID!;
-                    _setStatusToDriving(driverID);
+                    // final String driverID =
+                    //     context.read<DriverProvider>().driverID!;
+                    // _setStatusToDriving(driverID);
+
+                    // context.read<Dri
 
                     context.read<DriverProvider>().setDriverStatus('Driving');
 
@@ -156,28 +158,28 @@ class HomePageState extends State<HomePage> {
     );
   }
 
-  Future<void> _setStatusToDriving(String driverID) async {
-    try {
-      final response = await Supabase.instance.client
-          .from('driverTable')
-          .update({'driving_status': 'Driving'})
-          .eq('driver_id', driverID)
-          .select('driving_status')
-          .single();
-      if (mounted) {
-        GlobalVar()
-            .updateStatus(GlobalVar().driverStatus.indexOf('Driving'), context);
-      }
-      ShowMessage().showToast(
-          'status updated to ${response['driving_status'].toString()}');
-    } catch (e) {
-      ShowMessage().showToast('Error: $e');
+  // Future<void> _setStatusToDriving(String driverID) async {
+  //   try {
+  //     final response = await Supabase.instance.client
+  //         .from('driverTable')
+  //         .update({'driving_status': 'Driving'})
+  //         .eq('driver_id', driverID)
+  //         .select('driving_status')
+  //         .single();
+  //     if (mounted) {
+  //       GlobalVar()
+  //           .updateStatus(GlobalVar().driverStatus.indexOf('Driving'), context);
+  //     }
+  //     ShowMessage().showToast(
+  //         'status updated to ${response['driving_status'].toString()}');
+  //   } catch (e) {
+  //     ShowMessage().showToast('Error: $e');
 
-      if (kDebugMode) {
-        print('Error: $e');
-      }
-    }
-  }
+  //     if (kDebugMode) {
+  //       print('Error: $e');
+  //     }
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -268,23 +270,20 @@ class FloatingPassengerCapacity extends StatelessWidget {
         width: 50,
         height: 50,
         child: FloatingActionButton(
-          heroTag: null,
-          onPressed: () {},
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: TextButton(
-              onPressed: () {},
-              child: Text(
-                Capacity.toString(),
-                style: const TextStyle(
-                    fontFamily: 'Intern',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 22,
-                    color: Colors.black),
-              )),
-        ),
+            heroTag: null,
+            onPressed: () {},
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Text(
+              Capacity.toString(),
+              style: const TextStyle(
+                  fontFamily: 'Intern',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 22,
+                  color: Colors.black),
+            )),
       ),
     );
   }

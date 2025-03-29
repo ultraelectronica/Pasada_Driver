@@ -82,6 +82,14 @@ flutter:
     - assets/svg/otherOptionsOptimized.svg
     - assets/svg/googleIcon.svg
     - assets/svg/homeIcon.svg
+#new home icon
+    - assets/svg/home.svg
+    - assets/svg/homefilled.svg
+    - assets/svg/recent.svg
+    - assets/svg/recentfilled.svg
+    - assets/svg/profile.svg
+    - assets/svg/profilefilled.svg
+
     - assets/svg/activityIcon.svg
     - assets/svg/notificationIcon.svg
     - assets/svg/profileIcon.svg

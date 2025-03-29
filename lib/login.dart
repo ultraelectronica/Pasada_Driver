@@ -86,8 +86,6 @@ class _LogInState extends State<LogIn> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

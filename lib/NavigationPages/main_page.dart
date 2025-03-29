@@ -1,18 +1,13 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:pasada_driver_side/Messages/message.dart';
 import 'package:pasada_driver_side/NavigationPages/activity_page.dart';
 import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/profile_page.dart';
-
 // import 'package:pasada_driver_side/tester_files/profile_page.dart';
 // import 'package:pasada_driver_side/NavigationPages/settings_page.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
-import 'package:pasada_driver_side/Database/global.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -28,14 +23,6 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     const HomeScreen(),
     const ActivityPage(),
     const ProfilePage(),
-
-    // ValueListenableBuilder<String>(
-    //   valueListenable: GlobalVar().currentStatusNotifier,
-    //   builder: (context, currentStatus, _) {
-    //     return ProfilePage(driverStatus: currentStatus);
-    //   },
-    // ),
-    // const SettingsPage(),
   ];
 
   void onTap(int newIndex) {
@@ -63,8 +50,9 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
     if (state == AppLifecycleState.resumed) {
       // set driving status to Online
-      context.read<DriverProvider>().updateStatusToDB(context.read<DriverProvider>().lastDriverStatus!, context);
-      
+      context.read<DriverProvider>().updateStatusToDB(
+          context.read<DriverProvider>().lastDriverStatus!, context);
+
       ShowMessage().showToast('App is resumed');
     } else if (state == AppLifecycleState.paused) {
       // set driving status to idling
@@ -100,14 +88,18 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
       selectedItemColor: const Color(0xff067837),
       type: BottomNavigationBarType.fixed,
       items: [
-        _buildNavItem(0, 'Home', 'homeSelectedIcon.svg', 'homeIcon.svg'),
-        _buildNavItem(
-            1, 'Activity', 'activitySelectedIcon.svg', 'activityIcon.svg'),
-        _buildNavItem(
-            2, 'Profile', 'accountSelectedIcon.svg', 'profileIcon.svg'),
-        // _buildNavItem(
-        //     3, 'Settings', 'settingsSelectedIcon.svg', 'settingsIcon.svg'),
+        _buildNavItem(0, 'Home', 'homefilled.svg', 'home.svg'),
+        _buildNavItem(1, 'Activity', 'recentfilled.svg', 'recent.svg'),
+        _buildNavItem(2, 'Profile', 'profilefilled.svg', 'profile.svg'),
       ],
+
+      // items: [
+      //   _buildNavItem(0, 'Home', 'homeSelectedIcon.svg', 'homeIcon.svg'),
+      //   _buildNavItem(
+      //       1, 'Activity', 'activitySelectedIcon.svg', 'activityIcon.svg'),
+      //   _buildNavItem(
+      //       2, 'Profile', 'accountSelectedIcon.svg', 'profileIcon.svg'),
+      // ],
     );
   }
 
@@ -120,8 +112,8 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
               'assets/svg/$selectedIcon',
               colorFilter:
                   const ColorFilter.mode(Color(0xff067837), BlendMode.srcIn),
-              width: 24,
-              height: 24,
+              width: 28,
+              height: 28,
             )
           : SvgPicture.asset(
               'assets/svg/$unselectedIcon',

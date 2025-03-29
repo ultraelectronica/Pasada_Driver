@@ -19,11 +19,21 @@ class ProfilePageState extends State<ProfilePage> {
     "Idling": Colors.orange,
     "Offline": Colors.grey,
   };
+  String _firstName = 'Firstname';
+  String _lastName = 'Lastname';
+  String _driverNumber = '0123457891';
 
   @override
   void initState() {
-    super.initState();
     currentStatus = context.read<DriverProvider>().driverStatus!;
+    context.read<DriverProvider>().getDriverCreds();
+    setState(() {
+      _firstName = context.read<DriverProvider>().driverFirstName!;
+      _lastName = context.read<DriverProvider>().driverLastName!;
+      _driverNumber = context.read<DriverProvider>().driverNumber!;
+    });
+
+    super.initState();
   }
 
   @override
@@ -197,17 +207,17 @@ class ProfilePageState extends State<ProfilePage> {
     return Column(
       children: [
         Text(
-          'Name',
-          style: textStyle(40, FontWeight.w700),
+          '$_firstName $_lastName',
+          style: textStyle(38, FontWeight.w700),
         ),
         const SizedBox(height: 10),
         Text(
-          'pasadadriver@example.com',
+          _driverNumber,
           style: textStyle(16, FontWeight.w400),
         ),
         const SizedBox(height: 10),
         Text(
-          '09123456789',
+          'Vehicle ID: ${context.read<DriverProvider>().driverID}',
           style: textStyle(16, FontWeight.w400),
         ),
       ],
@@ -265,7 +275,7 @@ class ProfileButton extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              SvgPicture.asset('assets/svg/rightArrow.svg'),
+              SvgPicture.asset('assets/svg/rightArrow.svg', height: 18),
               // const Icon(Icons.arrow_forward_ios, size: 16),
             ],
           ),
