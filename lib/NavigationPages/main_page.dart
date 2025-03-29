@@ -68,12 +68,13 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       // set driving status to Online
       _setDriverStatus(driverID, 'Online');
-      // Fluttertoast.showToast(msg: 'App is running');
-    } else if (state == AppLifecycleState.inactive) {
+      // Fluttertoast.showToast(msg: 'App is resumed');
+
+    } else if (state == AppLifecycleState.paused) {
       // set driving status to idling
       _setDriverStatus(driverID, 'Idling');
 
-      // Fluttertoast.showToast(msg: 'App is Idle');
+      // Fluttertoast.showToast(msg: 'App is paused');
     } else if (state == AppLifecycleState.detached) {
       _setDriverStatus(driverID, 'Offline');
       Fluttertoast.showToast(msg: 'App is detached');

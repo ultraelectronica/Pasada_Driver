@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // this class is used to store values just like a global variable
