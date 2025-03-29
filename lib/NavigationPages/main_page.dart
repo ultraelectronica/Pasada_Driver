@@ -53,18 +53,13 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-
-    String driverID = '1';
-    _setDriverStatus(driverID, 'Offline');
-
+    // context.read<DriverProvider>().updateStatusToDB('Offline', context);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-
-    final String driverID = context.read<DriverProvider>().driverID!;
 
     if (state == AppLifecycleState.resumed) {
       // set driving status to Online
@@ -137,41 +132,8 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     );
   }
 
-  Future<void> _setDriverStatus(String driverID, String status) async {
-    try {
-      final response = await Supabase.instance.client
-          .from('driverTable')
-          .update({'driving_status': status})
-          .eq('driver_id', driverID)
-          .select('driving_status')
-          .single();
-
-      //updates the status in the global variable
-      if (mounted) {
-        GlobalVar()
-            .updateStatus(GlobalVar().driverStatus.indexOf(status), context);
-      }
-      //updates the status in the provider
-      if (status != 'Driving') {
-        setState(() {
-          GlobalVar().isDriving = false;
-        });
-      }
-
-      ShowMessage().showToast('status updated to ${response['driving_status'].toString()}');
-    } catch (e) {
-      ShowMessage().showToast('Error: $e');
-
-      if (kDebugMode) {
-        print('Error: $e');
-      }
-    }
-  }
-
   TextStyle textStyle(double size) {
     return TextStyle(
         fontFamily: 'Inter', fontSize: size, fontWeight: FontWeight.w700);
   }
-
-  
 }

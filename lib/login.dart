@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:pasada_driver_side/Messages/message.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
@@ -87,47 +86,7 @@ class _LogInState extends State<LogIn> {
     }
   }
 
-  // // Update the driver's status to 'Online' in the database when they log in
-  // Future<void> _setStatusToOnline(String enteredDriverID) async {
-  //   try {
-  //     final response = await Supabase.instance.client
-  //         .from('driverTable')
-  //         .update({'driving_status': 'Online'})
-  //         .eq('driver_id', enteredDriverID)
-  //         .select('driving_status')
-  //         .single();
 
-  //     ShowMessage().showToast(
-  //         'status updated to ${response['driving_status'].toString()}');
-  //   } catch (e) {
-  //     ShowMessage().showToast('Error: $e');
-
-  //     if (kDebugMode) {
-  //       print('Error: $e');
-  //     }
-  //   }
-  // }
-
-// // CHECK THIS BEFORE FINALIZING
-//   Future<void> _debugQuery() async {
-//     try {
-//       final response = await Supabase.instance.client
-//           .from('driverTable')
-//           .select(); // Fetch all rows
-
-//       final vehicleResponse =
-//           await Supabase.instance.client.from('vehicleTable').select();
-
-//       if (kDebugMode) {
-//         print('DriverTable Response: $response');
-//         print('VehicleTable Response $vehicleResponse');
-//       }
-//     } catch (e) {
-//       if (kDebugMode) {
-//         print('Error: $e');
-//       }
-//     }
-//   }
 
   @override
   Widget build(BuildContext context) {

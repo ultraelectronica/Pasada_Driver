@@ -11,6 +11,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:pasada_driver_side/Map/network_utility.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
+import 'package:pasada_driver_side/Messages/message.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -220,15 +221,6 @@ class MapScreenState extends State<MapScreen> {
     showAlertDialog('Error', message);
   }
 
-  void showDebugToast(String message) {
-    Fluttertoast.showToast(
-      msg: message,
-      toastLength: Toast.LENGTH_LONG,
-      backgroundColor: Colors.black87,
-      textColor: Colors.white,
-    );
-  }
-
   // <<-- ANIMATION -->>
   // animate yung camera papunta sa current location ng user
   Future<void> animateToLocation(LatLng target) async {
@@ -337,7 +329,7 @@ class MapScreenState extends State<MapScreen> {
           await NetworkUtility.postUrl(uri, headers: headers, body: body);
 
       if (response == null) {
-        showDebugToast('No response from the server');
+        ShowMessage().showToast('No response from the server');
         if (kDebugMode) {
           print('No response from the server');
         }
@@ -348,7 +340,7 @@ class MapScreenState extends State<MapScreen> {
 
       // add ng response validation
       if (data['routes'] == null || data['routes'].isEmpty) {
-        showDebugToast('No routes found');
+        ShowMessage().showToast('No routes found');
         if (kDebugMode) {
           print('No routes found');
         }
@@ -358,7 +350,7 @@ class MapScreenState extends State<MapScreen> {
       // null checking for nested properties
       final polyline = data['routes'][0]['polyline']?['encodedPolyline'];
       if (polyline == null) {
-        showDebugToast('No polyline found in the response');
+        ShowMessage().showToast('No polyline found in the response');
         if (kDebugMode) {
           print('No polyline found in the response');
         }
@@ -387,16 +379,16 @@ class MapScreenState extends State<MapScreen> {
             };
           });
 
-          showDebugToast('Route generated successfully');
+          ShowMessage().showToast('Route generated successfully');
           return;
         }
       }
-      showDebugToast('Failed to generate route');
+      ShowMessage().showToast('Failed to generate route');
       if (kDebugMode) {
         print('Failed to generate route: $response');
       }
     } catch (e) {
-      showDebugToast('Error: ${e.toString()}');
+      ShowMessage().showToast('Error: ${e.toString()}');
     }
   }
 
