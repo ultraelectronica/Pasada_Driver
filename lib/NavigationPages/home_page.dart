@@ -67,6 +67,7 @@ class HomePageState extends State<HomePage> {
   Future<void> getPassengerCapacity() async {
     // await PassengerCapacity().getPassengerCapacityToDB(context);
 
+    // get the passenger capacity from the DB
     await context.read<DriverProvider>().getPassengerCapacity(context);
     setState(() {
       Capacity = context.read<DriverProvider>().passengerCapacity!;

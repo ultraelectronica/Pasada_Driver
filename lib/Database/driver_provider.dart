@@ -8,13 +8,18 @@ class DriverProvider with ChangeNotifier {
   String? _driverID;
   String? _vehicleID;
   String? _driverStatus;
+  String? _lastDriverStatus;
   int _passengerCapacity = 0;
+  bool _isDriving = false;
+
   final SupabaseClient supabase = Supabase.instance.client;
 
   String? get driverID => _driverID;
   String? get vehicleID => _vehicleID;
   String? get driverStatus => _driverStatus;
+  String? get lastDriverStatus => _lastDriverStatus;
   int? get passengerCapacity => _passengerCapacity;
+  bool get isDriving => _isDriving;
 
   void setDriverID(String? value) {
     _driverID = value;
@@ -31,8 +36,19 @@ class DriverProvider with ChangeNotifier {
     notifyListeners();
   }
 
+// for state management when the app is in the background
+  void setLastDriverStatus(String value) {
+    _lastDriverStatus = value;
+    notifyListeners();
+  }
+
   void setPassengerCapacity(int value) {
     _passengerCapacity = value;
+    notifyListeners();
+  }
+
+  void setIsDriving(bool value) {
+    _isDriving = value;
     notifyListeners();
   }
 
@@ -50,6 +66,7 @@ class DriverProvider with ChangeNotifier {
       ShowMessage().showToast('Updated status: ${response['driving_status']}');
     }
 
+    _lastDriverStatus = _driverStatus;
     _driverStatus = newStatus;
   }
 

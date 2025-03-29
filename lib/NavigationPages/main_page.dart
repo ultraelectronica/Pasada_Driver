@@ -63,7 +63,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
     if (state == AppLifecycleState.resumed) {
       // set driving status to Online
-      context.read<DriverProvider>().updateStatusToDB('Online', context);
+      context.read<DriverProvider>().updateStatusToDB(context.read<DriverProvider>().lastDriverStatus!, context);
       
       ShowMessage().showToast('App is resumed');
     } else if (state == AppLifecycleState.paused) {
