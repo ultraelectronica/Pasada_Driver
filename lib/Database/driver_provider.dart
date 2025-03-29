@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:pasada_driver_side/Messages/message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -47,8 +46,8 @@ class DriverProvider with ChangeNotifier {
         .single();
 
     if (kDebugMode) {
-      print('New status: ${response['driving_status']}');
-      ShowMessage().showToast('New status: ${response['driving_status']}');
+      print('Updated status: ${response['driving_status']}');
+      ShowMessage().showToast('Updated status: ${response['driving_status']}');
     }
 
     _driverStatus = newStatus;
@@ -72,9 +71,11 @@ class DriverProvider with ChangeNotifier {
 
       if (kDebugMode) {
         print('Capacity: ${response['passenger_capacity'].toString()}');
-        ShowMessage().showToast('Capacity: ${response['passenger_capacity'].toString()}');
+        ShowMessage().showToast(
+            'Capacity: ${response['passenger_capacity'].toString()}');
       }
 
+      // sets the capacity to the provider
       _passengerCapacity = response['passenger_capacity'];
     } catch (e) {
       ShowMessage().showToast('Error: $e');

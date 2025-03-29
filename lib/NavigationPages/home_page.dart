@@ -3,11 +3,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pasada_driver_side/Map/google_map.dart';
 import 'package:pasada_driver_side/Map/route_location.dart';
-import 'package:pasada_driver_side/Database/passenger_capacity.dart';
+// import 'package:pasada_driver_side/Database/passenger_capacity.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/global.dart';
 import 'package:pasada_driver_side/Messages/message.dart';
@@ -66,7 +65,9 @@ class HomePageState extends State<HomePage> {
   double containerHeight = 0;
 
   Future<void> getPassengerCapacity() async {
-    await PassengerCapacity().getPassengerCapacityToDB(context);
+    // await PassengerCapacity().getPassengerCapacityToDB(context);
+
+    await context.read<DriverProvider>().getPassengerCapacity(context);
     setState(() {
       Capacity = context.read<DriverProvider>().passengerCapacity!;
     });
@@ -166,7 +167,8 @@ class HomePageState extends State<HomePage> {
         GlobalVar()
             .updateStatus(GlobalVar().driverStatus.indexOf('Driving'), context);
       }
-      ShowMessage().showToast('status updated to ${response['driving_status'].toString()}');
+      ShowMessage().showToast(
+          'status updated to ${response['driving_status'].toString()}');
     } catch (e) {
       ShowMessage().showToast('Error: $e');
 
