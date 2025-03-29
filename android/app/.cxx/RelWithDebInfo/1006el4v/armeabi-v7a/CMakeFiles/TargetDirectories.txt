@@ -1,2 +1,0 @@
-C:/PASADA APP/PASADA_DRIVER/android/app/.cxx/RelWithDebInfo/1006el4v/armeabi-v7a/CMakeFiles/edit_cache.dir
-C:/PASADA APP/PASADA_DRIVER/android/app/.cxx/RelWithDebInfo/1006el4v/armeabi-v7a/CMakeFiles/rebuild_cache.dir
