@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:pasada_driver_side/Messages/message.dart';
+import 'package:pasada_driver_side/UI/message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // this class is used to store values just like a global variable
@@ -131,7 +131,7 @@ class DriverProvider with ChangeNotifier {
       final response = await supabase
           .from('driverTable')
           .select('first_name, last_name, driver_number')
-          .eq('driver_id', _driverID!)
+          .eq('driver_id', _driverID)
           .single();
 
       // ShowMessage().showToast(response.toString());

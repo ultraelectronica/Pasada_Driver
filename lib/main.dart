@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
+import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/login.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
@@ -159,14 +160,9 @@ class _LogInButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
           ),
         ),
-        child: const Text(
+        child: Text(
           'Log in',
-          style: TextStyle(
-            color: Color(0xFFF2F2F2),
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-            fontFamily: 'Inter',
-          ),
+          style: Styles().textStyle(20, FontWeight.w600, Styles.customWhite),
         ),
       ),
     );

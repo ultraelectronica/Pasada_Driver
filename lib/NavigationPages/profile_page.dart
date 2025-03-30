@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart' show SvgPicture;
+import 'package:flutter_svg/svg.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
-import 'package:pasada_driver_side/Messages/message.dart';
+import 'package:pasada_driver_side/UI/text_styles.dart';
 // import 'package:pasada_driver_side/Database/global.dart';
 import 'package:provider/provider.dart';
 
@@ -77,7 +77,8 @@ class ProfilePageState extends State<ProfilePage> {
                       const SizedBox(width: 8),
                       Text(
                         driverProvider.driverStatus,
-                        style: textStyle(14, FontWeight.w500),
+                        style: Styles().textStyle(
+                            14, Styles.normalWeight, Styles.customBlack),
                       ),
                     ],
                   ),
@@ -127,10 +128,11 @@ class ProfilePageState extends State<ProfilePage> {
                     borderRadius: BorderRadius.circular(10)),
               ),
               Padding(
-                padding: EdgeInsets.only(bottom: 10.0),
+                padding: const EdgeInsets.only(bottom: 10.0),
                 child: Text(
                   'Change Status',
-                  style: textStyle(18, FontWeight.bold),
+                  style: Styles()
+                      .textStyle(18, Styles.w600Weight, Styles.customBlack),
                 ),
               ),
               statusOption('Online'),
@@ -161,7 +163,8 @@ class ProfilePageState extends State<ProfilePage> {
   ListTile statusOption(String status) {
     return ListTile(
       leading: Icon(Icons.circle, color: statusColors[status]),
-      title: Text(status, style: textStyle(16, FontWeight.w500)),
+      title: Text(status,
+          style: Styles().textStyle(16, Styles.w500Weight, Styles.customBlack)),
       onTap: () {
         setState(() {
           if (status != 'Driving') {
@@ -175,14 +178,6 @@ class ProfilePageState extends State<ProfilePage> {
 
         Navigator.of(context).pop();
       },
-    );
-  }
-
-  TextStyle textStyle(double size, FontWeight weight) {
-    return TextStyle(
-      fontSize: size,
-      fontFamily: 'Inter',
-      fontWeight: weight,
     );
   }
 
@@ -203,17 +198,19 @@ class ProfilePageState extends State<ProfilePage> {
         Text(
           '${driverProvider.driverFirstName} ${driverProvider.driverLastName}',
           // '$_firstName $_lastName',
-          style: textStyle(38, FontWeight.w700),
+          style: Styles().textStyle(30, Styles.w700Weight, Styles.customBlack),
         ),
         const SizedBox(height: 10),
         Text(
           driverProvider.driverNumber,
-          style: textStyle(16, FontWeight.w400),
+          style:
+              Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
         ),
         const SizedBox(height: 10),
         Text(
           'Vehicle ID: ${context.read<DriverProvider>().driverID}',
-          style: textStyle(16, FontWeight.w400),
+          style:
+              Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
         ),
       ],
     );

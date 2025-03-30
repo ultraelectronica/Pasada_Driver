@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:pasada_driver_side/Messages/message.dart';
+import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/NavigationPages/activity_page.dart';
 import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/profile_page.dart';
 // import 'package:pasada_driver_side/tester_files/profile_page.dart';
 // import 'package:pasada_driver_side/NavigationPages/settings_page.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
+import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:provider/provider.dart';
 
 class MainPage extends StatefulWidget {
@@ -22,7 +23,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   final List<Widget> pages = [
     const HomeScreen(),
     const ActivityPage(),
-    ProfilePage(),
+    const ProfilePage(),
   ];
 
   @override
@@ -34,7 +35,6 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    // context.read<DriverProvider>().updateStatusToDB('Offline', context);
     super.dispose();
   }
 
@@ -46,13 +46,11 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
       // set driving status to Online
       context.read<DriverProvider>().updateStatusToDB(
           context.read<DriverProvider>().lastDriverStatus!, context);
-
-      ShowMessage().showToast('App is resumed');
+      ShowMessage().showToast('App resumed');
     } else if (state == AppLifecycleState.paused) {
       // set driving status to idling
       context.read<DriverProvider>().updateStatusToDB('Idling', context);
-
-      ShowMessage().showToast('App is paused');
+      ShowMessage().showToast('App paused');
     }
   }
 
@@ -80,7 +78,8 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
           title: Text(
             'Welcome Manong!',
             textAlign: TextAlign.center,
-            style: textStyle(22, FontWeight.w700),
+            style:
+                Styles().textStyle(22, Styles.w600Weight, Styles.customBlack),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -88,7 +87,8 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
               Text(
                 'To start getting passengers, start driving.',
                 textAlign: TextAlign.center,
-                style: textStyle(15, FontWeight.normal),
+                style: Styles()
+                    .textStyle(15, Styles.w500Weight, Styles.customBlack),
               ),
               const SizedBox(height: 20), // Add some spacing
               Center(
@@ -111,9 +111,11 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
                     elevation: 8,
                     backgroundColor: Colors.black,
                   ),
-                  child: Text('Start Driving',
-                      style: textStyle(16, FontWeight.normal)
-                          .copyWith(color: Colors.white)),
+                  child: Text(
+                    'Start Driving',
+                    style: Styles()
+                        .textStyle(16, Styles.normalWeight, Styles.customWhite),
+                  ),
                 ),
               ),
             ],
@@ -146,10 +148,10 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
       onTap: onTap,
       showSelectedLabels: true,
       showUnselectedLabels: false,
-      selectedLabelStyle: textStyle(12, FontWeight.w700).copyWith(
-        color: const Color(0xFF121212),
-      ),
-      unselectedLabelStyle: textStyle(12, FontWeight.w700),
+      selectedLabelStyle:
+          Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
+      unselectedLabelStyle:
+          Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
       selectedItemColor: const Color(0xff067837),
       type: BottomNavigationBarType.fixed,
       items: [
@@ -158,6 +160,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
         _buildNavItem(2, 'Profile', 'profilefilled.svg', 'profile.svg'),
       ],
 
+      // Old icons
       // items: [
       //   _buildNavItem(0, 'Home', 'homeSelectedIcon.svg', 'homeIcon.svg'),
       //   _buildNavItem(
@@ -186,9 +189,5 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
               height: 24,
             ),
     );
-  }
-
-  TextStyle textStyle(double size, FontWeight weight) {
-    return TextStyle(fontFamily: 'Inter', fontSize: size, fontWeight: weight);
   }
 }
