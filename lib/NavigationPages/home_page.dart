@@ -1,6 +1,5 @@
 // ignore_for_file: non_constant_identifier_names, constant_identifier_names
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -61,11 +60,8 @@ class HomePageState extends State<HomePage> {
   double containerHeight = 0;
 
   Future<void> getPassengerCapacity() async {
-    // await PassengerCapacity().getPassengerCapacityToDB(context);
-
     // get the passenger capacity from the DB
     await context.read<DriverProvider>().getPassengerCapacity(context);
-    setState(() {});
     // _showToast('Vehicle capacity: $Capacity');
   }
 
@@ -79,70 +75,11 @@ class HomePageState extends State<HomePage> {
     return TextStyle(fontFamily: 'Inter', fontSize: size, fontWeight: weight);
   }
 
-  // START DRIVING DIALOG
-  void _showStartDrivingDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: true, // Enables dismissing dialog by tapping outside
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            'Welcome Manong!',
-            textAlign: TextAlign.center,
-            style: textStyle(22, FontWeight.w700),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'To start getting passengers, start driving.',
-                textAlign: TextAlign.center,
-                style: textStyle(15, FontWeight.normal),
-              ),
-              const SizedBox(height: 20), // Add some spacing
-              Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    context
-                        .read<DriverProvider>()
-                        .updateStatusToDB('Driving', context);
-                    context.read<DriverProvider>().setDriverStatus('Driving');
-                    context.read<DriverProvider>().setIsDriving(true);
-
-                    Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 30, vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    elevation: 8,
-                    backgroundColor: Colors.black,
-                  ),
-                  child: Text('Start Driving',
-                      style: textStyle(16, FontWeight.normal)
-                          .copyWith(color: Colors.white)),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
     final driverProvider = context.watch<DriverProvider>();
-
-    if (driverProvider.isDriving == false) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showStartDrivingDialog();
-      });
-    }
 
     return Scaffold(
       body: SizedBox(

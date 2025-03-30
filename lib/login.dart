@@ -51,10 +51,10 @@ class _LogInState extends State<LogIn> {
           .single();
 
       if (mounted) {
+        ShowMessage().showToastTop('Welcome Manong ${response['first_name']}!');
+
         // saves all the infos to the provider
         await _setDriverInfo(response);
-
-        ShowMessage().showToastTop('Welcome Manong ${response['first_name']}!');
 
         // move to the main page once the driver successfuly logs in
         Navigator.pushReplacement(
@@ -84,7 +84,6 @@ class _LogInState extends State<LogIn> {
 
   void _updateStatusToDB() {
     context.read<DriverProvider>().setDriverStatus('Online');
-
     context.read<DriverProvider>().updateStatusToDB('Online', context);
   }
 
