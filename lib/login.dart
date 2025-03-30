@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
-import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

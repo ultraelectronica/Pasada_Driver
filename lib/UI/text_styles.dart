@@ -7,7 +7,6 @@ class Styles {
   static const FontWeight normalWeight = FontWeight.normal;
   static const FontWeight w700Weight = FontWeight.w700;
   static const FontWeight w600Weight = FontWeight.w600;
-
   static const FontWeight w500Weight = FontWeight.w500;
 
   TextStyle textStyle(double size, FontWeight weight, Color color) {
