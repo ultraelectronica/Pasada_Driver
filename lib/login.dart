@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:pasada_driver_side/Messages/message.dart';
+import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
+import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -160,9 +161,7 @@ class _LogInState extends State<LogIn> {
               ? const CircularProgressIndicator()
               : Text(
                   'Log in',
-                  style: textStyle(20, FontWeight.w600).copyWith(
-                    color: const Color(0xFFF2F2F2),
-                  ),
+                  style: Styles().textStyle(20, Styles.w700Weight, Styles.customWhite),
                 ),
         ),
       ),
@@ -177,7 +176,7 @@ class _LogInState extends State<LogIn> {
         onPressed: () {},
         child: Text(
           'Forgot Password?',
-          style: textStyle(14, FontWeight.w700),
+          style: Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
         ),
       ),
     );
@@ -228,11 +227,13 @@ class _LogInState extends State<LogIn> {
         children: [
           Text(
             'Enter your ',
-            style: textStyle(14, FontWeight.normal),
+            style:
+                Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
           ),
           Text(
             'Password',
-            style: textStyle(14, FontWeight.w700),
+            style:
+                Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
           ),
         ],
       ),
@@ -248,11 +249,11 @@ class _LogInState extends State<LogIn> {
         children: [
           Text(
             'Enter your ',
-            style: textStyle(14, FontWeight.normal),
+            style: Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
           ),
           Text(
             'Driver ID',
-            style: textStyle(14, FontWeight.w700),
+            style: Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
           ),
           // Text(
           //   ' to continue',
@@ -304,18 +305,10 @@ class _LogInState extends State<LogIn> {
           margin: const EdgeInsets.only(top: 30),
           child: Text(
             'Log-in to your account',
-            style: textStyle(18, FontWeight.w700),
+            style: Styles().textStyle(18, Styles.w700Weight, Styles.customBlack),
           ),
         ),
       ],
     );
-  }
-
-  TextStyle textStyle(double size, FontWeight weight) {
-    return TextStyle(
-        fontSize: size,
-        fontFamily: 'Inter',
-        fontWeight: weight,
-        color: Colors.black87);
   }
 }

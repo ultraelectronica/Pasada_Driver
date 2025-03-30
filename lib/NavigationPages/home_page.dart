@@ -7,6 +7,7 @@ import 'package:pasada_driver_side/Map/google_map.dart';
 import 'package:pasada_driver_side/Map/route_location.dart';
 // import 'package:pasada_driver_side/Database/passenger_capacity.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
+import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:provider/provider.dart';
 
 void main() => runApp(const HomeScreen());
@@ -69,10 +70,6 @@ class HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     getPassengerCapacity();
-  }
-
-  TextStyle textStyle(double size, FontWeight weight) {
-    return TextStyle(fontFamily: 'Inter', fontSize: size, fontWeight: weight);
   }
 
   @override
@@ -172,11 +169,8 @@ class FloatingPassengerCapacity extends StatelessWidget {
             ),
             child: Text(
               Provider.passengerCapacity.toString(),
-              style: const TextStyle(
-                  fontFamily: 'Intern',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 22,
-                  color: Colors.black),
+              style:
+                  Styles().textStyle(22, Styles.w600Weight, Styles.customBlack),
             )),
       ),
     );

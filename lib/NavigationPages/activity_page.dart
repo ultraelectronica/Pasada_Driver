@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
-import 'package:pasada_driver_side/Database/passenger_capacity.dart';
-import 'package:pasada_driver_side/Database/driver_provider.dart';
-import 'package:pasada_driver_side/Messages/message.dart';
+import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:provider/provider.dart';
 
 class ActivityPage extends StatefulWidget {
@@ -42,10 +39,8 @@ class ActivityPageState extends State<ActivityPage> {
               child: Text(
                 driverProvider.passengerCapacity.toString(),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: Styles()
+                    .textStyle(20, Styles.w500Weight, Styles.customBlack),
               ),
             ),
           )
