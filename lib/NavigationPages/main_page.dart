@@ -22,14 +22,8 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   final List<Widget> pages = [
     const HomeScreen(),
     const ActivityPage(),
-    const ProfilePage(),
+    ProfilePage(),
   ];
-
-  void onTap(int newIndex) {
-    setState(() {
-      _currentIndex = newIndex;
-    });
-  }
 
   @override
   void initState() {
@@ -62,8 +56,79 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     }
   }
 
+  void onTap(int newIndex) {
+    setState(() {
+      _currentIndex = newIndex;
+    });
+  }
+
+  void isDriving(DriverProvider driverProvider) {
+    if (driverProvider.isDriving == false && _currentIndex == 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showStartDrivingDialog();
+      });
+    }
+  }
+
+  // START DRIVING DIALOG
+  void _showStartDrivingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true, // Enables dismissing dialog by tapping outside
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'Welcome Manong!',
+            textAlign: TextAlign.center,
+            style: textStyle(22, FontWeight.w700),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'To start getting passengers, start driving.',
+                textAlign: TextAlign.center,
+                style: textStyle(15, FontWeight.normal),
+              ),
+              const SizedBox(height: 20), // Add some spacing
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    context
+                        .read<DriverProvider>()
+                        .updateStatusToDB('Driving', context);
+                    context.read<DriverProvider>().setDriverStatus('Driving');
+                    context.read<DriverProvider>().setIsDriving(true);
+
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 30, vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    elevation: 8,
+                    backgroundColor: Colors.black,
+                  ),
+                  child: Text('Start Driving',
+                      style: textStyle(16, FontWeight.normal)
+                          .copyWith(color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final driverProvider = context.watch<DriverProvider>();
+
+    isDriving(driverProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF2F2F2),
       body: IndexedStack(
@@ -81,10 +146,10 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
       onTap: onTap,
       showSelectedLabels: true,
       showUnselectedLabels: false,
-      selectedLabelStyle: textStyle(12).copyWith(
+      selectedLabelStyle: textStyle(12, FontWeight.w700).copyWith(
         color: const Color(0xFF121212),
       ),
-      unselectedLabelStyle: textStyle(12),
+      unselectedLabelStyle: textStyle(12, FontWeight.w700),
       selectedItemColor: const Color(0xff067837),
       type: BottomNavigationBarType.fixed,
       items: [
@@ -123,8 +188,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     );
   }
 
-  TextStyle textStyle(double size) {
-    return TextStyle(
-        fontFamily: 'Inter', fontSize: size, fontWeight: FontWeight.w700);
+  TextStyle textStyle(double size, FontWeight weight) {
+    return TextStyle(fontFamily: 'Inter', fontSize: size, fontWeight: weight);
   }
 }

@@ -1,6 +1,5 @@
 // ignore_for_file: non_constant_identifier_names, constant_identifier_names
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -8,10 +7,7 @@ import 'package:pasada_driver_side/Map/google_map.dart';
 import 'package:pasada_driver_side/Map/route_location.dart';
 // import 'package:pasada_driver_side/Database/passenger_capacity.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
-import 'package:pasada_driver_side/Database/global.dart';
-import 'package:pasada_driver_side/Messages/message.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() => runApp(const HomeScreen());
 
@@ -45,7 +41,6 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> {
-  int Capacity = 0;
   late GoogleMapController mapController;
   // LocationData? _currentLocation;
   // late Location _location;
@@ -65,27 +60,14 @@ class HomePageState extends State<HomePage> {
   double containerHeight = 0;
 
   Future<void> getPassengerCapacity() async {
-    // await PassengerCapacity().getPassengerCapacityToDB(context);
-
     // get the passenger capacity from the DB
     await context.read<DriverProvider>().getPassengerCapacity(context);
-    setState(() {
-      Capacity = context.read<DriverProvider>().passengerCapacity!;
-    });
     // _showToast('Vehicle capacity: $Capacity');
   }
 
   @override
   void initState() {
     super.initState();
-    // _location = Location();
-    // _checkPermissionsAndNavigate();
-
-    if (GlobalVar().isDriving == false) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showStartDrivingDialog();
-      });
-    }
     getPassengerCapacity();
   }
 
@@ -93,98 +75,11 @@ class HomePageState extends State<HomePage> {
     return TextStyle(fontFamily: 'Inter', fontSize: size, fontWeight: weight);
   }
 
-//GO ONLINE DIALOG
-  void _showStartDrivingDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: true, // Enables dismissing dialog by tapping outside
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            'Welcome Manong!',
-            textAlign: TextAlign.center,
-            style: textStyle(22, FontWeight.w700),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'To start getting passengers, start driving.',
-                textAlign: TextAlign.center,
-                style: textStyle(15, FontWeight.normal),
-              ),
-              const SizedBox(height: 20), // Add some spacing
-              Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    //Updates driving status to 'Driving' in the database
-                    // final String driverID =
-                    //     context.read<DriverProvider>().driverID!;
-                    // _setStatusToDriving(driverID);
-
-                    // context.read<Dri
-
-                    context.read<DriverProvider>().setDriverStatus('Driving');
-
-                    setState(() {
-                      if (kDebugMode) {
-                        print(GlobalVar().isDriving);
-                      }
-                      GlobalVar().isDriving = true;
-                      if (kDebugMode) {
-                        print(GlobalVar().isDriving);
-                      }
-                    });
-                    Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 30, vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    elevation: 8,
-                    backgroundColor: Colors.black,
-                  ),
-                  child: Text('Start Driving',
-                      style: textStyle(16, FontWeight.normal)
-                          .copyWith(color: Colors.white)),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // Future<void> _setStatusToDriving(String driverID) async {
-  //   try {
-  //     final response = await Supabase.instance.client
-  //         .from('driverTable')
-  //         .update({'driving_status': 'Driving'})
-  //         .eq('driver_id', driverID)
-  //         .select('driving_status')
-  //         .single();
-  //     if (mounted) {
-  //       GlobalVar()
-  //           .updateStatus(GlobalVar().driverStatus.indexOf('Driving'), context);
-  //     }
-  //     ShowMessage().showToast(
-  //         'status updated to ${response['driving_status'].toString()}');
-  //   } catch (e) {
-  //     ShowMessage().showToast('Error: $e');
-
-  //     if (kDebugMode) {
-  //       print('Error: $e');
-  //     }
-  //   }
-  // }
-
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
+    final driverProvider = context.watch<DriverProvider>();
 
     return Scaffold(
       body: SizedBox(
@@ -205,7 +100,7 @@ class HomePageState extends State<HomePage> {
             FloatingPassengerCapacity(
                 screenHeight: screenHeight,
                 screenWidth: screenWidth,
-                Capacity: Capacity),
+                Provider: driverProvider),
           ],
         ),
       ),
@@ -250,16 +145,15 @@ class FloatingMessageButton extends StatelessWidget {
 }
 
 class FloatingPassengerCapacity extends StatelessWidget {
-  const FloatingPassengerCapacity({
-    super.key,
-    required this.screenHeight,
-    required this.screenWidth,
-    required this.Capacity,
-  });
+  const FloatingPassengerCapacity(
+      {super.key,
+      required this.screenHeight,
+      required this.screenWidth,
+      required this.Provider});
 
   final double screenHeight;
   final double screenWidth;
-  final int Capacity;
+  final DriverProvider Provider;
 
   @override
   Widget build(BuildContext context) {
@@ -277,7 +171,7 @@ class FloatingPassengerCapacity extends StatelessWidget {
               borderRadius: BorderRadius.circular(15),
             ),
             child: Text(
-              Capacity.toString(),
+              Provider.passengerCapacity.toString(),
               style: const TextStyle(
                   fontFamily: 'Intern',
                   fontWeight: FontWeight.w500,

@@ -50,40 +50,61 @@ class _LogInState extends State<LogIn> {
           .select('first_name, driver_id, vehicle_id')
           .single();
 
-      // Saves driver data to the provider
       if (mounted) {
-        //Saves driver_id to the provider
-        context
-            .read<DriverProvider>()
-            .setDriverID(response['driver_id'].toString());
+        ShowMessage().showToastTop('Welcome Manong ${response['first_name']}!');
 
-        // Saves the driver's vehicle ID to the provider
-        context
-            .read<DriverProvider>()
-            .setVehicleID(response['vehicle_id'].toString());
+        // saves all the infos to the provider
+        await _setDriverInfo(response);
 
-        context.read<DriverProvider>().getPassengerCapacity(context);
+        // move to the main page once the driver successfuly logs in
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => const MainPage()));
 
-        context.read<DriverProvider>().setDriverStatus('Online');
         if (kDebugMode) {
           print('Vehicle ID: ${response['vehicle_id']}');
         }
-      }
-
-      // move to the main page once the driver successfuly logs in
-      if (mounted) {
-        // _setStatusToOnline(enteredDriverID);
-        context.read<DriverProvider>().updateStatusToDB('Online', context);
-
-        ShowMessage().showToastTop('Welcome Manong ${response['first_name']}!');
-
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (context) => const MainPage()));
       }
     } catch (e) {
       ShowMessage().showToast('Invalid credentials. Please try again.');
       // _debugQuery();
     }
+  }
+
+  Future<void> _setDriverInfo(PostgrestMap response) async {
+    _setDriverID(response);
+
+    _setVehicleID(response);
+
+    _setPassengerCapacity();
+
+    _updateStatusToDB();
+
+    await _setDriverCreds();
+  }
+
+  void _updateStatusToDB() {
+    context.read<DriverProvider>().setDriverStatus('Online');
+    context.read<DriverProvider>().updateStatusToDB('Online', context);
+  }
+
+  Future<void> _setDriverCreds() async {
+    await context.read<DriverProvider>().getDriverCreds();
+  }
+
+  void _setPassengerCapacity() {
+    context.read<DriverProvider>().getPassengerCapacity(context);
+  }
+
+  void _setVehicleID(PostgrestMap response) {
+    context
+        .read<DriverProvider>()
+        .setVehicleID(response['vehicle_id'].toString());
+  }
+
+  void _setDriverID(PostgrestMap response) {
+    context
+        .read<DriverProvider>()
+        .setDriverID(response['driver_id'].toString());
   }
 
   @override
