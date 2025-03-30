@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart' show SvgPicture;
 import 'package:pasada_driver_side/Database/driver_provider.dart';
+import 'package:pasada_driver_side/Messages/message.dart';
 // import 'package:pasada_driver_side/Database/global.dart';
 import 'package:provider/provider.dart';
 
@@ -19,20 +20,9 @@ class ProfilePageState extends State<ProfilePage> {
     "Idling": Colors.orange,
     "Offline": Colors.grey,
   };
-  String _firstName = 'Firstname';
-  String _lastName = 'Lastname';
-  String _driverNumber = '0123457891';
 
   @override
   void initState() {
-    currentStatus = context.read<DriverProvider>().driverStatus!;
-    context.read<DriverProvider>().getDriverCreds();
-    setState(() {
-      _firstName = context.read<DriverProvider>().driverFirstName!;
-      _lastName = context.read<DriverProvider>().driverLastName!;
-      _driverNumber = context.read<DriverProvider>().driverNumber!;
-    });
-
     super.initState();
   }
 
@@ -40,6 +30,7 @@ class ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     final double paddingValue = MediaQuery.of(context).size.width * 0.05;
     final double profilePictureSize = MediaQuery.of(context).size.width * 0.3;
+    final driverProvider = context.watch<DriverProvider>();
 
     return Scaffold(
       body: Center(
@@ -50,7 +41,7 @@ class ProfilePageState extends State<ProfilePage> {
             children: [
               _buildProfilePicture(profilePictureSize),
               const SizedBox(height: 20),
-              _buildDriverDetails(),
+              _buildDriverDetails(driverProvider),
               const SizedBox(height: 20),
 
               //Driver Status Button
@@ -79,13 +70,13 @@ class ProfilePageState extends State<ProfilePage> {
                         height: 10,
                         width: 10,
                         decoration: BoxDecoration(
-                          color: statusColors[currentStatus],
+                          color: statusColors[driverProvider.driverStatus],
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        currentStatus,
+                        driverProvider.driverStatus,
                         style: textStyle(14, FontWeight.w500),
                       ),
                     ],
@@ -173,10 +164,13 @@ class ProfilePageState extends State<ProfilePage> {
       title: Text(status, style: textStyle(16, FontWeight.w500)),
       onTap: () {
         setState(() {
-          currentStatus = status;
+          if (status != 'Driving') {
+            context.read<DriverProvider>().setIsDriving(false);
+            // ShowMessage()
+            //     .showToast(context.read<DriverProvider>().isDriving.toString());
+          }
           context.read<DriverProvider>().updateStatusToDB(status, context);
-          // GlobalVar()
-          //     .updateStatus(GlobalVar().driverStatus.indexOf(status), context);
+          context.read<DriverProvider>().setDriverStatus(status);
         });
 
         Navigator.of(context).pop();
@@ -203,16 +197,17 @@ class ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildDriverDetails() {
+  Widget _buildDriverDetails(DriverProvider driverProvider) {
     return Column(
       children: [
         Text(
-          '$_firstName $_lastName',
+          '${driverProvider.driverFirstName} ${driverProvider.driverLastName}',
+          // '$_firstName $_lastName',
           style: textStyle(38, FontWeight.w700),
         ),
         const SizedBox(height: 10),
         Text(
-          _driverNumber,
+          driverProvider.driverNumber,
           style: textStyle(16, FontWeight.w400),
         ),
         const SizedBox(height: 10),

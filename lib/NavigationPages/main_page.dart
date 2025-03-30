@@ -22,7 +22,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   final List<Widget> pages = [
     const HomeScreen(),
     const ActivityPage(),
-    const ProfilePage(),
+    ProfilePage(),
   ];
 
   void onTap(int newIndex) {
@@ -64,6 +64,8 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+      final driverProvider = context.watch<DriverProvider>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF2F2F2),
       body: IndexedStack(

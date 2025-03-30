@@ -8,10 +8,7 @@ import 'package:pasada_driver_side/Map/google_map.dart';
 import 'package:pasada_driver_side/Map/route_location.dart';
 // import 'package:pasada_driver_side/Database/passenger_capacity.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
-import 'package:pasada_driver_side/Database/global.dart';
-import 'package:pasada_driver_side/Messages/message.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() => runApp(const HomeScreen());
 
@@ -45,7 +42,6 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> {
-  int Capacity = 0;
   late GoogleMapController mapController;
   // LocationData? _currentLocation;
   // late Location _location;
@@ -69,23 +65,13 @@ class HomePageState extends State<HomePage> {
 
     // get the passenger capacity from the DB
     await context.read<DriverProvider>().getPassengerCapacity(context);
-    setState(() {
-      Capacity = context.read<DriverProvider>().passengerCapacity!;
-    });
+    setState(() {});
     // _showToast('Vehicle capacity: $Capacity');
   }
 
   @override
   void initState() {
     super.initState();
-    // _location = Location();
-    // _checkPermissionsAndNavigate();
-
-    if (GlobalVar().isDriving == false) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showStartDrivingDialog();
-      });
-    }
     getPassengerCapacity();
   }
 
@@ -93,7 +79,7 @@ class HomePageState extends State<HomePage> {
     return TextStyle(fontFamily: 'Inter', fontSize: size, fontWeight: weight);
   }
 
-//GO ONLINE DIALOG
+  // START DRIVING DIALOG
   void _showStartDrivingDialog() {
     showDialog(
       context: context,
@@ -117,24 +103,12 @@ class HomePageState extends State<HomePage> {
               Center(
                 child: ElevatedButton(
                   onPressed: () {
-                    //Updates driving status to 'Driving' in the database
-                    // final String driverID =
-                    //     context.read<DriverProvider>().driverID!;
-                    // _setStatusToDriving(driverID);
-
-                    // context.read<Dri
-
+                    context
+                        .read<DriverProvider>()
+                        .updateStatusToDB('Driving', context);
                     context.read<DriverProvider>().setDriverStatus('Driving');
+                    context.read<DriverProvider>().setIsDriving(true);
 
-                    setState(() {
-                      if (kDebugMode) {
-                        print(GlobalVar().isDriving);
-                      }
-                      GlobalVar().isDriving = true;
-                      if (kDebugMode) {
-                        print(GlobalVar().isDriving);
-                      }
-                    });
                     Navigator.of(context).pop();
                   },
                   style: ElevatedButton.styleFrom(
@@ -158,33 +132,17 @@ class HomePageState extends State<HomePage> {
     );
   }
 
-  // Future<void> _setStatusToDriving(String driverID) async {
-  //   try {
-  //     final response = await Supabase.instance.client
-  //         .from('driverTable')
-  //         .update({'driving_status': 'Driving'})
-  //         .eq('driver_id', driverID)
-  //         .select('driving_status')
-  //         .single();
-  //     if (mounted) {
-  //       GlobalVar()
-  //           .updateStatus(GlobalVar().driverStatus.indexOf('Driving'), context);
-  //     }
-  //     ShowMessage().showToast(
-  //         'status updated to ${response['driving_status'].toString()}');
-  //   } catch (e) {
-  //     ShowMessage().showToast('Error: $e');
-
-  //     if (kDebugMode) {
-  //       print('Error: $e');
-  //     }
-  //   }
-  // }
-
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
+    final driverProvider = context.watch<DriverProvider>();
+
+    if (driverProvider.isDriving == false) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showStartDrivingDialog();
+      });
+    }
 
     return Scaffold(
       body: SizedBox(
@@ -205,7 +163,7 @@ class HomePageState extends State<HomePage> {
             FloatingPassengerCapacity(
                 screenHeight: screenHeight,
                 screenWidth: screenWidth,
-                Capacity: Capacity),
+                Provider: driverProvider),
           ],
         ),
       ),
@@ -250,16 +208,15 @@ class FloatingMessageButton extends StatelessWidget {
 }
 
 class FloatingPassengerCapacity extends StatelessWidget {
-  const FloatingPassengerCapacity({
-    super.key,
-    required this.screenHeight,
-    required this.screenWidth,
-    required this.Capacity,
-  });
+  const FloatingPassengerCapacity(
+      {super.key,
+      required this.screenHeight,
+      required this.screenWidth,
+      required this.Provider});
 
   final double screenHeight;
   final double screenWidth;
-  final int Capacity;
+  final DriverProvider Provider;
 
   @override
   Widget build(BuildContext context) {
@@ -277,7 +234,7 @@ class FloatingPassengerCapacity extends StatelessWidget {
               borderRadius: BorderRadius.circular(15),
             ),
             child: Text(
-              Capacity.toString(),
+              Provider.passengerCapacity.toString(),
               style: const TextStyle(
                   fontFamily: 'Intern',
                   fontWeight: FontWeight.w500,

@@ -16,12 +16,17 @@ Future<void> main() async {
 
   await dotenv.load(fileName: ".env");
 
-  runApp(
-    ChangeNotifierProvider(
-      create: (context) => DriverProvider(),
-      child: const MyApp(),
-    ),
-  );
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (_) => DriverProvider()),
+    ],
+    child: const MyApp(),
+  )
+      // ChangeNotifierProvider(
+      //   create: (context) => DriverProvider(),
+      //   child: const MyApp(),
+      // ),
+      );
 }
 
 class MyApp extends StatelessWidget {

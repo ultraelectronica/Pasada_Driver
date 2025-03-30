@@ -5,31 +5,48 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 // this class is used to store values just like a global variable
 class DriverProvider with ChangeNotifier {
-  String? _driverID;
+  String _driverID = 'N/A';
+  String _driverStatus = 'Online';
+
+  // String? _driverID;
   String? _vehicleID;
-  String? _driverStatus;
+  // String? _driverStatus;
   String? _lastDriverStatus;
   int _passengerCapacity = 0;
   bool _isDriving = false;
 
-  String? _driverFirstName;
-  String? _driverLastName;
-  String? _driverNumber;
+  // String? _driverFirstName;
+  // String? _driverLastName;
+  // String? _driverNumber;
+
+  String _driverFirstName = 'firstName';
+  String _driverLastName = 'lastName';
+  String _driverNumber = '00000000000';
 
   final SupabaseClient supabase = Supabase.instance.client;
 
   String? get driverID => _driverID;
   String? get vehicleID => _vehicleID;
-  String? get driverStatus => _driverStatus;
+  // String? get driverStatus => _driverStatus;
+  String get driverStatus => _driverStatus;
+
   String? get lastDriverStatus => _lastDriverStatus;
-  int? get passengerCapacity => _passengerCapacity;
+  // int? get passengerCapacity => _passengerCapacity;
+  int get passengerCapacity => _passengerCapacity;
+
   bool get isDriving => _isDriving;
 
   String? get driverFirstName => _driverFirstName;
   String? get driverLastName => _driverLastName;
-  String? get driverNumber => _driverNumber;
+  // String? get driverNumber => _driverNumber;
+  String get driverNumber => _driverNumber;
 
-  void setDriverID(String? value) {
+  // void setDriverID(String? value) {
+  //   _driverID = value;
+  //   notifyListeners();
+  // }
+
+  void setDriverID(String value) {
     _driverID = value;
     notifyListeners();
   }
@@ -61,17 +78,32 @@ class DriverProvider with ChangeNotifier {
   }
 
   // Driver Creds
-  void setDriverFirstName(String? value) {
+  // void setDriverFirstName(String? value) {
+  //   _driverFirstName = value;
+  //   notifyListeners();
+  // }
+
+  // void setDriverLastName(String? value) {
+  //   _driverLastName = value;
+  //   notifyListeners();
+  // }
+
+  // void setDriverNumber(String? value) {
+  //   _driverNumber = value;
+  //   notifyListeners();
+  // }
+
+  void setDriverFirstName(String value) {
     _driverFirstName = value;
     notifyListeners();
   }
 
-  void setDriverLastName(String? value) {
+  void setDriverLastName(String value) {
     _driverLastName = value;
     notifyListeners();
   }
 
-  void setDriverNumber(String? value) {
+  void setDriverNumber(String value) {
     _driverNumber = value;
     notifyListeners();
   }
@@ -131,13 +163,20 @@ class DriverProvider with ChangeNotifier {
           .eq('driver_id', _driverID!)
           .single();
 
-      ShowMessage().showToast(response.toString());
+      // ShowMessage().showToast(response.toString());
+
+      if (kDebugMode) {
+        print(response.toString());
+      }
 
       _driverFirstName = response['first_name'].toString();
       _driverLastName = response['last_name'].toString();
       _driverNumber = response['driver_number'].toString();
     } catch (e) {
       ShowMessage().showToast('Error: $e');
+      if (kDebugMode) {
+        print('Error: $e');
+      }
     }
   }
 }
