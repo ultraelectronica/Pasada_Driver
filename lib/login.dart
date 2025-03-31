@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
@@ -75,12 +76,16 @@ class _LogInState extends State<LogIn> {
     _setDriverID(response);
 
     _setVehicleID(response);
+    
+    context.read<MapProvider>().getDriverRoute(context);
 
     _setPassengerCapacity();
 
     _updateStatusToDB();
 
     await _setDriverCreds();
+
+    context.read<MapProvider>().getRouteCoordinates(context); //last dapat to kasi it works pag last nigga
   }
 
   void _updateStatusToDB() {

@@ -90,6 +90,8 @@ flutter:
     - assets/svg/profile.svg
     - assets/svg/profilefilled.svg
 
+    - assets/svg/user.svg
+
     - assets/svg/activityIcon.svg
     - assets/svg/notificationIcon.svg
     - assets/svg/profileIcon.svg
