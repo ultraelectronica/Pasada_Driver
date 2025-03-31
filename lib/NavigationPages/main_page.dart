@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/UI/message.dart';
@@ -19,6 +20,7 @@ class MainPage extends StatefulWidget {
 
 class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   int _currentIndex = 0;
+  Timer? _timer;
 
   final List<Widget> pages = [
     const HomeScreen(),
@@ -29,11 +31,13 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _startTimer();
     WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -52,6 +56,16 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
       context.read<DriverProvider>().updateStatusToDB('Idling', context);
       ShowMessage().showToast('App paused');
     }
+  }
+
+  void _startTimer() {
+    // Update immediately when starting
+    context.read<DriverProvider>().updateLastOnline();
+
+    // Then update every 30 seconds
+    _timer = Timer.periodic(const Duration(seconds: 60), (timer) {
+      context.read<DriverProvider>().updateLastOnline();
+    });
   }
 
   void onTap(int newIndex) {
