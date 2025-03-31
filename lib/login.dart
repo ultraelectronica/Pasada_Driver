@@ -161,7 +161,8 @@ class _LogInState extends State<LogIn> {
               ? const CircularProgressIndicator()
               : Text(
                   'Log in',
-                  style: Styles().textStyle(20, Styles.w700Weight, Styles.customWhite),
+                  style: Styles()
+                      .textStyle(20, Styles.w700Weight, Styles.customWhite),
                 ),
         ),
       ),
@@ -249,11 +250,13 @@ class _LogInState extends State<LogIn> {
         children: [
           Text(
             'Enter your ',
-            style: Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
+            style:
+                Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
           ),
           Text(
             'Driver ID',
-            style: Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
+            style:
+                Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
           ),
           // Text(
           //   ' to continue',
@@ -305,7 +308,8 @@ class _LogInState extends State<LogIn> {
           margin: const EdgeInsets.only(top: 30),
           child: Text(
             'Log-in to your account',
-            style: Styles().textStyle(18, Styles.w700Weight, Styles.customBlack),
+            style:
+                Styles().textStyle(18, Styles.w700Weight, Styles.customBlack),
           ),
         ),
       ],

@@ -47,7 +47,7 @@ class DriverProvider with ChangeNotifier {
     notifyListeners();
   }
 
-// for state management when the app is in the background
+  // for state management when the app is in the background
   void setLastDriverStatus(String value) {
     _lastDriverStatus = value;
     notifyListeners();
@@ -148,6 +148,27 @@ class DriverProvider with ChangeNotifier {
       if (kDebugMode) {
         print('Error: $e');
       }
+    }
+  }
+
+  Future<void> updateLastOnline() async {
+    try {
+      final response = await supabase
+          .from('driverTable')
+          .update({
+            'last_online': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('driver_id', _driverID)
+          .select('last_online')
+          .single();
+
+      ShowMessage().showToast(
+          'Time updated ${DateTime.now().toUtc().toIso8601String()}');
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error updating last online: $e');
+      }
+      ShowMessage().showToast('Error: $e');
     }
   }
 }
