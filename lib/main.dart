@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
+import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/login.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -10,30 +12,28 @@ import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
 
   await Supabase.initialize(
-      anonKey:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90YndoaXR3cm1uZnFncG1uanZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzOTk5MzQsImV4cCI6MjA0ODk3NTkzNH0.f8JOv0YvKPQy8GWYGIdXfkIrKcqw0733QY36wJjG1Fw',
-      url: 'https://otbwhitwrmnfqgpmnjvf.supabase.co');
+      anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+      url: dotenv.env['SUPABASE_URL']!);
 
-  await dotenv.load(fileName: ".env");
+  final session = await Authservice.getSession();
+  final bool isLoggedIn = session['session_token'] != null;
 
   runApp(MultiProvider(
     providers: [
       ChangeNotifierProvider(create: (_) => DriverProvider()),
       ChangeNotifierProvider(create: (_) => MapProvider()),
     ],
-    child: const MyApp(),
-  )
-      // ChangeNotifierProvider(
-      //   create: (context) => DriverProvider(),
-      //   child: const MyApp(),
-      // ),
-      );
+    child: MyApp(isLoggedIn: isLoggedIn),
+  ));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isLoggedIn;
+
+  const MyApp({super.key, required this.isLoggedIn});
 
   // This widget is the root of your application.
   @override
@@ -46,7 +46,13 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: isLoggedIn
+          ? const HomeScreen()
+          : const MyHomePage(title: 'Pasada Driver'),
+      routes: {
+        '/login': (context) => const LogIn(),
+        '/home': (context) => const HomeScreen(),
+      },
     );
   }
 }
@@ -148,10 +154,7 @@ class _LogInButton extends StatelessWidget {
       margin: const EdgeInsets.only(top: 250),
       child: ElevatedButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const LogIn()),
-          );
+          Navigator.pushReplacementNamed(context, '/login');
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 0, 0, 0),

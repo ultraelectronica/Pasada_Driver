@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/UI/message.dart';
@@ -45,30 +46,43 @@ class _LogInState extends State<LogIn> {
       //Query to get the driverID and password from the driverTable
       final response = await Supabase.instance.client
           .from('driverTable')
-          .select(
-              'driver_id, vehicle_id') // Only retrieve driverID and vehicleID
-          .eq('driver_id', enteredDriverID) // Match driverID
-          .eq('driver_password', enteredPassword) // Match password
           .select('first_name, driver_id, vehicle_id')
+          .eq('driver_id', enteredDriverID)
+          .eq('driver_password', enteredPassword)
           .single();
 
       if (mounted) {
-        ShowMessage().showToastTop('Welcome Manong ${response['first_name']}!');
-
         // saves all the infos to the provider
         await _setDriverInfo(response);
 
-        // move to the main page once the driver successfuly logs in
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (context) => const MainPage()));
+        final sessionToken = Authservice().generateSecureToken();
+        final expirationTime =
+            DateTime.now().add(const Duration(hours: 24)).toIso8601String();
 
+        await Authservice.saveCredentials(
+          sessionToken: sessionToken,
+          driverId: enteredDriverID,
+          // routeId: response['route_id'],
+          vehicleId: response['vehicle_id'],
+          expiresAt: expirationTime,
+        );
+
+        ShowMessage().showToastTop('Welcome Manong ${response['first_name']}!');
+
+        // move to the main page once the driver successfuly logs in
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainPage()),
+          );
+        }
         if (kDebugMode) {
           print('Vehicle ID: ${response['vehicle_id']}');
         }
       }
     } catch (e) {
+      print('Error during login: $e');
       ShowMessage().showToast('Invalid credentials. Please try again.');
-      // _debugQuery();
     }
   }
 
@@ -76,7 +90,7 @@ class _LogInState extends State<LogIn> {
     _setDriverID(response);
 
     _setVehicleID(response);
-    
+
     context.read<MapProvider>().getDriverRoute(context);
 
     _setPassengerCapacity();
@@ -85,7 +99,8 @@ class _LogInState extends State<LogIn> {
 
     await _setDriverCreds();
 
-    context.read<MapProvider>().getRouteCoordinates(context); //last dapat to kasi it works pag last nigga
+    context.read<MapProvider>().getRouteCoordinates(
+        context); //last dapat to kasi it works pag last nigga
   }
 
   void _updateStatusToDB() {

@@ -86,7 +86,7 @@ class ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 50),
+              const SizedBox(height: 100),
 
               //Buttons
               _buildProfileButtons(
@@ -223,7 +223,7 @@ class ProfilePageState extends State<ProfilePage> {
         // DRIVER ROUTE
         const SizedBox(height: 10),
         Text(
-          'Route ID: ${mapProvider.routeID}',
+          'Route: ${mapProvider.routeName}',
           style:
               Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
         ),
