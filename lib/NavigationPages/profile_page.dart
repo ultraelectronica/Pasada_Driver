@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
+import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 // import 'package:pasada_driver_side/Database/global.dart';
 import 'package:provider/provider.dart';
@@ -31,6 +32,7 @@ class ProfilePageState extends State<ProfilePage> {
     final double paddingValue = MediaQuery.of(context).size.width * 0.05;
     final double profilePictureSize = MediaQuery.of(context).size.width * 0.3;
     final driverProvider = context.watch<DriverProvider>();
+    final mapProvider = context.watch<MapProvider>();
 
     return Scaffold(
       body: Center(
@@ -41,7 +43,7 @@ class ProfilePageState extends State<ProfilePage> {
             children: [
               _buildProfilePicture(profilePictureSize),
               const SizedBox(height: 20),
-              _buildDriverDetails(driverProvider),
+              _buildDriverDetails(driverProvider, mapProvider),
               const SizedBox(height: 20),
 
               //Driver Status Button
@@ -84,7 +86,7 @@ class ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 50),
+              const SizedBox(height: 100),
 
               //Buttons
               _buildProfileButtons(
@@ -186,29 +188,42 @@ class ProfilePageState extends State<ProfilePage> {
       height: size,
       width: size,
       child: SvgPicture.asset(
-        'assets/svg/Ellipse.svg',
+        'assets/svg/user.svg',
         placeholderBuilder: (_) => const CircularProgressIndicator(),
       ),
     );
   }
 
-  Widget _buildDriverDetails(DriverProvider driverProvider) {
+  Widget _buildDriverDetails(
+      DriverProvider driverProvider, MapProvider mapProvider) {
     return Column(
       children: [
+        // DRIVER NAME
         Text(
           '${driverProvider.driverFirstName} ${driverProvider.driverLastName}',
           // '$_firstName $_lastName',
           style: Styles().textStyle(30, Styles.w700Weight, Styles.customBlack),
         ),
         const SizedBox(height: 10),
+        // DRIVER NUMBER
         Text(
           driverProvider.driverNumber,
           style:
               Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
         ),
+
+        // DRIVER VEHICLE
         const SizedBox(height: 10),
         Text(
-          'Vehicle ID: ${context.read<DriverProvider>().driverID}',
+          'Vehicle ID: ${driverProvider.vehicleID}',
+          style:
+              Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
+        ),
+
+        // DRIVER ROUTE
+        const SizedBox(height: 10),
+        Text(
+          'Route: ${mapProvider.routeName}',
           style:
               Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
         ),

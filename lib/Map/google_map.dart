@@ -143,7 +143,7 @@ class MapScreenState extends State<MapScreen> {
       location.onLocationChanged.listen((LocationData newLocation) {
         if (newLocation.latitude != null && newLocation.longitude != null) {
           //save location to DB
-          final String vehicleID = context.read<DriverProvider>().vehicleID!;
+          final String vehicleID = context.read<DriverProvider>().vehicleID;
 
           _updateVehicleLocationToDB(vehicleID, newLocation);
 

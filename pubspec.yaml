@@ -31,6 +31,7 @@ dependencies:
   flutter_dotenv: ^5.2.1
   flutter:
     sdk: flutter
+  flutter_secure_storage: ^9.2.4
   flutter_animate: ^4.5.2
   flutter_svg: 2.0.9
   google_maps_flutter: ^2.10.1
@@ -89,6 +90,8 @@ flutter:
     - assets/svg/recentfilled.svg
     - assets/svg/profile.svg
     - assets/svg/profilefilled.svg
+
+    - assets/svg/user.svg
 
     - assets/svg/activityIcon.svg
     - assets/svg/notificationIcon.svg

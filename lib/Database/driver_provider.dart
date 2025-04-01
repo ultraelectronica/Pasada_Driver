@@ -7,8 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class DriverProvider with ChangeNotifier {
   String _driverID = 'N/A';
   String _driverStatus = 'Online';
+  String _vehicleID = 'N/A';
 
-  String? _vehicleID;
   String? _lastDriverStatus;
   int _passengerCapacity = 0;
   bool _isDriving = false;
@@ -19,13 +19,11 @@ class DriverProvider with ChangeNotifier {
 
   final SupabaseClient supabase = Supabase.instance.client;
 
-  String? get driverID => _driverID;
-  String? get vehicleID => _vehicleID;
+  String get driverID => _driverID;
+  String get vehicleID => _vehicleID;
   String get driverStatus => _driverStatus;
-
   String? get lastDriverStatus => _lastDriverStatus;
   int get passengerCapacity => _passengerCapacity;
-
   bool get isDriving => _isDriving;
 
   String? get driverFirstName => _driverFirstName;
@@ -37,7 +35,7 @@ class DriverProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setVehicleID(String? value) {
+  void setVehicleID(String value) {
     _vehicleID = value;
     notifyListeners();
   }
@@ -80,11 +78,10 @@ class DriverProvider with ChangeNotifier {
   }
 
   Future<void> updateStatusToDB(String newStatus, BuildContext context) async {
-    // String driverID = this.driverID;
     final response = await supabase
         .from('driverTable')
         .update({'driving_status': newStatus})
-        .eq('driver_id', driverID!)
+        .eq('driver_id', driverID)
         .select()
         .single();
 
@@ -99,18 +96,10 @@ class DriverProvider with ChangeNotifier {
 
   Future<void> getPassengerCapacity(BuildContext context) async {
     try {
-      String? vehicleID = _vehicleID;
-
-      if (vehicleID == null) {
-        if (kDebugMode) {
-          print('DriverID not fount');
-        }
-        return;
-      }
       final response = await supabase
           .from('vehicleTable')
           .select('passenger_capacity')
-          .eq('vehicle_id', vehicleID)
+          .eq('vehicle_id', _vehicleID)
           .single();
 
       if (kDebugMode) {
@@ -162,8 +151,11 @@ class DriverProvider with ChangeNotifier {
           .select('last_online')
           .single();
 
-      ShowMessage().showToast(
-          'Time updated ${DateTime.now().toUtc().toIso8601String()}');
+      if (kDebugMode) {
+        ShowMessage().showToast(
+            'Time updated ${DateTime.now().toUtc().toIso8601String()}');
+        print('Last online updated: ${response['last_online'].toString()}');
+      }
     } catch (e) {
       if (kDebugMode) {
         print('Error updating last online: $e');
