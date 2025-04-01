@@ -186,7 +186,7 @@ class MapScreenState extends State<MapScreen> {
         print('Location updated to: ${response[0]['vehicle_location']}');
       }
     } catch (e) {
-      Fluttertoast.showToast(msg: 'Error: $e');
+      Fluttertoast.showToast(msg: 'Error Location: $e');
     }
   }
 

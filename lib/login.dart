@@ -63,7 +63,7 @@ class _LogInState extends State<LogIn> {
           sessionToken: sessionToken,
           driverId: enteredDriverID,
           // routeId: response['route_id'],
-          vehicleId: response['vehicle_id'],
+          vehicleId: response['vehicle_id'].toString(),
           expiresAt: expirationTime,
         );
 
@@ -113,7 +113,7 @@ class _LogInState extends State<LogIn> {
   }
 
   void _setPassengerCapacity() {
-    context.read<DriverProvider>().getPassengerCapacity(context);
+    context.read<DriverProvider>().getPassengerCapacity();
   }
 
   void _setVehicleID(PostgrestMap response) {

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -94,7 +95,7 @@ class DriverProvider with ChangeNotifier {
     _driverStatus = newStatus;
   }
 
-  Future<void> getPassengerCapacity(BuildContext context) async {
+  Future<void> getPassengerCapacity() async {
     try {
       final response = await supabase
           .from('vehicleTable')
@@ -161,6 +162,21 @@ class DriverProvider with ChangeNotifier {
         print('Error updating last online: $e');
       }
       ShowMessage().showToast('Error: $e');
+    }
+  }
+
+  Future<void> loadFromSecureStorage() async {
+    final sessionData = await Authservice.getSession();
+
+    if (sessionData.isNotEmpty) {
+      _driverID = sessionData['driver_id'] ?? '';
+      _vehicleID = sessionData['vehicle_id'] ?? '';
+
+      // Load additional data from Supabase using the stored driverID
+      await getDriverCreds(); // Load first name, last name, etc.
+      await getPassengerCapacity(); // Load passenger capacity
+
+      notifyListeners();
     }
   }
 }
