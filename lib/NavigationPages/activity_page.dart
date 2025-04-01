@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:provider/provider.dart';
@@ -25,7 +26,9 @@ class ActivityPageState extends State<ActivityPage> {
         children: [
           const Text('Activity page'),
           const SizedBox(height: 30),
-          ElevatedButton(onPressed: () {}, child: const Text('sample')),
+          ElevatedButton(onPressed: () {
+            Authservice.getSession();
+          }, child: const Text('sample')),
           const SizedBox(
             height: 20,
           ),

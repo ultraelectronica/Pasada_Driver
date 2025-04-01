@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -40,9 +41,15 @@ class Authservice {
       return {};
     }
 
+    if (kDebugMode) {
+      print('session_token: $sessionToken, '
+          'driver_id: ${await _storage.read(key: 'driver_id')}, '
+          // 'route_id: ${await _storage.read(key: 'route_id')}, '
+          'vehicle_id: ${await _storage.read(key: 'vehicle_id')}');
+    }
+
     // Return valid session data
     return {
-      'user_id': await _storage.read(key: 'user_id'),
       'session_token': sessionToken,
       'driver_id': await _storage.read(key: 'driver_id'),
       // 'route_id': await _storage.read(key: 'route_id'),

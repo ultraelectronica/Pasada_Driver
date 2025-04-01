@@ -61,7 +61,7 @@ class HomePageState extends State<HomePage> {
 
   Future<void> getPassengerCapacity() async {
     // get the passenger capacity from the DB
-    await context.read<DriverProvider>().getPassengerCapacity(context);
+    await context.read<DriverProvider>().getPassengerCapacity();
     // _showToast('Vehicle capacity: $Capacity');
   }
 
