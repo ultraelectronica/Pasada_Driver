@@ -26,9 +26,11 @@ class ActivityPageState extends State<ActivityPage> {
         children: [
           const Text('Activity page'),
           const SizedBox(height: 30),
-          ElevatedButton(onPressed: () {
-            Authservice.getSession();
-          }, child: const Text('sample')),
+          ElevatedButton(
+              onPressed: () {
+                Authservice.getSession();
+              },
+              child: const Text('sample')),
           const SizedBox(
             height: 20,
           ),

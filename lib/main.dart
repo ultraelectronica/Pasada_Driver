@@ -4,7 +4,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
-import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/login.dart';
@@ -42,8 +41,6 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    final driverProvider = Provider.of<DriverProvider>(context);
-
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Pasada Driver',
