@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:pasada_driver_side/UI/message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Authservice {
@@ -63,6 +64,23 @@ class Authservice {
     await _storage.delete(key: 'driver_id');
     // await _storage.delete(key: 'route_id');
     await _storage.delete(key: 'vehicle_id');
+
+    ShowMessage().showToast('Local data deleted.');
+  }
+
+  static Future<void> printStorageContents() async {
+    final allKeys = [
+      'session_token',
+      'expiration_time',
+      'driver_id',
+      'vehicle_id'
+    ];
+    for (final key in allKeys) {
+      final value = await _storage.read(key: key);
+      if (kDebugMode) {
+        print('$key: $value');
+      }
+    }
   }
 
   String generateSecureToken() {

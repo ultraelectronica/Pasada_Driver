@@ -51,23 +51,21 @@ class MyApp extends StatelessWidget {
       ),
       home: Consumer<DriverProvider>(
         builder: (context, driverProvider, _) {
-          return driverProvider.driverID.isNotEmpty
-              ? const MainPage()
-              : const LogIn();
+          return driverProvider.driverID == 'N/A'
+              ? const MyHomePage()
+              : const MainPage();
         },
       ),
       routes: {
         '/login': (context) => const LogIn(),
-        '/home': (context) => const MainPage(),
+        '/home': (context) => const MyHomePage(),
       },
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
+  const MyHomePage({super.key});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
