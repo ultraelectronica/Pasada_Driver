@@ -1,10 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
+import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
+import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/login.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -38,6 +41,12 @@ class MyApp extends StatelessWidget {
 
   const MyApp({super.key, required this.isLoggedIn});
 
+  //check yung data locally
+  Future<bool> _hasValidSession() async {
+    final sessionData = await Authservice.getSession();
+    return sessionData.isNotEmpty;
+  }
+
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
@@ -49,13 +58,33 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: Consumer<DriverProvider>(
-        builder: (context, driverProvider, _) {
-          return driverProvider.driverID == 'N/A'
-              ? const MyHomePage()
-              : const MainPage();
+      home: FutureBuilder(
+        future: _hasValidSession(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: CircularProgressIndicator(),
+            );
+          }
+          if (snapshot.data == true) {
+            return const MainPage();
+          } else {
+            if (kDebugMode) {
+              ShowMessage().showToast('No data detected');
+              print('No local data detected');
+            }
+            return const MyHomePage();
+          }
         },
       ),
+
+      // home: Consumer<DriverProvider>(
+      //   builder: (context, driverProvider, _) {
+      //     return driverProvider.driverID == 'N/A'
+      //         ? const MyHomePage()
+      //         : const MainPage();
+      //   },
+      // ),
       routes: {
         '/login': (context) => const LogIn(),
         '/home': (context) => const MyHomePage(),

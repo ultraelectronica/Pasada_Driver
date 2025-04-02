@@ -8,6 +8,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class Authservice {
   final supabase = Supabase.instance.client;
   static const _storage = FlutterSecureStorage();
+  static const allKeys = [
+    'session_token',
+    'expiration_time',
+    'driver_id',
+    'vehicle_id'
+  ];
 
   static Future<void> saveCredentials(
       {required String sessionToken,
@@ -15,8 +21,9 @@ class Authservice {
       // required String routeId,
       required String vehicleId,
       required String expiresAt}) async {
+    //generate expiration time
     final expirationTime =
-        DateTime.now().add(const Duration(hours: 24)).toIso8601String();
+        DateTime.now().add(const Duration(minutes: 1)).toIso8601String();
 
     await _storage.write(key: 'session_token', value: sessionToken);
     await _storage.write(key: 'expiration_time', value: expirationTime);
@@ -38,16 +45,12 @@ class Authservice {
     final expirationTime = DateTime.parse(expirationTimeString);
     if (expirationTime.isBefore(DateTime.now())) {
       // Token expired: Clear storage
+      ShowMessage().showToast('Session Expired');
       await deleteSession();
       return {};
     }
 
-    if (kDebugMode) {
-      print('session_token: $sessionToken, '
-          'driver_id: ${await _storage.read(key: 'driver_id')}, '
-          // 'route_id: ${await _storage.read(key: 'route_id')}, '
-          'vehicle_id: ${await _storage.read(key: 'vehicle_id')}');
-    }
+    Authservice.printStorageContents();
 
     // Return valid session data
     return {
@@ -59,25 +62,25 @@ class Authservice {
   }
 
   static Future<void> deleteSession() async {
-    await _storage.delete(key: 'session_token');
-    await _storage.delete(key: 'expiration_time');
-    await _storage.delete(key: 'driver_id');
-    // await _storage.delete(key: 'route_id');
-    await _storage.delete(key: 'vehicle_id');
-
-    ShowMessage().showToast('Local data deleted.');
+    for (final key in allKeys) {
+      await _storage.delete(key: key);
+    }
+    // await _storage.delete(key: 'session_token');
+    // await _storage.delete(key: 'expiration_time');
+    // await _storage.delete(key: 'driver_id');
+    // // await _storage.delete(key: 'route_id');
+    // await _storage.delete(key: 'vehicle_id');
+    if (kDebugMode) {
+      ShowMessage().showToast('Pasada local credentials has been removed.');
+    }
   }
 
   static Future<void> printStorageContents() async {
-    final allKeys = [
-      'session_token',
-      'expiration_time',
-      'driver_id',
-      'vehicle_id'
-    ];
-    for (final key in allKeys) {
-      final value = await _storage.read(key: key);
-      if (kDebugMode) {
+    if (kDebugMode) {
+      print('Storage contents:');
+
+      for (final key in allKeys) {
+        final value = await _storage.read(key: key);
         print('$key: $value');
       }
     }
