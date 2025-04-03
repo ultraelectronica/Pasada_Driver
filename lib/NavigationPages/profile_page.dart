@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
@@ -104,7 +105,9 @@ class ProfilePageState extends State<ProfilePage> {
               _buildProfileButtons(
                   paddingValue: paddingValue,
                   button_name: 'Log out',
-                  onPressed: () {}),
+                  onPressed: () {
+                    Authservice.deleteSession();
+                  }),
               const SizedBox(height: 10),
             ],
           ),
@@ -223,7 +226,13 @@ class ProfilePageState extends State<ProfilePage> {
         // DRIVER ROUTE
         const SizedBox(height: 10),
         Text(
-          'Route: ${mapProvider.routeName}',
+          'Route: ${driverProvider.routeName}',
+          style:
+              Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Route: ${driverProvider.routeID}',
           style:
               Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
         ),

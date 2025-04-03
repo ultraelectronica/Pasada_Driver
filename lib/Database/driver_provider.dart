@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pasada_driver_side/Database/AuthService.dart';
+// import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:pasada_driver_side/UI/message.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // this class is used to store values just like a global variable
@@ -9,6 +12,8 @@ class DriverProvider with ChangeNotifier {
   String _driverID = 'N/A';
   String _driverStatus = 'Online';
   String _vehicleID = 'N/A';
+  int _routeID = 0;
+  String _routeName = 'N/A';
 
   String? _lastDriverStatus;
   int _passengerCapacity = 0;
@@ -18,10 +23,17 @@ class DriverProvider with ChangeNotifier {
   String _driverLastName = 'lastName';
   String _driverNumber = '00000000000';
 
+  LatLng? _currentLocation;
+  LatLng? _endingLocation;
+  LatLng? _intermediateLoc1;
+  LatLng? _intermediateLoc2;
+
   final SupabaseClient supabase = Supabase.instance.client;
 
   String get driverID => _driverID;
   String get vehicleID => _vehicleID;
+  int get routeID => _routeID;
+  String get routeName => _routeName;
   String get driverStatus => _driverStatus;
   String? get lastDriverStatus => _lastDriverStatus;
   int get passengerCapacity => _passengerCapacity;
@@ -31,6 +43,11 @@ class DriverProvider with ChangeNotifier {
   String? get driverLastName => _driverLastName;
   String get driverNumber => _driverNumber;
 
+  LatLng? get currentLocation => _currentLocation;
+  LatLng? get endingLocation => _endingLocation;
+  LatLng? get intermediateLoc1 => _intermediateLoc1;
+  LatLng? get intermediateLoc2 => _intermediateLoc2;
+
   void setDriverID(String value) {
     _driverID = value;
     notifyListeners();
@@ -38,6 +55,16 @@ class DriverProvider with ChangeNotifier {
 
   void setVehicleID(String value) {
     _vehicleID = value;
+    notifyListeners();
+  }
+
+  void setRouteID(int value) {
+    _routeID = value;
+    notifyListeners();
+  }
+
+  void setRoutename(String value) {
+    _routeName = value;
     notifyListeners();
   }
 
@@ -75,6 +102,26 @@ class DriverProvider with ChangeNotifier {
 
   void setDriverNumber(String value) {
     _driverNumber = value;
+    notifyListeners();
+  }
+
+  void setCurrentLocation(LatLng value) {
+    _currentLocation = value;
+    notifyListeners();
+  }
+
+  void setEndingLocation(LatLng value) {
+    _endingLocation = value;
+    notifyListeners();
+  }
+
+  void setIntermediateLoc1(LatLng value) {
+    _intermediateLoc1 = value;
+    notifyListeners();
+  }
+
+  void setIntermediateLoc2(LatLng value) {
+    _intermediateLoc2 = value;
     notifyListeners();
   }
 
@@ -165,18 +212,125 @@ class DriverProvider with ChangeNotifier {
     }
   }
 
-  Future<void> loadFromSecureStorage() async {
-    final sessionData = await Authservice.getSession();
+  Future<void> getDriverRoute() async {
+    try {
+      final response = await supabase
+          .from('vehicleTable')
+          .select('route_id')
+          .eq('vehicle_id', vehicleID)
+          .single();
 
-    if (sessionData.isNotEmpty) {
-      _driverID = sessionData['driver_id'] ?? '';
-      _vehicleID = sessionData['vehicle_id'] ?? '';
+      _routeID = response['route_id'];
+      // context.read<MapProvider>().setRouteID(response['route_id'] as int);
 
-      // Load additional data from Supabase using the stored driverID
-      await getDriverCreds(); // Load first name, last name, etc.
-      await getPassengerCapacity(); // Load passenger capacity
-
-      notifyListeners();
+      if (kDebugMode) {
+        print('Get driver route response: ${response['route_id'].toString()}');
+        ShowMessage()
+            .showToast('Driver route: ${response['route_id'].toString()}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error: $e');
+      }
     }
+  }
+
+  Future<void> getRouteCoordinates() async {
+    try {
+      final response = await supabase
+          .from('driverRouteTable')
+          .select()
+          .eq('route_id', routeID)
+          .single();
+
+      _routeName = response['route'];
+      _intermediateLoc1 = _parseLatLng(response['intermediate_location1']);
+      _intermediateLoc2 = _parseLatLng(response['intermediate_location2']);
+      _endingLocation = _parseLatLng(response['ending_location']);
+
+      if (kDebugMode) {
+        // print('''
+        //   Route ID: $routeID
+        //   Route Name: $routeName
+        // ''');
+        print('''
+          Route: $_routeName
+          Intermediate 1: ${_intermediateLoc1?.latitude},${_intermediateLoc1?.longitude}
+          Intermediate 2: ${_intermediateLoc2?.latitude},${_intermediateLoc2?.longitude}
+          End: ${_endingLocation?.latitude},${_endingLocation?.longitude}
+        ''');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error: $e');
+      }
+    }
+  }
+
+  // Future<void> getRouteCoordinates(BuildContext context) async {
+  //   try {
+  //     final response = await supabase
+  //         .from('driverRouteTable')
+  //         .select()
+  //         .eq('route_id', routeID)
+  //         .single();
+
+  //     _routeName = response['route'];
+  //     _intermediateLoc1 = _parseLatLng(response['intermediate_location1']);
+  //     _intermediateLoc2 = _parseLatLng(response['intermediate_location2']);
+  //     _endingLocation = _parseLatLng(response['ending_location']);
+
+  //     if (kDebugMode) {
+  //       print('Route ID: $routeID');
+  //       print('''
+  //       Route: $_routeName
+  //       Intermediate 1: ${_intermediateLoc1?.latitude},${_intermediateLoc1?.longitude}
+  //       Intermediate 2: ${_intermediateLoc2?.latitude},${_intermediateLoc2?.longitude}
+  //       End: ${_endingLocation?.latitude},${_endingLocation?.longitude}
+  //     ''');
+  //     }
+  //   } catch (e) {
+  //     if (kDebugMode) {
+  //       print('Error: $e');
+  //     }
+  //   }
+  // }
+
+  Future<void> loadFromSecureStorage() async {
+    try {
+      final sessionData = await Authservice.getSession();
+
+      if (sessionData.isNotEmpty) {
+        _driverID = sessionData['driver_id'] ?? '';
+        _vehicleID = sessionData['vehicle_id'] ?? '';
+        _routeID = int.tryParse(sessionData['route_id']!)!;
+
+        if (kDebugMode) {
+          print('session data: ${sessionData.toString()}');
+        }
+
+        // Load other data needed
+        await getDriverCreds(); // Get first name, last name, etc.
+        await getPassengerCapacity(); // Get passenger capacity
+        await getDriverRoute(); // Get route galing DB
+        await getRouteCoordinates(); // Get coords and route name galing DB
+
+        notifyListeners();
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        ShowMessage().showToast('Error loading data: $e');
+        print('Error on loading secure storage: $e');
+      }
+    }
+  }
+
+  LatLng? _parseLatLng(String? coordString) {
+    if (coordString == null) return null;
+    final parts = coordString.split(',');
+    if (parts.length != 2) return null;
+    final lat = double.tryParse(parts[0]);
+    final lng = double.tryParse(parts[1]);
+    return (lat != null && lng != null) ? LatLng(lat, lng) : null;
   }
 }

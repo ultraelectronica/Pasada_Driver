@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -5,6 +6,7 @@ import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
+import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/login.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -18,9 +20,6 @@ Future<void> main() async {
       anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
       url: dotenv.env['SUPABASE_URL']!);
 
-  final session = await Authservice.getSession();
-  final bool isLoggedIn = session['session_token'] != null;
-
   final driverProvider = DriverProvider();
   await driverProvider.loadFromSecureStorage();
 
@@ -29,14 +28,18 @@ Future<void> main() async {
       ChangeNotifierProvider(create: (_) => driverProvider),
       ChangeNotifierProvider(create: (_) => MapProvider()),
     ],
-    child: MyApp(isLoggedIn: isLoggedIn),
+    child: const MyApp(),
   ));
 }
 
 class MyApp extends StatelessWidget {
-  final bool isLoggedIn;
+  const MyApp({super.key});
 
-  const MyApp({super.key, required this.isLoggedIn});
+  //check yung data locally
+  Future<bool> _hasValidSession() async {
+    final sessionData = await Authservice.getSession();
+    return sessionData.isNotEmpty;
+  }
 
   // This widget is the root of your application.
   @override
@@ -46,28 +49,46 @@ class MyApp extends StatelessWidget {
       title: 'Pasada Driver',
       theme: ThemeData(
         scaffoldBackgroundColor: const Color.fromRGBO(250, 250, 250, 20),
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         useMaterial3: true,
       ),
-      home: Consumer<DriverProvider>(
-        builder: (context, driverProvider, _) {
-          return driverProvider.driverID.isNotEmpty
-              ? const MainPage()
-              : const LogIn();
+      home: FutureBuilder(
+        future: _hasValidSession(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: CircularProgressIndicator(),
+            );
+          }
+          if (snapshot.data == true) {
+            return const MainPage();
+          } else {
+            if (kDebugMode) {
+              ShowMessage().showToast('No data detected');
+              print('No local data detected'); 
+            }
+            return const MyHomePage();
+          }
         },
       ),
+
+      // home: Consumer<DriverProvider>(
+      //   builder: (context, driverProvider, _) {
+      //     return driverProvider.driverID == 'N/A'
+      //         ? const MyHomePage()
+      //         : const MainPage();
+      //   },
+      // ),
       routes: {
         '/login': (context) => const LogIn(),
-        '/home': (context) => const MainPage(),
+        '/home': (context) => const MyHomePage(),
       },
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
+  const MyHomePage({super.key});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
