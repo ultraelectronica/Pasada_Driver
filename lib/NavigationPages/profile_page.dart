@@ -226,7 +226,13 @@ class ProfilePageState extends State<ProfilePage> {
         // DRIVER ROUTE
         const SizedBox(height: 10),
         Text(
-          'Route: ${mapProvider.routeName}',
+          'Route: ${driverProvider.routeName}',
+          style:
+              Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Route: ${driverProvider.routeID}',
           style:
               Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
         ),

@@ -5,7 +5,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
-import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
@@ -21,9 +20,6 @@ Future<void> main() async {
       anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
       url: dotenv.env['SUPABASE_URL']!);
 
-  final session = await Authservice.getSession();
-  final bool isLoggedIn = session['session_token'] != null;
-
   final driverProvider = DriverProvider();
   await driverProvider.loadFromSecureStorage();
 
@@ -32,14 +28,12 @@ Future<void> main() async {
       ChangeNotifierProvider(create: (_) => driverProvider),
       ChangeNotifierProvider(create: (_) => MapProvider()),
     ],
-    child: MyApp(isLoggedIn: isLoggedIn),
+    child: const MyApp(),
   ));
 }
 
 class MyApp extends StatelessWidget {
-  final bool isLoggedIn;
-
-  const MyApp({super.key, required this.isLoggedIn});
+  const MyApp({super.key});
 
   //check yung data locally
   Future<bool> _hasValidSession() async {
@@ -55,7 +49,7 @@ class MyApp extends StatelessWidget {
       title: 'Pasada Driver',
       theme: ThemeData(
         scaffoldBackgroundColor: const Color.fromRGBO(250, 250, 250, 20),
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         useMaterial3: true,
       ),
       home: FutureBuilder(
@@ -71,7 +65,7 @@ class MyApp extends StatelessWidget {
           } else {
             if (kDebugMode) {
               ShowMessage().showToast('No data detected');
-              print('No local data detected');
+              print('No local data detected'); 
             }
             return const MyHomePage();
           }

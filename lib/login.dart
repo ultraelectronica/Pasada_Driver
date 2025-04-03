@@ -55,17 +55,7 @@ class _LogInState extends State<LogIn> {
         // saves all the infos to the provider
         await _setDriverInfo(response);
 
-        final sessionToken = Authservice().generateSecureToken();
-        final expirationTime =
-            DateTime.now().add(const Duration(hours: 24)).toIso8601String();
-
-        await Authservice.saveCredentials(
-          sessionToken: sessionToken,
-          driverId: enteredDriverID,
-          // routeId: response['route_id'],
-          vehicleId: response['vehicle_id'].toString(),
-          expiresAt: expirationTime,
-        );
+        await saveSession(enteredDriverID, response);
 
         ShowMessage().showToastTop('Welcome Manong ${response['first_name']}!');
 
@@ -86,12 +76,35 @@ class _LogInState extends State<LogIn> {
     }
   }
 
+  Future<void> saveSession(
+      String enteredDriverID, PostgrestMap response) async {
+    final sessionToken = Authservice().generateSecureToken();
+    final expirationTime =
+        DateTime.now().add(const Duration(hours: 24)).toIso8601String();
+
+    // int routeID = context.read<MapProvider>().routeID;
+    int routeID = context.read<DriverProvider>().routeID;
+
+    if (kDebugMode) {
+      print('save session route ID: ${routeID.toString()}');
+    }
+
+    await Authservice.saveCredentials(
+      sessionToken: sessionToken,
+      driverId: enteredDriverID,
+      routeId: context.read<DriverProvider>().routeID.toString(),
+      vehicleId: response['vehicle_id'].toString(),
+      expiresAt: expirationTime,
+    );
+  }
+
   Future<void> _setDriverInfo(PostgrestMap response) async {
     _setDriverID(response);
 
     _setVehicleID(response);
 
-    context.read<MapProvider>().getDriverRoute(context);
+    // context.read<MapProvider>().getDriverRoute(context);
+    context.read<DriverProvider>().getDriverRoute();
 
     _setPassengerCapacity();
 
@@ -99,8 +112,7 @@ class _LogInState extends State<LogIn> {
 
     await _setDriverCreds();
 
-    context.read<MapProvider>().getRouteCoordinates(
-        context); //last dapat to kasi it works pag last nigga
+    context.read<DriverProvider>().getRouteCoordinates(); //last dapat to kasi it works pag last nigga
   }
 
   void _updateStatusToDB() {

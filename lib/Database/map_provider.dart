@@ -11,7 +11,7 @@ class MapProvider with ChangeNotifier {
   LatLng? _endingLocation;
   LatLng? _intermediateLoc1;
   LatLng? _intermediateLoc2;
-  int _routeID = 0;
+  // int _routeID = 0;
   String? _routeName;
 
   final SupabaseClient supabase = Supabase.instance.client;
@@ -20,7 +20,7 @@ class MapProvider with ChangeNotifier {
   LatLng? get endingLocation => _endingLocation;
   LatLng? get intermediateLoc1 => _intermediateLoc1;
   LatLng? get intermediateLoc2 => _intermediateLoc2;
-  int get routeID => _routeID;
+  // int get routeID => _routeID;
   String? get routeName => _routeName;
 
   void setCurrentLocation(LatLng value) {
@@ -43,64 +43,64 @@ class MapProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setRouteID(int value) {
-    _routeID = value;
-    notifyListeners();
-  }
+  // void setRouteID(int value) {
+  //   _routeID = value;
+  //   notifyListeners();
+  // }
 
-  Future<void> getDriverRoute(BuildContext context) async {
-    try {
-      String vehicleID = context.read<DriverProvider>().vehicleID;
+  // Future<void> getDriverRoute(BuildContext context) async {
+  //   try {
+  //     String vehicleID = context.read<DriverProvider>().vehicleID;
 
-      final response = await supabase
-          .from('vehicleTable')
-          .select('route_id')
-          .eq('vehicle_id', vehicleID)
-          .select()
-          .single();
+  //     final response = await supabase
+  //         .from('vehicleTable')
+  //         .select('route_id')
+  //         .eq('vehicle_id', vehicleID)
+  //         .single();
 
-      _routeID = response['route_id'];
+  //     // _routeID = response['route_id'];
+  //     context.read<DriverProvider>().setRouteID(response['route_id'] as int);
 
-      if (kDebugMode) {
-        print('Get driver route response: ${response['route_id'].toString()}');
-        ShowMessage()
-            .showToast('Driver route: ${response['route_id'].toString()}');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error: $e');
-      }
-    }
-  }
+  //     if (kDebugMode) {
+  //       print('Get driver route response: ${response['route_id'].toString()}');
+  //       ShowMessage()
+  //           .showToast('Driver route: ${response['route_id'].toString()}');
+  //     }
+  //   } catch (e) {
+  //     if (kDebugMode) {
+  //       print('Error: $e');
+  //     }
+  //   }
+  // }
 
-  Future<void> getRouteCoordinates(BuildContext context) async {
-    try {
-      final response = await supabase
-          .from('driverRouteTable')
-          .select()
-          .eq('route_id', routeID)
-          .single();
+  // Future<void> getRouteCoordinates(BuildContext context) async {
+  //   try {
+  //     final response = await supabase
+  //         .from('driverRouteTable')
+  //         .select()
+  //         .eq('route_id', context.read<DriverProvider>().routeID)
+  //         .single();
 
-      _routeName = response['route'];
-      _intermediateLoc1 = _parseLatLng(response['intermediate_location1']);
-      _intermediateLoc2 = _parseLatLng(response['intermediate_location2']);
-      _endingLocation = _parseLatLng(response['ending_location']);
+  //     _routeName = response['route'];
+  //     _intermediateLoc1 = _parseLatLng(response['intermediate_location1']);
+  //     _intermediateLoc2 = _parseLatLng(response['intermediate_location2']);
+  //     _endingLocation = _parseLatLng(response['ending_location']);
 
-      if (kDebugMode) {
-        print('Route ID: $routeID');
-        print('''
-        Route: $_routeName
-        Intermediate 1: ${_intermediateLoc1?.latitude},${_intermediateLoc1?.longitude}
-        Intermediate 2: ${_intermediateLoc2?.latitude},${_intermediateLoc2?.longitude}
-        End: ${_endingLocation?.latitude},${_endingLocation?.longitude}
-      ''');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error: $e');
-      }
-    }
-  }
+  //     if (kDebugMode) {
+  //       print('Route ID: $routeID');
+  //       print('''
+  //       Route: $_routeName
+  //       Intermediate 1: ${_intermediateLoc1?.latitude},${_intermediateLoc1?.longitude}
+  //       Intermediate 2: ${_intermediateLoc2?.latitude},${_intermediateLoc2?.longitude}
+  //       End: ${_endingLocation?.latitude},${_endingLocation?.longitude}
+  //     ''');
+  //     }
+  //   } catch (e) {
+  //     if (kDebugMode) {
+  //       print('Error: $e');
+  //     }
+  //   }
+  // }
 
   LatLng? _parseLatLng(String? coordString) {
     if (coordString == null) return null;

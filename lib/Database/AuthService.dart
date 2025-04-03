@@ -12,13 +12,14 @@ class Authservice {
     'session_token',
     'expiration_time',
     'driver_id',
+    'route_id',
     'vehicle_id'
   ];
 
   static Future<void> saveCredentials(
       {required String sessionToken,
       required String driverId,
-      // required String routeId,
+      required String routeId,
       required String vehicleId,
       required String expiresAt}) async {
     //generate expiration time
@@ -28,7 +29,7 @@ class Authservice {
     await _storage.write(key: 'session_token', value: sessionToken);
     await _storage.write(key: 'expiration_time', value: expirationTime);
     await _storage.write(key: 'driver_id', value: driverId);
-    // await _storage.write(key: 'route_id', value: routeId);
+    await _storage.write(key: 'route_id', value: routeId);
     await _storage.write(key: 'vehicle_id', value: vehicleId);
     await _storage.write(key: 'expires_at', value: expiresAt);
   }
@@ -56,7 +57,7 @@ class Authservice {
     return {
       'session_token': sessionToken,
       'driver_id': await _storage.read(key: 'driver_id'),
-      // 'route_id': await _storage.read(key: 'route_id'),
+      'route_id': await _storage.read(key: 'route_id'),
       'vehicle_id': await _storage.read(key: 'vehicle_id'),
     };
   }
@@ -65,11 +66,6 @@ class Authservice {
     for (final key in allKeys) {
       await _storage.delete(key: key);
     }
-    // await _storage.delete(key: 'session_token');
-    // await _storage.delete(key: 'expiration_time');
-    // await _storage.delete(key: 'driver_id');
-    // // await _storage.delete(key: 'route_id');
-    // await _storage.delete(key: 'vehicle_id');
     if (kDebugMode) {
       ShowMessage().showToast('Pasada local credentials has been removed.');
     }
