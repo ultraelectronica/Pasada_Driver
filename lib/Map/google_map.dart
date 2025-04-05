@@ -40,6 +40,7 @@ class MapScreenState extends State<MapScreen> {
 
   // <<-- POLYLINES -->>
   Map<PolylineId, Polyline> polylines = {};
+  Timer? _polylineTimer; // Added timer instance variable
 
   // <<-- DEFAULT LOCATIONS -->>
 
@@ -57,10 +58,11 @@ class MapScreenState extends State<MapScreen> {
   LatLng StartingLocation =
       const LatLng(14.694370509154878, 120.97003705410779);
 
-  LatLng MiddleLocation = const LatLng(14.7111498286728, 120.99310735112863);
+  LatLng IntermediateLocation1 =
+      const LatLng(14.703456631743745, 120.98572633206065);
 
-  LatLng IntermediateLocation =
-      const LatLng(14.71772512210624, 121.00429667924092);
+  LatLng IntermediateLocation2 =
+      const LatLng(14.7111498286728, 120.99310735112863);
 
   LatLng EndingLocation = const LatLng(14.721876764899815, 121.0366831829442);
 
@@ -79,9 +81,28 @@ class MapScreenState extends State<MapScreen> {
     super.initState();
 
     getLocationUpdates();
-    generatePolylineBetween(
-        StartingLocation, MiddleLocation, IntermediateLocation, EndingLocation);
-    // generatePolylineBetween(MiddleLocation, EndingLocation);
+    // Start the periodic timer to generate polylines
+    _startPolylineTimer();
+  }
+
+  // Added method to start the timer
+  void _startPolylineTimer() {
+    _polylineTimer?.cancel(); // Cancel any existing timer
+    _polylineTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (currentLocation != null) {
+        generatePolylineBetween(
+            currentLocation!, // Use the current state variable
+            IntermediateLocation1,
+            IntermediateLocation2,
+            EndingLocation);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _polylineTimer?.cancel(); // Cancel the timer on dispose
+    super.dispose();
   }
 
   // <<-- LOCATION SERVICES -->>
@@ -127,14 +148,6 @@ class MapScreenState extends State<MapScreen> {
       // kuha ng current location
       LocationData locationData = await location.getLocation();
 
-      // Fluttertoast.showToast(
-      //   msg:
-      //       'Location fetched successfully: ${locationData.latitude}, ${locationData.longitude}',
-      //   toastLength: Toast.LENGTH_LONG,
-      //   backgroundColor: Colors.black87,
-      //   textColor: Colors.white,
-      // );
-
       setState(() {
         currentLocation =
             LatLng(locationData.latitude!, locationData.longitude!);
@@ -147,13 +160,6 @@ class MapScreenState extends State<MapScreen> {
 
           _updateVehicleLocationToDB(vehicleID, newLocation);
 
-          // Fluttertoast.showToast(
-          //   msg:
-          //       'Location updated: ${newLocation.latitude}, ${newLocation.longitude}',
-          //   toastLength: Toast.LENGTH_LONG,
-          //   backgroundColor: Colors.black87,
-          //   textColor: Colors.white,
-          // );
           setState(() {
             currentLocation =
                 LatLng(newLocation.latitude!, newLocation.longitude!);
@@ -236,30 +242,14 @@ class MapScreenState extends State<MapScreen> {
 
   // <<-- LOCATION -->>
 
-  // @override
-  // void didUpdateWidget(MapScreen oldWidget) {
-  //   super.didUpdateWidget(oldWidget);
-  //   if (widget.initialLocation != oldWidget.initialLocation ||
-  //       widget.finalLocation != oldWidget.finalLocation) {
-  //     handleLocationUpdates();
-  //   }
-  // }
-
-  // void handleLocationUpdates() {
-  //   if (widget.initialLocation != null && widget.finalLocation != null) {
-  //     // generatePolylineBetween(widget.initialLocation!, widget.finalLocation!);
-  //     showDebugToast('Generating route');
-  //   }
-  // }
-
   // ito yung method para sa pick-up and drop-off location
   void updateLocations({LatLng? pickup, LatLng? dropoff}) {
     if (pickup != null) StartingLocation = pickup;
 
     if (dropoff != null) EndingLocation = dropoff;
 
-    generatePolylineBetween(
-        StartingLocation, MiddleLocation, IntermediateLocation, EndingLocation);
+    generatePolylineBetween(StartingLocation, IntermediateLocation1,
+        IntermediateLocation2, EndingLocation);
   }
 
   // <<-- POLYLINES -->>
@@ -447,7 +437,7 @@ class MapScreenState extends State<MapScreen> {
                     ),
                     Marker(
                       markerId: const MarkerId('MiddleLocation'),
-                      position: MiddleLocation,
+                      position: IntermediateLocation1,
                       icon: BitmapDescriptor.defaultMarkerWithHue(
                           BitmapDescriptor.hueGreen),
                     ),

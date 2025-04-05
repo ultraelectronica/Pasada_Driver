@@ -37,7 +37,7 @@ class MyApp extends StatelessWidget {
 
   //check yung data locally
   Future<bool> _hasValidSession() async {
-    final sessionData = await Authservice.getSession();
+    final sessionData = await AuthService.getSession();
     return sessionData.isNotEmpty;
   }
 
@@ -65,7 +65,7 @@ class MyApp extends StatelessWidget {
           } else {
             if (kDebugMode) {
               ShowMessage().showToast('No data detected');
-              print('No local data detected'); 
+              print('No local data detected');
             }
             return const MyHomePage();
           }

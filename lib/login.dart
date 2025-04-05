@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/Database/AuthService.dart';
-import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
@@ -71,14 +70,16 @@ class _LogInState extends State<LogIn> {
         }
       }
     } catch (e) {
-      print('Error during login: $e');
+      if (kDebugMode) {
+        print('Error during login: $e');
+      }
       ShowMessage().showToast('Invalid credentials. Please try again.');
     }
   }
 
   Future<void> saveSession(
       String enteredDriverID, PostgrestMap response) async {
-    final sessionToken = Authservice().generateSecureToken();
+    final sessionToken = AuthService.generateSecureToken();
     final expirationTime =
         DateTime.now().add(const Duration(hours: 24)).toIso8601String();
 
@@ -89,12 +90,11 @@ class _LogInState extends State<LogIn> {
       print('save session route ID: ${routeID.toString()}');
     }
 
-    await Authservice.saveCredentials(
+    await AuthService.saveCredentials(
       sessionToken: sessionToken,
       driverId: enteredDriverID,
       routeId: context.read<DriverProvider>().routeID.toString(),
       vehicleId: response['vehicle_id'].toString(),
-      expiresAt: expirationTime,
     );
   }
 
@@ -112,7 +112,7 @@ class _LogInState extends State<LogIn> {
 
     await _setDriverCreds();
 
-    context.read<DriverProvider>().getRouteCoordinates(); //last dapat to kasi it works pag last nigga
+    await context.read<DriverProvider>().getRouteCoordinates();
   }
 
   void _updateStatusToDB() {

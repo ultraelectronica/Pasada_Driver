@@ -49,8 +49,8 @@ class NewHomePageState extends State<HomeScrenStateful> {
           children: [
             MapScreen(
               key: mapScreenKey,
-              initialLocation: startingLocation?.coordinates,
-              finalLocation: endingLocation?.coordinates,
+              // initialLocation: startingLocation?.coordinates,
+              // finalLocation: endingLocation?.coordinates,
             ),
 
             Positioned(

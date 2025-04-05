@@ -106,7 +106,7 @@ class ProfilePageState extends State<ProfilePage> {
                   paddingValue: paddingValue,
                   button_name: 'Log out',
                   onPressed: () {
-                    Authservice.deleteSession();
+                    AuthService.deleteSession();
                   }),
               const SizedBox(height: 10),
             ],
@@ -300,3 +300,4 @@ class ProfileButton extends StatelessWidget {
     );
   }
 }
+

@@ -298,7 +298,7 @@ class DriverProvider with ChangeNotifier {
 
   Future<void> loadFromSecureStorage() async {
     try {
-      final sessionData = await Authservice.getSession();
+      final sessionData = await AuthService.getSession();
 
       if (sessionData.isNotEmpty) {
         _driverID = sessionData['driver_id'] ?? '';
