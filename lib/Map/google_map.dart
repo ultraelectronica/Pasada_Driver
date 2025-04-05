@@ -91,8 +91,8 @@ class MapScreenState extends State<MapScreen> {
     _polylineTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (currentLocation != null) {
         generatePolylineBetween(
-            currentLocation!, // Use the current state variable
-            IntermediateLocation1,
+            currentLocation!,
+            IntermediateLocation1,  
             IntermediateLocation2,
             EndingLocation);
       }
@@ -436,8 +436,8 @@ class MapScreenState extends State<MapScreen> {
                           BitmapDescriptor.hueGreen),
                     ),
                     Marker(
-                      markerId: const MarkerId('MiddleLocation'),
-                      position: IntermediateLocation1,
+                      markerId: const MarkerId('IntermediateLocation2'),
+                      position: IntermediateLocation2,
                       icon: BitmapDescriptor.defaultMarkerWithHue(
                           BitmapDescriptor.hueGreen),
                     ),

@@ -14,26 +14,50 @@ import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
+  try {
+    await dotenv.load(fileName: ".env");
 
-  await Supabase.initialize(
-      anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-      url: dotenv.env['SUPABASE_URL']!);
+    await Supabase.initialize(
+        anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+        url: dotenv.env['SUPABASE_URL']!);
 
-  final driverProvider = DriverProvider();
-  await driverProvider.loadFromSecureStorage();
+    final driverProvider = DriverProvider();
+    await driverProvider
+        .loadFromSecureStorage(); //load data from secure storage
+    final mapProvider = MapProvider();
 
-  runApp(MultiProvider(
-    providers: [
-      ChangeNotifierProvider(create: (_) => driverProvider),
-      ChangeNotifierProvider(create: (_) => MapProvider()),
-    ],
-    child: const MyApp(),
-  ));
+    runApp(MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => driverProvider),
+        ChangeNotifierProvider(create: (_) => mapProvider),
+      ],
+      child: const MyApp(),
+    ));
+  } catch (e, stacktrace) {
+    if (kDebugMode) {
+      print('Error during initialization: $e');
+      print(stacktrace);
+    }
+    // runApp(ErrorApp(error: e.toString()));
+  }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool? _hasSession;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSession();
+  }
 
   //check yung data locally
   Future<bool> _hasValidSession() async {
@@ -41,7 +65,22 @@ class MyApp extends StatelessWidget {
     return sessionData.isNotEmpty;
   }
 
-  // This widget is the root of your application.
+  Future<void> _checkSession() async {
+    final hasSession = await _hasValidSession();
+    if (mounted) {
+      setState(() {
+        _hasSession = hasSession;
+        _isLoading = false;
+      });
+      if (!hasSession && kDebugMode) {
+        ShowMessage().showToast('No local session data detected');
+        if (kDebugMode) {
+          print('No local session data detected');
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -52,38 +91,27 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         useMaterial3: true,
       ),
-      home: FutureBuilder(
-        future: _hasValidSession(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: CircularProgressIndicator(),
-            );
-          }
-          if (snapshot.data == true) {
-            return const MainPage();
-          } else {
-            if (kDebugMode) {
-              ShowMessage().showToast('No data detected');
-              print('No local data detected');
-            }
-            return const MyHomePage();
-          }
-        },
-      ),
-
-      // home: Consumer<DriverProvider>(
-      //   builder: (context, driverProvider, _) {
-      //     return driverProvider.driverID == 'N/A'
-      //         ? const MyHomePage()
-      //         : const MainPage();
-      //   },
-      // ),
+      home: _buildHome(),
       routes: {
         '/login': (context) => const LogIn(),
         '/home': (context) => const MyHomePage(),
       },
     );
+  }
+
+  Widget _buildHome() {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    if (_hasSession == true) {
+      return const MainPage();
+    } else {
+      return const MyHomePage();
+    }
   }
 }
 
@@ -106,7 +134,7 @@ class _MyHomePageState extends State<MyHomePage> {
             Logo(),
             //WELCOME MESSAGE
             WelcomeMessage(),
-            SizedBox(height: 8),
+            SizedBox(height: 8.0),
             WelcomeAppMessage(),
 
             //LOG IN BUTTON
@@ -126,9 +154,9 @@ class Logo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(top: 130),
-      width: 130,
-      height: 130,
+      margin: const EdgeInsets.only(top: 130.0),
+      width: 130.0,
+      height: 130.0,
       child: SvgPicture.asset('assets/svg/Ellipse.svg'),
     );
   }
@@ -141,13 +169,11 @@ class WelcomeAppMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.only(bottom: 30),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 30.0),
       child: Text(
         'Welcome to Pasada Driver',
-        style: TextStyle(
-          fontFamily: 'Inter',
-        ),
+        style: Styles().textStyle(14, FontWeight.w400, Styles.customBlack),
       ),
     );
   }
@@ -161,14 +187,10 @@ class WelcomeMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(top: 70),
-      child: const Text(
+      margin: const EdgeInsets.only(top: 70.0),
+      child: Text(
         'Hi there!',
-        style: TextStyle(
-          fontSize: 40,
-          fontFamily: 'Inter',
-          fontWeight: FontWeight.w700,
-        ),
+        style: Styles().textStyle(40.0, FontWeight.w700, Colors.black),
       ),
     );
   }
@@ -179,23 +201,23 @@ class _LogInButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(top: 250),
+      margin: const EdgeInsets.only(top: 250.0),
       child: ElevatedButton(
         onPressed: () {
           Navigator.pushReplacementNamed(context, '/login');
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-          minimumSize: const Size(240, 45),
+          minimumSize: const Size(240.0, 45.0),
           shadowColor: Colors.black,
-          elevation: 5,
+          elevation: 5.0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20.0),
           ),
         ),
         child: Text(
           'Log in',
-          style: Styles().textStyle(20, FontWeight.w600, Styles.customWhite),
+          style: Styles().textStyle(20.0, FontWeight.w600, Styles.customWhite),
         ),
       ),
     );

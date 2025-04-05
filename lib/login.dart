@@ -80,8 +80,8 @@ class _LogInState extends State<LogIn> {
   Future<void> saveSession(
       String enteredDriverID, PostgrestMap response) async {
     final sessionToken = AuthService.generateSecureToken();
-    final expirationTime =
-        DateTime.now().add(const Duration(hours: 24)).toIso8601String();
+    // final expirationTime =
+    //     DateTime.now().add(const Duration(hours: 24)).toIso8601String();
 
     // int routeID = context.read<MapProvider>().routeID;
     int routeID = context.read<DriverProvider>().routeID;
@@ -142,68 +142,93 @@ class _LogInState extends State<LogIn> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Define relative padding
+    final horizontalPadding = screenWidth * 0.1;
+
     return Scaffold(
-      body: Align(
-        alignment: Alignment.centerLeft,
-        child: Padding(
-          padding: const EdgeInsets.all(50),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
+      body: LayoutBuilder(
+        // Use LayoutBuilder to get constraints for centering
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              // Ensure the content area tries to fill the viewport height
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight,
+              ),
+              child: Center(
+                // Center the content vertically
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalPadding,
+                  ),
+                  child: Column(
+                    mainAxisAlignment:
+                        MainAxisAlignment.center, // Center column content
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Use screenHeight/Width directly for spacing and sizing
+                      SizedBox(height: screenHeight * 0.05),
 
-            //CONTENTS
-            children: [
-              _buildHeader(), //HEADER
+                      _buildHeader(screenHeight * 0.1, screenHeight * 0.05),
+                      SizedBox(height: screenHeight * 0.05),
 
-              _buildDriverIDText(), //Enter your Driver ID text
+                      _buildDriverIDText(),
+                      SizedBox(height: screenHeight * 0.01),
 
-              _buildDriverIDInput(), //DRIVER ID INPUT
+                      _buildDriverIDInput(screenHeight * 0.06),
+                      SizedBox(height: screenHeight * 0.03),
 
-              _buildPasswordText(), //Enter your Password text
+                      _buildPasswordText(),
+                      SizedBox(height: screenHeight * 0.01),
 
-              _buildPasswordInput(), //PASSWORD INPUT
+                      _buildPasswordInput(screenHeight * 0.06),
 
-              _buildForgotPasswordButton(), //FORGOT PASSWORD BUTTON
+                      _buildForgotPasswordButton(),
+                      SizedBox(height: screenHeight * 0.08),
 
-              _buildLogInButton(), //LOG IN BUTTON
-            ],
-          ),
-        ),
+                      _buildLogInButton(screenHeight * 0.06),
+                      SizedBox(height: screenHeight * 0.05),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Flexible _buildLogInButton() {
-    return Flexible(
-      child: Container(
-        margin: const EdgeInsets.only(top: 120),
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: _logIn,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-            minimumSize: const Size(240, 45),
-            shadowColor: Colors.black,
-            elevation: 5,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15.0),
-            ),
+  Widget _buildLogInButton(double buttonHeight) {
+    return Container(
+      width: double.infinity,
+      height: buttonHeight,
+      child: ElevatedButton(
+        onPressed: _logIn,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+          shadowColor: Colors.black,
+          elevation: 5,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15.0),
           ),
-          child: _loading
-              ? const CircularProgressIndicator()
-              : Text(
-                  'Log in',
-                  style: Styles()
-                      .textStyle(20, Styles.w700Weight, Styles.customWhite),
-                ),
         ),
+        child: _loading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : Text(
+                'Log in',
+                style: Styles()
+                    .textStyle(20, Styles.w700Weight, Styles.customWhite),
+              ),
       ),
     );
   }
 
   Container _buildForgotPasswordButton() {
     return Container(
-      margin: const EdgeInsets.only(top: 5),
       alignment: Alignment.centerRight,
       child: TextButton(
         onPressed: () {},
@@ -215,38 +240,55 @@ class _LogInState extends State<LogIn> {
     );
   }
 
-  Container _buildPasswordInput() {
+  Container _buildPasswordInput(double inputFieldHeight) {
     return Container(
-      margin: const EdgeInsets.only(top: 10),
       child: SizedBox(
         width: double.infinity,
-        height: 45,
+        height: inputFieldHeight,
         child: TextField(
           controller: inputPasswordController,
           obscureText: !isPasswordVisible,
           decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(7.0),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: const BorderSide(color: Colors.black, width: 2.0),
             ),
             errorText: errorMessage.isNotEmpty ? errorMessage : null,
             suffixIcon: IconButton(
-              color: const Color(0xFF121212),
+              color: Colors.black54,
               onPressed: () {
                 setState(() {
                   isPasswordVisible = !isPasswordVisible;
                 });
               },
               icon: Icon(
-                isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                isPasswordVisible
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
               ),
             ),
-            labelText: 'Enter your Password here',
-            labelStyle: const TextStyle(
+            hintText: 'Enter your Password here',
+            hintStyle: TextStyle(
               fontSize: 14,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w400,
             ),
             filled: true,
-            fillColor: Colors.grey.shade200,
-            contentPadding: const EdgeInsets.fromLTRB(15, 0, 115, 0),
+            fillColor: Colors.grey.shade50,
+            prefixIcon: const Icon(
+              Icons.lock_outline,
+              color: Colors.black54,
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+          ),
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
@@ -255,7 +297,6 @@ class _LogInState extends State<LogIn> {
 
   Container _buildPasswordText() {
     return Container(
-      margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.03),
       child: Row(
         children: [
           Text(
@@ -270,14 +311,11 @@ class _LogInState extends State<LogIn> {
           ),
         ],
       ),
-
-      //INPUT
     );
   }
 
   Container _buildDriverIDText() {
     return Container(
-      margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.1),
       child: Row(
         children: [
           Text(
@@ -290,54 +328,64 @@ class _LogInState extends State<LogIn> {
             style:
                 Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
           ),
-          // Text(
-          //   ' to continue',
-          //   style: textStyle(14, FontWeight.normal),
-          // )
         ],
       ),
     );
   }
 
-  Container _buildDriverIDInput() {
+  Container _buildDriverIDInput(double inputFieldHeight) {
     return Container(
-      margin: const EdgeInsets.only(top: 10),
       child: SizedBox(
         width: double.infinity,
-        height: 45,
+        height: inputFieldHeight,
         child: TextField(
           controller: inputDriverIDController,
           decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(7.0),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: const BorderSide(color: Colors.grey, width: 1.0),
             ),
-            labelText: 'Enter your Driver ID here',
-            labelStyle: const TextStyle(
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10.0),
+              borderSide: const BorderSide(color: Colors.black, width: 2.0),
+            ),
+            hintText: 'Enter your Driver ID here',
+            hintStyle: TextStyle(
               fontSize: 14,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w400,
             ),
             errorText: errorMessage.isNotEmpty ? errorMessage : null,
             filled: true,
-            fillColor: Colors.grey.shade200,
-            contentPadding: const EdgeInsets.fromLTRB(15, 0, 115, 0),
+            fillColor: Colors.grey.shade50,
+            prefixIcon: const Icon(
+              Icons.person_outline,
+              color: Colors.black54,
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+          ),
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
     );
   }
 
-  Column _buildHeader() {
+  Column _buildHeader(double iconSize, double topMargin) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           alignment: Alignment.center,
-          // margin: const EdgeInsets.only(top: 60),
-          width: 70,
-          height: 70,
+          width: iconSize,
+          height: iconSize,
           child: SvgPicture.asset('assets/svg/Ellipse.svg'),
         ),
         Container(
-          margin: const EdgeInsets.only(top: 30),
+          margin: EdgeInsets.only(top: topMargin),
           child: Text(
             'Log-in to your account',
             style:

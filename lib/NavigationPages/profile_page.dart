@@ -2,10 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
-import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 // import 'package:pasada_driver_side/Database/global.dart';
 import 'package:provider/provider.dart';
+
+// --- Custom Clipper for Background Shape ---
+class ProfileBackgroundClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+
+    // Start at top-left
+    path.lineTo(0, size.height * 0.85); // Go down most of the left side
+
+    // Create a quadratic bezier curve for the bottom edge
+    // Control point is centered horizontally and at the bottom vertically
+    // End point is at the bottom-right corner, adjusted height
+    path.quadraticBezierTo(
+      size.width / 2, // Control point X (center)
+      size.height, // Control point Y (bottom)
+      size.width, // End point X (right edge)
+      size.height * 0.85, // End point Y (matching the start height)
+    );
+
+    path.lineTo(size.width, 0); // Go up the right side
+    path.close(); // Close the path back to the top-left origin
+
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) {
+    return false; // The shape is static
+  }
+}
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -15,7 +45,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class ProfilePageState extends State<ProfilePage> {
-  String currentStatus = 'Online';
+  // String currentStatus = 'Online'; // Keep driverProvider.driverStatus
   final Map<String, Color> statusColors = {
     "Online": Colors.green,
     "Driving": Colors.red,
@@ -30,92 +60,266 @@ class ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final double paddingValue = MediaQuery.of(context).size.width * 0.05;
-    final double profilePictureSize = MediaQuery.of(context).size.width * 0.3;
+    // final double paddingValue = MediaQuery.of(context).size.width * 0.05; // Use specific padding values
+    final double profilePictureSize = MediaQuery.of(context).size.width * 0.25;
     final driverProvider = context.watch<DriverProvider>();
-    final mapProvider = context.watch<MapProvider>();
+    // final mapProvider = context.watch<
+    //     MapProvider>(); // Keep if needed elsewhere, otherwise remove if only for old _buildDriverDetails
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Define colors based on the image
+    const Color primaryColor = Color(0xFF1B9C85); // Teal-like color
+    final Color statusColor =
+        statusColors[driverProvider.driverStatus] ?? Colors.grey;
 
     return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: paddingValue),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildProfilePicture(profilePictureSize),
-              const SizedBox(height: 20),
-              _buildDriverDetails(driverProvider, mapProvider),
-              const SizedBox(height: 20),
+      backgroundColor: Colors.grey[100], // Light background for contrast
+      body: Stack(
+        children: [
+          // --- Top Gradient Background ---
+          ClipPath(
+            // Wrap the container with ClipPath
+            clipper: ProfileBackgroundClipper(), // Apply the custom clipper
+            child: Container(
+              height:
+                  screenHeight * 0.35, // Adjust height if needed for the curve
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [primaryColor, Color(0xFF43B8A3)], // Example gradient
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                // Removed bottom curves for simplicity, add if needed
+              ),
+            ),
+          ),
 
-              //Driver Status Button
-              InkWell(
-                onTap: () {
-                  _showStatusOption();
-                  // setState(() {
-                  //   currentStatus = 'Driving';
-                  // });
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: paddingValue * 0.5),
-                  height: 30,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Colors.black87,
-                      width: 1.5,
+          // --- Main Content ---
+          SafeArea(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                child: Column(
+                  children: [
+                    SizedBox(height: screenHeight * 0.03), // Space from top
+
+                    // --- Profile Picture ---
+                    _buildProfilePicture(profilePictureSize),
+                    const SizedBox(height: 12),
+
+                    // --- Driver Name ---
+                    Text(
+                      '${driverProvider.driverFirstName} ${driverProvider.driverLastName}',
+                      style: Styles().textStyle(22, Styles.w700Weight,
+                          Colors.white), // White text on gradient
+                      textAlign: TextAlign.center,
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        height: 10,
-                        width: 10,
-                        decoration: BoxDecoration(
-                          color: statusColors[driverProvider.driverStatus],
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        driverProvider.driverStatus,
-                        style: Styles().textStyle(
-                            14, Styles.normalWeight, Styles.customBlack),
-                      ),
-                    ],
-                  ),
+                    const SizedBox(height: 8),
+
+                    // --- Driver Status Button ---
+                    _buildStatusChip(driverProvider, statusColor),
+                    const SizedBox(height: 25), // Space before the first card
+
+                    // --- Driver Info Card ---
+                    _buildInfoCard(driverProvider),
+                    const SizedBox(height: 20),
+
+                    // --- Actions Card ---
+                    _buildActionsCard(),
+                    const SizedBox(height: 30),
+
+                    // --- Log Out Button ---
+                    _buildLogoutButton(),
+                    const SizedBox(height: 30), // Bottom padding
+                  ],
                 ),
               ),
-              const SizedBox(height: 100),
-
-              //Buttons
-              _buildProfileButtons(
-                  paddingValue: paddingValue,
-                  button_name: 'Update Information',
-                  onPressed: () {}),
-              const SizedBox(height: 10),
-
-              _buildProfileButtons(
-                  paddingValue: paddingValue,
-                  button_name: 'Settings',
-                  onPressed: () {}),
-              const SizedBox(height: 10),
-
-              _buildProfileButtons(
-                  paddingValue: paddingValue,
-                  button_name: 'Log out',
-                  onPressed: () {
-                    AuthService.deleteSession();
-                  }),
-              const SizedBox(height: 10),
-            ],
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // --- Helper Widgets ---
+
+  Widget _buildStatusChip(DriverProvider driverProvider, Color statusColor) {
+    return InkWell(
+      onTap: () => _showStatusOption(),
+      borderRadius: BorderRadius.circular(20), // Make it pill-shaped
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white, // White background for the chip
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black,
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            )
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              height: 10,
+              width: 10,
+              decoration: BoxDecoration(
+                color: statusColor, // Use the determined status color
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              driverProvider.driverStatus,
+              style: Styles().textStyle(14, Styles.w500Weight,
+                  Styles.customBlack // Dark text for status
+                  ),
+            ),
+          ],
         ),
       ),
     );
   }
 
+  Widget _buildInfoCard(DriverProvider driverProvider) {
+    return Card(
+      elevation: 3,
+      shadowColor: Colors.black38,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 20.0),
+        child: Column(
+          children: [
+            _buildInfoRow(
+              icon: Icons.phone_android, // Use Material Icons
+              text: driverProvider.driverNumber.isNotEmpty
+                  ? driverProvider.driverNumber
+                  : 'No phone number', // Handle empty number
+            ),
+            const SizedBox(height: 15),
+            _buildInfoRow(
+              icon: Icons.directions_car, // Use Material Icons
+              text: 'Vehicle ID: ${driverProvider.vehicleID}',
+            ),
+            const SizedBox(height: 15),
+            _buildInfoRow(
+              icon: Icons.route_outlined, // Use Material Icons
+              text:
+                  'Route: ${driverProvider.routeName} (${driverProvider.routeID})', // Combine Route name and ID
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow({required IconData icon, required String text}) {
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF1B9C85), size: 24), // Teal icon color
+        const SizedBox(width: 15),
+        Expanded(
+          // Allow text to wrap if needed
+          child: Text(
+            text,
+            style:
+                Styles().textStyle(15, Styles.normalWeight, Styles.customBlack),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionsCard() {
+    return Card(
+      elevation: 3,
+      shadowColor: Colors.black38,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+            vertical: 10.0), // Padding around the list
+        child: Column(
+          children: [
+            _buildActionTile(
+              icon: Icons.edit_note, // Material Icon
+              text: 'Update Information',
+              onTap: () {/* TODO: Implement navigation */},
+            ),
+            _buildDivider(),
+            _buildActionTile(
+              icon: Icons.settings_outlined, // Material Icon
+              text: 'Settings',
+              onTap: () {/* TODO: Implement navigation */},
+            ),
+            _buildDivider(),
+            _buildActionTile(
+              icon: Icons.help_outline, // Material Icon
+              text: 'Help & Support',
+              onTap: () {/* TODO: Implement navigation */},
+            ),
+            _buildDivider(),
+            _buildActionTile(
+              icon: Icons.info_outline, // Material Icon
+              text: 'About',
+              onTap: () {/* TODO: Implement navigation */},
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionTile(
+      {required IconData icon,
+      required String text,
+      required VoidCallback onTap}) {
+    return ListTile(
+      leading: Icon(icon,
+          color: const Color(0xFF1B9C85), size: 24), // Teal icon color
+      title: Text(
+        text,
+        style: Styles().textStyle(16, Styles.w500Weight, Styles.customBlack),
+      ),
+      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildDivider() {
+    return const Padding(
+      padding:
+          EdgeInsets.symmetric(horizontal: 15.0), // Indent divider slightly
+      child: Divider(height: 1, thickness: 0.5, color: Colors.grey),
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return OutlinedButton.icon(
+      icon: const Icon(Icons.logout, color: Colors.red),
+      label: Text(
+        'Log out',
+        style: Styles().textStyle(16, Styles.w600Weight, Colors.red),
+      ),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.red,
+        side: const BorderSide(color: Colors.red, width: 1.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+      ),
+      onPressed: () {
+        AuthService.deleteSession(); // Keep existing logout logic
+        // Consider adding navigation back to login screen after logout
+      },
+    );
+  }
+
+  // Keep existing methods like _showStatusOption, statusOption, divider (local divider)
   void _showStatusOption() {
     showModalBottomSheet(
         context: context,
@@ -141,20 +345,21 @@ class ProfilePageState extends State<ProfilePage> {
                 ),
               ),
               statusOption('Online'),
-              divider(),
+              _buildModalDivider(),
               statusOption('Driving'),
-              divider(),
+              _buildModalDivider(),
               statusOption('Idling'),
-              divider(),
+              _buildModalDivider(),
               statusOption('Offline'),
-              divider(),
+              _buildModalDivider(),
               const SizedBox(height: 20)
             ],
           )); // Add a non-nullable widget here
         });
   }
 
-  Padding divider() {
+  // Rename the old divider to avoid conflict
+  Padding _buildModalDivider() {
     return const Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.0),
       child: Divider(
@@ -187,117 +392,68 @@ class ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildProfilePicture(double size) {
-    return SizedBox(
-      height: size,
-      width: size,
-      child: SvgPicture.asset(
-        'assets/svg/user.svg',
-        placeholderBuilder: (_) => const CircularProgressIndicator(),
-      ),
-    );
+    // Add a Container with white background and padding for the circular border effect
+    return Container(
+        padding: const EdgeInsets.all(
+            4.0), // Padding creates the white border effect
+        decoration: const BoxDecoration(
+          color: Colors.white, // White background circle
+          shape: BoxShape.circle,
+          boxShadow: [
+            // Optional: Add subtle shadow like in the image
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 5,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipOval(
+          // Clip the inner content (SVG)
+          child: SizedBox(
+            height: size,
+            width: size,
+            child: SvgPicture.asset(
+              'assets/svg/Ellipse.svg', // Keep user-updated SVG (assuming this is the placeholder)
+              fit: BoxFit.cover, // Ensure SVG fills the circle
+              placeholderBuilder: (_) => Container(
+                // Placeholder if SVG fails
+                height: size,
+                width: size,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.person,
+                    size: size * 0.6, color: Colors.grey[600]),
+              ),
+            ),
+          ),
+        ));
   }
 
+  // Remove or comment out old/unused helper widgets if no longer needed
+  /*
   Widget _buildDriverDetails(
       DriverProvider driverProvider, MapProvider mapProvider) {
-    return Column(
-      children: [
-        // DRIVER NAME
-        Text(
-          '${driverProvider.driverFirstName} ${driverProvider.driverLastName}',
-          // '$_firstName $_lastName',
-          style: Styles().textStyle(30, Styles.w700Weight, Styles.customBlack),
-        ),
-        const SizedBox(height: 10),
-        // DRIVER NUMBER
-        Text(
-          driverProvider.driverNumber,
-          style:
-              Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
-        ),
-
-        // DRIVER VEHICLE
-        const SizedBox(height: 10),
-        Text(
-          'Vehicle ID: ${driverProvider.vehicleID}',
-          style:
-              Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
-        ),
-
-        // DRIVER ROUTE
-        const SizedBox(height: 10),
-        Text(
-          'Route: ${driverProvider.routeName}',
-          style:
-              Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Route: ${driverProvider.routeID}',
-          style:
-              Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
-        ),
-      ],
-    );
+    // ... Now handled directly in build method ...
   }
-}
 
-Widget _buildProfileButtons({
-  required double paddingValue,
-  required String button_name,
-  required VoidCallback onPressed,
-}) {
-  return ProfileButton(
-    paddingValue: paddingValue,
-    buttonName: button_name,
-    onPressed: onPressed,
-  );
-}
-
-class ProfileButton extends StatelessWidget {
-  final VoidCallback onPressed;
-  final double paddingValue;
-  final String buttonName;
-
-  const ProfileButton({
-    super.key,
-    required this.paddingValue,
-    required this.buttonName,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onPressed,
-      child: Container(
-        height: 40,
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(width: 1),
-          ),
-        ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: paddingValue * 0.5),
-
-          // Contents
-          child: Row(
-            children: [
-              Text(
-                buttonName,
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const Spacer(),
-              SvgPicture.asset('assets/svg/rightArrow.svg', height: 18),
-              // const Icon(Icons.arrow_forward_ios, size: 16),
-            ],
-          ),
-        ),
-      ),
-    );
+  Widget _buildAdditionalDriverInfo(
+      DriverProvider driverProvider, double paddingValue) {
+    // ... Replaced by _buildInfoCard and _buildInfoRow ...
   }
-}
 
+  Widget _buildSectionTitle(String title, double paddingValue) {
+    // ... Not directly used in the new structure ...
+  }
+
+  Widget _buildProfileListItem({ ... }) {
+     // ... Replaced by _buildActionTile ...
+  }
+
+  Widget _buildProfileSection({ ... }) {
+    // ... Replaced by individual cards ...
+  }
+  */
+}
