@@ -22,10 +22,10 @@ class DriverProvider with ChangeNotifier {
   String _driverLastName = 'lastName';
   String _driverNumber = '00000000000';
 
-  LatLng? _currentLocation;
-  LatLng? _endingLocation;
-  LatLng? _intermediateLoc1;
-  LatLng? _intermediateLoc2;
+  // LatLng? _currentLocation;
+  // LatLng? _endingLocation;
+  // LatLng? _intermediateLoc1;
+  // LatLng? _intermediateLoc2;
 
   final SupabaseClient supabase = Supabase.instance.client;
 
@@ -42,10 +42,10 @@ class DriverProvider with ChangeNotifier {
   String? get driverLastName => _driverLastName;
   String get driverNumber => _driverNumber;
 
-  LatLng? get currentLocation => _currentLocation;
-  LatLng? get endingLocation => _endingLocation;
-  LatLng? get intermediateLoc1 => _intermediateLoc1;
-  LatLng? get intermediateLoc2 => _intermediateLoc2;
+  // LatLng? get currentLocation => _currentLocation;
+  // LatLng? get endingLocation => _endingLocation;
+  // LatLng? get intermediateLoc1 => _intermediateLoc1;
+  // LatLng? get intermediateLoc2 => _intermediateLoc2;
 
   void setDriverID(String value) {
     _driverID = value;
@@ -104,25 +104,25 @@ class DriverProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setCurrentLocation(LatLng value) {
-    _currentLocation = value;
-    notifyListeners();
-  }
+  // void setCurrentLocation(LatLng value) {
+  //   _currentLocation = value;
+  //   notifyListeners();
+  // }
 
-  void setEndingLocation(LatLng value) {
-    _endingLocation = value;
-    notifyListeners();
-  }
+  // void setEndingLocation(LatLng value) {
+  //   _endingLocation = value;
+  //   notifyListeners();
+  // }
 
-  void setIntermediateLoc1(LatLng value) {
-    _intermediateLoc1 = value;
-    notifyListeners();
-  }
+  // void setIntermediateLoc1(LatLng value) {
+  //   _intermediateLoc1 = value;
+  //   notifyListeners();
+  // }
 
-  void setIntermediateLoc2(LatLng value) {
-    _intermediateLoc2 = value;
-    notifyListeners();
-  }
+  // void setIntermediateLoc2(LatLng value) {
+  //   _intermediateLoc2 = value;
+  //   notifyListeners();
+  // }
 
   Future<void> updateStatusToDB(String newStatus, BuildContext context) async {
     final response = await supabase
@@ -243,9 +243,9 @@ class DriverProvider with ChangeNotifier {
           .single();
 
       _routeName = response['route'];
-      _intermediateLoc1 = _parseLatLng(response['intermediate_location1']);
-      _intermediateLoc2 = _parseLatLng(response['intermediate_location2']);
-      _endingLocation = _parseLatLng(response['ending_location']);
+      // _intermediateLoc1 = _parseLatLng(response['intermediate_location1']);
+      // _intermediateLoc2 = _parseLatLng(response['intermediate_location2']);
+      // _endingLocation = _parseLatLng(response['ending_location']);
 
       if (kDebugMode) {
         // print('''
@@ -254,10 +254,10 @@ class DriverProvider with ChangeNotifier {
         // ''');
         print('''
           Route: $_routeName
-          Intermediate 1: ${_intermediateLoc1?.latitude},${_intermediateLoc1?.longitude}
-          Intermediate 2: ${_intermediateLoc2?.latitude},${_intermediateLoc2?.longitude}
-          End: ${_endingLocation?.latitude},${_endingLocation?.longitude}
         ''');
+        // Intermediate 1: ${_intermediateLoc1?.latitude},${_intermediateLoc1?.longitude}
+        //   Intermediate 2: ${_intermediateLoc2?.latitude},${_intermediateLoc2?.longitude}
+        //   End: ${_endingLocation?.latitude},${_endingLocation?.longitude}
       }
     } catch (e) {
       if (kDebugMode) {

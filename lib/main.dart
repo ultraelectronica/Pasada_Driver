@@ -25,6 +25,7 @@ Future<void> main() async {
     await driverProvider
         .loadFromSecureStorage(); //load data from secure storage
     final mapProvider = MapProvider();
+    await mapProvider.getRouteCoordinates(driverProvider.routeID); //get route coordinates
 
     runApp(MultiProvider(
       providers: [

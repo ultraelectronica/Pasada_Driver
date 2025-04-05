@@ -30,9 +30,8 @@ class AuthService {
     required String vehicleId,
   }) async {
     final expirationTime =
-        DateTime.now().add(const Duration(minutes: 5)).toIso8601String();
+        DateTime.now().add(const Duration(hours: 1)).toIso8601String();
 
-    // Use await for all writes
     await _storage.write(key: _keySessionToken, value: sessionToken);
     await _storage.write(key: _keyExpirationTime, value: expirationTime);
     await _storage.write(key: _keyDriverId, value: driverId);

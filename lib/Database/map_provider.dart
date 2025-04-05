@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pasada_driver_side/Database/driver_provider.dart';
+import 'package:provider/provider.dart';
 
 class MapProvider with ChangeNotifier {
   LatLng? _currentLocation;
@@ -12,6 +14,7 @@ class MapProvider with ChangeNotifier {
   String? _routeName;
 
   final SupabaseClient supabase = Supabase.instance.client;
+  final driverProvider = DriverProvider();
 
   LatLng? get currentLocation => _currentLocation;
   LatLng? get endingLocation => _endingLocation;
@@ -70,41 +73,42 @@ class MapProvider with ChangeNotifier {
   //   }
   // }
 
-  // Future<void> getRouteCoordinates(BuildContext context) async {
-  //   try {
-  //     final response = await supabase
-  //         .from('driverRouteTable')
-  //         .select()
-  //         .eq('route_id', context.read<DriverProvider>().routeID)
-  //         .single();
+  Future<void> getRouteCoordinates(int routeID) async {
+    try {
+      final response = await supabase
+          .from('driverRouteTable')
+          .select()
+          .eq('route_id', routeID)
+          .single();
 
-  //     _routeName = response['route'];
-  //     _intermediateLoc1 = _parseLatLng(response['intermediate_location1']);
-  //     _intermediateLoc2 = _parseLatLng(response['intermediate_location2']);
-  //     _endingLocation = _parseLatLng(response['ending_location']);
+      _routeName = response['route'];
+      _intermediateLoc1 = _parseLatLng(response['intermediate_location1']);
+      _intermediateLoc2 = _parseLatLng(response['intermediate_location2']);
+      _endingLocation = _parseLatLng(response['ending_location']);
 
-  //     if (kDebugMode) {
-  //       print('Route ID: $routeID');
-  //       print('''
-  //       Route: $_routeName
-  //       Intermediate 1: ${_intermediateLoc1?.latitude},${_intermediateLoc1?.longitude}
-  //       Intermediate 2: ${_intermediateLoc2?.latitude},${_intermediateLoc2?.longitude}
-  //       End: ${_endingLocation?.latitude},${_endingLocation?.longitude}
-  //     ''');
-  //     }
-  //   } catch (e) {
-  //     if (kDebugMode) {
-  //       print('Error: $e');
-  //     }
-  //   }
-  // }
+      if (kDebugMode) {
+        print('Route ID: $routeID');
+        print('''
+        Route: $_routeName
+        Intermediate 1: ${_intermediateLoc1?.latitude},${_intermediateLoc1?.longitude}
+        Intermediate 2: ${_intermediateLoc2?.latitude},${_intermediateLoc2?.longitude}
+        End: ${_endingLocation?.latitude},${_endingLocation?.longitude}
+      ''');
+      }
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        print('Error: $e');
+        print('Stack Trace: $stackTrace');
+      }
+    }
+  }
 
-  // LatLng? _parseLatLng(String? coordString) {
-  //   if (coordString == null) return null;
-  //   final parts = coordString.split(',');
-  //   if (parts.length != 2) return null;
-  //   final lat = double.tryParse(parts[0]);
-  //   final lng = double.tryParse(parts[1]);
-  //   return (lat != null && lng != null) ? LatLng(lat, lng) : null;
-  // }
+  LatLng? _parseLatLng(String? coordString) {
+    if (coordString == null) return null;
+    final parts = coordString.split(',');
+    if (parts.length != 2) return null;
+    final lat = double.tryParse(parts[0]);
+    final lng = double.tryParse(parts[1]);
+    return (lat != null && lng != null) ? LatLng(lat, lng) : null;
+  }
 }
