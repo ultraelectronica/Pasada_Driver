@@ -84,8 +84,8 @@ class HomePageState extends State<HomePage> {
             // Update the MapScreen widget in the HomePage's build method
             MapScreen(
               key: mapScreenKey,
-              initialLocation: StartingLocation,
-              finalLocation: EndingLocation,
+              // initialLocation: StartingLocation,
+              // finalLocation: EndingLocation,
             ),
 
             // FLOATING MESSAGE BUTTON
