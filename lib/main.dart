@@ -25,7 +25,9 @@ Future<void> main() async {
     await driverProvider
         .loadFromSecureStorage(); //load data from secure storage
     final mapProvider = MapProvider();
-    await mapProvider.getRouteCoordinates(driverProvider.routeID); //get route coordinates
+    await mapProvider
+        .getRouteCoordinates(driverProvider.routeID); //get route coordinates
+    // await mapProvider.getPassenger(int.parse(driverProvider.driverID)); bug here, commented for now
 
     runApp(MultiProvider(
       providers: [
@@ -57,6 +59,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+
     _checkSession();
   }
 

@@ -3,11 +3,9 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-// Renamed class to follow PascalCase convention
 class AuthService {
   static const _storage = FlutterSecureStorage();
 
-  // Define constants for storage keys
   static const String _keySessionToken = 'session_token';
   static const String _keyExpirationTime = 'expiration_time';
   static const String _keyDriverId = 'driver_id';

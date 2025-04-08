@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
+import 'package:pasada_driver_side/UI/message.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class MapProvider with ChangeNotifier {
@@ -14,7 +15,6 @@ class MapProvider with ChangeNotifier {
   String? _routeName;
 
   final SupabaseClient supabase = Supabase.instance.client;
-  final driverProvider = DriverProvider();
 
   LatLng? get currentLocation => _currentLocation;
   LatLng? get endingLocation => _endingLocation;
@@ -73,6 +73,26 @@ class MapProvider with ChangeNotifier {
   //   }
   // }
 
+  // TODO: This is still incomplete, need to work after finishing the features in the map
+  Future<void> getPassenger(int driverID) async {
+    try {
+      final response = await supabase
+          .from('bookings')
+          .select()
+          .eq('driver_id', driverID)
+          .single();
+
+      if (kDebugMode) {
+        print('Passenger: ${response['booking_id']}');
+        print('     Get passenger response: $response');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error: $e');
+      }
+    }
+  }
+
   Future<void> getRouteCoordinates(int routeID) async {
     try {
       final response = await supabase
@@ -100,6 +120,41 @@ class MapProvider with ChangeNotifier {
         print('Error: $e');
         print('Stack Trace: $stackTrace');
       }
+    }
+  }
+
+  // Method to change the driver route
+  Future<void> changeRouteLocation(BuildContext context) async {
+    try {
+      int currentRouteID = context.read<DriverProvider>().routeID;
+
+      if (currentRouteID == 1) {
+        // change route to Malinta to Novaliches
+        currentRouteID = 2; 
+        context.read<DriverProvider>().setRouteID(currentRouteID);
+        getRouteCoordinates(currentRouteID);
+      } else {
+        // change route to Novaliches to Malinta
+        currentRouteID = 1;
+        context.read<DriverProvider>().setRouteID(currentRouteID);
+        getRouteCoordinates(currentRouteID);
+      }
+
+      final response = await supabase
+          .from('vehicleTable')
+          .update({'route_id': currentRouteID}).eq(
+              'vehicle_id', context.read<DriverProvider>().vehicleID).select();
+
+      debugPrint('Change route response: $response');
+
+      if (kDebugMode) {
+        print(
+            "Reached destination! Triggering route change. Current Route: $currentRouteID");
+        ShowMessage()
+            .showToast('Reached destination! Triggering route change...');
+      }
+    } catch (e) {
+      debugPrint('Error: $e');
     }
   }
 
