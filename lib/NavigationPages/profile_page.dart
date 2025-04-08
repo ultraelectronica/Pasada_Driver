@@ -63,18 +63,16 @@ class ProfilePageState extends State<ProfilePage> {
     // final double paddingValue = MediaQuery.of(context).size.width * 0.05; // Use specific padding values
     final double profilePictureSize = MediaQuery.of(context).size.width * 0.25;
     final driverProvider = context.watch<DriverProvider>();
-    // final mapProvider = context.watch<
-    //     MapProvider>(); // Keep if needed elsewhere, otherwise remove if only for old _buildDriverDetails
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
     // Define colors based on the image
-    const Color primaryColor = Color(0xFF1B9C85); // Teal-like color
+    const Color primaryColor = Color(0xff067837);
     final Color statusColor =
         statusColors[driverProvider.driverStatus] ?? Colors.grey;
 
     return Scaffold(
-      backgroundColor: Colors.grey[100], // Light background for contrast
+      backgroundColor: Styles.customWhite,
       body: Stack(
         children: [
           // --- Top Gradient Background ---
@@ -83,10 +81,10 @@ class ProfilePageState extends State<ProfilePage> {
             clipper: ProfileBackgroundClipper(), // Apply the custom clipper
             child: Container(
               height:
-                  screenHeight * 0.35, // Adjust height if needed for the curve
+                  screenHeight * 0.42, // Adjust height if needed for the curve
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [primaryColor, Color(0xFF43B8A3)], // Example gradient
+                  colors: [primaryColor, primaryColor],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -102,7 +100,7 @@ class ProfilePageState extends State<ProfilePage> {
                 padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
                 child: Column(
                   children: [
-                    SizedBox(height: screenHeight * 0.03), // Space from top
+                    SizedBox(height: screenHeight * 0.08), // Space from top
 
                     // --- Profile Picture ---
                     _buildProfilePicture(profilePictureSize),
@@ -112,18 +110,18 @@ class ProfilePageState extends State<ProfilePage> {
                     Text(
                       '${driverProvider.driverFirstName} ${driverProvider.driverLastName}',
                       style: Styles().textStyle(22, Styles.w700Weight,
-                          Colors.white), // White text on gradient
+                          Styles.customWhite), // White text on gradient
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
 
                     // --- Driver Status Button ---
                     _buildStatusChip(driverProvider, statusColor),
-                    const SizedBox(height: 25), // Space before the first card
+                    SizedBox(height: screenHeight * 0.09),
 
                     // --- Driver Info Card ---
                     _buildInfoCard(driverProvider),
-                    const SizedBox(height: 20),
+                    SizedBox(height: screenHeight * 0.02),
 
                     // --- Actions Card ---
                     _buildActionsCard(),
@@ -131,7 +129,6 @@ class ProfilePageState extends State<ProfilePage> {
 
                     // --- Log Out Button ---
                     _buildLogoutButton(),
-                    const SizedBox(height: 30), // Bottom padding
                   ],
                 ),
               ),
@@ -155,7 +152,7 @@ class ProfilePageState extends State<ProfilePage> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: const [
             BoxShadow(
-              color: Colors.black,
+              color: Colors.grey,
               blurRadius: 4,
               offset: Offset(0, 2),
             )
@@ -187,7 +184,7 @@ class ProfilePageState extends State<ProfilePage> {
 
   Widget _buildInfoCard(DriverProvider driverProvider) {
     return Card(
-      elevation: 3,
+      elevation: 4,
       shadowColor: Colors.black38,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       color: Colors.white,
@@ -208,7 +205,7 @@ class ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 15),
             _buildInfoRow(
-              icon: Icons.route_outlined, // Use Material Icons
+              icon: Icons.route_outlined,
               text:
                   'Route: ${driverProvider.routeName} (${driverProvider.routeID})', // Combine Route name and ID
             ),
@@ -221,14 +218,14 @@ class ProfilePageState extends State<ProfilePage> {
   Widget _buildInfoRow({required IconData icon, required String text}) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFF1B9C85), size: 24), // Teal icon color
+        Icon(icon, color: const Color(0xff067837), size: 20),
         const SizedBox(width: 15),
         Expanded(
           // Allow text to wrap if needed
           child: Text(
             text,
             style:
-                Styles().textStyle(15, Styles.normalWeight, Styles.customBlack),
+                Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
           ),
         ),
       ],
@@ -237,13 +234,13 @@ class ProfilePageState extends State<ProfilePage> {
 
   Widget _buildActionsCard() {
     return Card(
-      elevation: 3,
+      elevation: 4,
       shadowColor: Colors.black38,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       color: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-            vertical: 10.0), // Padding around the list
+        padding:
+            const EdgeInsets.symmetric(vertical: 0), // Padding around the list
         child: Column(
           children: [
             _buildActionTile(
@@ -280,11 +277,11 @@ class ProfilePageState extends State<ProfilePage> {
       required String text,
       required VoidCallback onTap}) {
     return ListTile(
-      leading: Icon(icon,
-          color: const Color(0xFF1B9C85), size: 24), // Teal icon color
+      minTileHeight: 50,
+      leading: Icon(icon, color: const Color(0xff067837), size: 20),
       title: Text(
         text,
-        style: Styles().textStyle(16, Styles.w500Weight, Styles.customBlack),
+        style: Styles().textStyle(14, Styles.w500Weight, Styles.customBlack),
       ),
       trailing: const Icon(Icons.chevron_right, color: Colors.grey),
       onTap: onTap,
@@ -310,7 +307,7 @@ class ProfilePageState extends State<ProfilePage> {
         foregroundColor: Colors.red,
         side: const BorderSide(color: Colors.red, width: 1.5),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
       ),
       onPressed: () {
         AuthService.deleteSession(); // Keep existing logout logic

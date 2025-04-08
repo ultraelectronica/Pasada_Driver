@@ -26,6 +26,8 @@ Future<void> main() async {
         .loadFromSecureStorage(); //load data from secure storage
     final mapProvider = MapProvider();
 
+    // await mapProvider.getPassenger(int.parse(driverProvider.driverID)); bug here, commented for now
+
     runApp(MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => driverProvider),
@@ -56,6 +58,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+
     _checkSession();
   }
 
@@ -77,6 +80,12 @@ class _MyAppState extends State<MyApp> {
         if (kDebugMode) {
           print('No local session data detected');
         }
+      }
+
+      // User is still logged in
+      if (hasSession) {
+        await context.read<MapProvider>().getRouteCoordinates(
+            context.read<DriverProvider>().routeID); //get route coordinates
       }
     }
   }
