@@ -47,14 +47,19 @@ class MapScreenState extends State<MapScreen> {
   // <<-- DEFAULT LOCATIONS -->>
 
   // Novaliches to Malinta
-  LatLng StartingLocation = const LatLng(
+  static LatLng StartingLocation = const LatLng(
       14.721957951314671, 121.03660698876655); // savemore novaliches
-  LatLng IntermediateLocation1 =
+  static LatLng IntermediateLocation1 =
       const LatLng(14.711095415234702, 120.99311060642324); // VGC bus terminal
-  LatLng IntermediateLocation2 =
+  static LatLng IntermediateLocation2 =
       const LatLng(14.701160828529744, 120.98308262221344);
-  LatLng EndingLocation = const LatLng(
+  static LatLng EndingLocation = const LatLng(
       14.693028415325333, 120.96837623290318); // valenzuela peoples park
+
+  // LatLng? StartingLocation;
+  // LatLng? IntermediateLocation1;
+  // LatLng? IntermediateLocation2;
+  // LatLng? EndingLocation;
 
   // Malinta to Novaliches
   // LatLng StartingLocation =
@@ -83,29 +88,34 @@ class MapScreenState extends State<MapScreen> {
     super.initState();
 
     getLocationUpdates();
-    // getRouteCoordinates();
+    getRouteCoordinates();
     // Start the periodic timer to generate polylines
     _startPolylineTimer();
   }
 
   void getRouteCoordinates() {
-    final mapProvider = context.read<MapProvider>();
+    try {
+      final mapProvider = context.read<MapProvider>();
 
-    if (mapProvider.currentLocation != null) {
-      debugPrint('Current Location: ${mapProvider.currentLocation}');
-      StartingLocation = mapProvider.currentLocation!;
-    }
-    if (mapProvider.intermediateLoc1 != null) {
-      debugPrint('Intermediate Location 1: ${mapProvider.intermediateLoc1}');
-      IntermediateLocation1 = mapProvider.intermediateLoc1!;
-    }
-    if (mapProvider.intermediateLoc2 != null) {
-      debugPrint('Intermediate Location 2: ${mapProvider.intermediateLoc2}');
-      IntermediateLocation2 = mapProvider.intermediateLoc2!;
-    }
-    if (mapProvider.endingLocation != null) {
-      debugPrint('Ending Location: ${mapProvider.endingLocation}');
-      EndingLocation = mapProvider.endingLocation!;
+      if (mapProvider.currentLocation != null) {
+        debugPrint('Current Location: ${mapProvider.currentLocation}');
+        StartingLocation = mapProvider.currentLocation!;
+      }
+      if (mapProvider.intermediateLoc1 != null) {
+        debugPrint('Intermediate Location 1: ${mapProvider.intermediateLoc1}');
+        IntermediateLocation1 = mapProvider.intermediateLoc1!;
+      }
+      if (mapProvider.intermediateLoc2 != null) {
+        debugPrint('Intermediate Location 2: ${mapProvider.intermediateLoc2}');
+        IntermediateLocation2 = mapProvider.intermediateLoc2!;
+      }
+      if (mapProvider.endingLocation != null) {
+        debugPrint('Ending Location: ${mapProvider.endingLocation}');
+        EndingLocation = mapProvider.endingLocation!;
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Error: $e');
+      debugPrint('Stack Trace: $stackTrace');
     }
   }
 
@@ -213,7 +223,7 @@ class MapScreenState extends State<MapScreen> {
         }
       });
     } catch (e) {
-      showError('An error occurred while fetching the location.');
+      showError('An error occurred while fetching the location. $e');
     }
   }
 

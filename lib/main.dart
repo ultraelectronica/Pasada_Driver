@@ -25,8 +25,7 @@ Future<void> main() async {
     await driverProvider
         .loadFromSecureStorage(); //load data from secure storage
     final mapProvider = MapProvider();
-    await mapProvider
-        .getRouteCoordinates(driverProvider.routeID); //get route coordinates
+
     // await mapProvider.getPassenger(int.parse(driverProvider.driverID)); bug here, commented for now
 
     runApp(MultiProvider(
@@ -81,6 +80,12 @@ class _MyAppState extends State<MyApp> {
         if (kDebugMode) {
           print('No local session data detected');
         }
+      }
+
+      // User is still logged in
+      if (hasSession) {
+        await context.read<MapProvider>().getRouteCoordinates(
+            context.read<DriverProvider>().routeID); //get route coordinates
       }
     }
   }

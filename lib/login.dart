@@ -8,6 +8,7 @@ import 'package:pasada_driver_side/NavigationPages/main_page.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pasada_driver_side/Database/map_provider.dart';
 
 class LogIn extends StatefulWidget {
   const LogIn({super.key});
@@ -113,6 +114,10 @@ class _LogInState extends State<LogIn> {
     await _setDriverCreds();
 
     await context.read<DriverProvider>().getRouteCoordinates();
+
+    await context
+        .read<MapProvider>()
+        .getRouteCoordinates(context.read<DriverProvider>().routeID);
   }
 
   void _updateStatusToDB() {

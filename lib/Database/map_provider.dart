@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:pasada_driver_side/Map/google_map.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/UI/message.dart';
@@ -106,6 +107,14 @@ class MapProvider with ChangeNotifier {
       _intermediateLoc2 = _parseLatLng(response['intermediate_location2']);
       _endingLocation = _parseLatLng(response['ending_location']);
 
+      MapScreenState.StartingLocation =
+          _parseLatLng(response['starting_location'])!;
+      MapScreenState.IntermediateLocation1 =
+          _parseLatLng(response['intermediate_location1'])!;
+      MapScreenState.IntermediateLocation2 =
+          _parseLatLng(response['intermediate_location2'])!;
+      MapScreenState.EndingLocation = _parseLatLng(response['ending_location'])!;
+
       if (kDebugMode) {
         print('Route ID: $routeID');
         print('''
@@ -117,8 +126,8 @@ class MapProvider with ChangeNotifier {
       }
     } catch (e, stackTrace) {
       if (kDebugMode) {
-        print('Error: $e');
-        print('Stack Trace: $stackTrace');
+        print('Error fetching route coordinates: $e');
+        debugPrintStack(stackTrace: stackTrace);
       }
     }
   }
@@ -128,22 +137,37 @@ class MapProvider with ChangeNotifier {
     try {
       int currentRouteID = context.read<DriverProvider>().routeID;
 
-      if (currentRouteID == 1) {
-        // change route to Malinta to Novaliches
-        currentRouteID = 2; 
+      //Original route
+      // if (currentRouteID == 1) {
+      //   // change route to Malinta to Novaliches
+      //   currentRouteID = 2;
+      //   context.read<DriverProvider>().setRouteID(currentRouteID);
+      //   getRouteCoordinates(currentRouteID);
+      // } else {
+      //   // change route to Novaliches to Malinta
+      //   currentRouteID = 1;
+      //   context.read<DriverProvider>().setRouteID(currentRouteID);
+      //   getRouteCoordinates(currentRouteID);
+      // }
+
+      //Test route
+      if (currentRouteID == 3) {
+        // change route to Home to STI
+        currentRouteID = 4;
         context.read<DriverProvider>().setRouteID(currentRouteID);
         getRouteCoordinates(currentRouteID);
       } else {
-        // change route to Novaliches to Malinta
-        currentRouteID = 1;
+        // change route to STI to Home
+        currentRouteID = 3;
         context.read<DriverProvider>().setRouteID(currentRouteID);
         getRouteCoordinates(currentRouteID);
       }
 
       final response = await supabase
           .from('vehicleTable')
-          .update({'route_id': currentRouteID}).eq(
-              'vehicle_id', context.read<DriverProvider>().vehicleID).select();
+          .update({'route_id': currentRouteID})
+          .eq('vehicle_id', context.read<DriverProvider>().vehicleID)
+          .select();
 
       debugPrint('Change route response: $response');
 
