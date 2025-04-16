@@ -37,12 +37,11 @@ class MapScreenState extends State<MapScreen> {
   LatLng? currentLocation; // Location Data
   LocationData? locationData;
   final Location location = Location();
-
+  LatLng? _lastPolylineUpdateLocation; // Tracks last polyline update location
   final GlobalKey<MapScreenState> mapScreenKey = GlobalKey<MapScreenState>();
 
   // <<-- POLYLINES -->>
   Map<PolylineId, Polyline> polylines = {};
-  Timer? _polylineTimer; // Added timer instance variable
 
   // <<-- DEFAULT LOCATIONS -->>
 
@@ -83,17 +82,21 @@ class MapScreenState extends State<MapScreen> {
   // animation ng location to kapag pinindot yung custom my location button
   bool isAnimatingLocation = false;
 
+  // Minimum distance in meters to update polyline
+  final double _minDistanceForPolylineUpdate = 20;
+
+  // Flag to prevent redundant route coordinate fetches
+  bool _routeCoordinatesLoaded = false;
+
   @override
   void initState() {
     super.initState();
-
     getLocationUpdates();
-    getRouteCoordinates();
-    // Start the periodic timer to generate polylines
-    _startPolylineTimer();
   }
 
   void getRouteCoordinates() {
+    if (_routeCoordinatesLoaded) return;
+
     try {
       final mapProvider = context.read<MapProvider>();
 
@@ -113,112 +116,108 @@ class MapScreenState extends State<MapScreen> {
         debugPrint('Ending Location: ${mapProvider.endingLocation}');
         EndingLocation = mapProvider.endingLocation!;
       }
+
+      _routeCoordinatesLoaded = true;
     } catch (e, stackTrace) {
-      debugPrint('Error: $e');
+      debugPrint('Error loading route coordinates: $e');
       debugPrint('Stack Trace: $stackTrace');
     }
   }
 
-  // Added method to start the timer
-  void _startPolylineTimer() {
-    _polylineTimer?.cancel(); // Cancel any existing timer
-    _polylineTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      if (currentLocation != null) {
-        generatePolylineBetween(currentLocation!, IntermediateLocation1,
-            IntermediateLocation2, EndingLocation);
-      }
-    });
-  }
-
   @override
   void dispose() {
-    _polylineTimer?.cancel(); // Cancel the timer on dispose
     super.dispose();
   }
 
   // <<-- LOCATION SERVICES -->>
-  // Future<void> initLocation() async {
-  //   await location.getLocation().then((location) {
-  //     setState(() =>
-  //         currentLocation = LatLng(location.latitude!, location.longitude!));
-  //   });
-  //   location.onLocationChanged.listen((location) {
-  //     setState(() =>
-  //         currentLocation = LatLng(location.latitude!, location.longitude!));
-  //   });
-  // }
+  Future<void> _checkLocationServices() async {
+    // check if yung location services ay available
+    bool serviceEnabled = await location.serviceEnabled();
+    if (!serviceEnabled) {
+      serviceEnabled = await location.requestService();
+      if (!serviceEnabled) {
+        showAlertDialog(
+          'Enable Location Services',
+          'Location services are disabled. Please enable them to use this feature.',
+        );
+        return;
+      }
+    }
+  }
+
+  Future<void> _checkLocationPermissions() async {
+    // Check location permissions
+    PermissionStatus permissionGranted = await location.hasPermission();
+    if (permissionGranted == PermissionStatus.denied) {
+      permissionGranted = await location.requestPermission();
+      if (permissionGranted != PermissionStatus.granted) {
+        showAlertDialog(
+          'Permission Required',
+          'This app needs location permission to work. Please allow it in your settings.',
+        );
+        return;
+      }
+    }
+  }
 
   Future<void> getLocationUpdates() async {
     try {
-      // check if yung location services ay available
-      bool serviceEnabled = await location.serviceEnabled();
-      if (!serviceEnabled) {
-        serviceEnabled = await location.requestService();
-        if (!serviceEnabled) {
-          showAlertDialog(
-            'Enable Location Services',
-            'Location services are disabled. Please enable them to use this feature.',
-          );
-          return;
-        }
+      await _checkLocationServices();
+      await _checkLocationPermissions();
+
+      // Get initial route coordinates after permissions are granted
+      if (mounted) {
+        getRouteCoordinates();
       }
 
-      // check ng location permissions
-      PermissionStatus permissionGranted = await location.hasPermission();
-      if (permissionGranted == PermissionStatus.denied) {
-        permissionGranted = await location.requestPermission();
-        if (permissionGranted != PermissionStatus.granted) {
-          showAlertDialog(
-            'Permission Required',
-            'This app needs location permission to work. Please allow it in your settings.',
-          );
-          return;
-        }
-      }
-
-      // kuha ng current location
+      // Get current location
       LocationData locationData = await location.getLocation();
 
-      setState(() {
-        currentLocation =
-            LatLng(locationData.latitude!, locationData.longitude!);
-      });
-      // listen sa location updates
+      if (mounted) {
+        setState(() {
+          currentLocation =
+              LatLng(locationData.latitude!, locationData.longitude!);
+        });
+
+        // Generate initial polyline
+        if (_lastPolylineUpdateLocation == null && currentLocation != null) {
+          generatePolylineBetween(currentLocation!, IntermediateLocation1,
+              IntermediateLocation2, EndingLocation);
+          _lastPolylineUpdateLocation = currentLocation;
+        }
+      }
+
+      // Listen to location updates
       location.onLocationChanged.listen((LocationData newLocation) {
+        if (!mounted) return;
         if (newLocation.latitude != null && newLocation.longitude != null) {
           //save location to DB
           final String driverID = context.read<DriverProvider>().driverID;
           _updateDriverLocationToDB(driverID, newLocation);
 
-          setState(() {
-            currentLocation =
-                LatLng(newLocation.latitude!, newLocation.longitude!);
-          });
-          // Move camera to current location
-          if (currentLocation != null) {
-            animateToLocation(currentLocation!);
+          final newLatLng =
+              LatLng(newLocation.latitude!, newLocation.longitude!);
 
-            // Check if near EndingLocation
-            if (EndingLocation != null) {
-              double distanceInMeters = Geolocator.distanceBetween(
-                currentLocation!.latitude,
-                currentLocation!.longitude,
-                EndingLocation.latitude,
-                EndingLocation.longitude,
-              );
-
-              if (kDebugMode) {
-                print('Distance to end: $distanceInMeters meters');
-              }
-
-              // If distance is less than 40 meters, consider it reached
-              if (distanceInMeters < 40) {
-                if (mounted) {
-                  context.read<MapProvider>().changeRouteLocation(context);
-                }
-              }
-            }
+          // Only update UI state if location actually changed
+          if (currentLocation == null ||
+              currentLocation!.latitude != newLatLng.latitude ||
+              currentLocation!.longitude != newLatLng.longitude) {
+            setState(() {
+              currentLocation = newLatLng;
+            });
           }
+
+          // Check if we need to update the polyline
+          if (_shouldUpdatePolyline(newLatLng)) {
+            generatePolylineBetween(newLatLng, IntermediateLocation1,
+                IntermediateLocation2, EndingLocation);
+            _lastPolylineUpdateLocation = newLatLng;
+          }
+
+          animateToLocation(newLatLng);
+
+          // Check if near EndingLocation
+          _checkDestinationReached(newLatLng);
         }
       });
     } catch (e) {
@@ -226,7 +225,46 @@ class MapScreenState extends State<MapScreen> {
     }
   }
 
-  // <<-- UPDATE LOCATOIN TO DATABASE -->>
+  // Helper method to decide if polyline needs updating
+  bool _shouldUpdatePolyline(LatLng newLocation) {
+    if (_lastPolylineUpdateLocation == null) return true;
+
+    double distanceMoved = Geolocator.distanceBetween(
+      newLocation.latitude,
+      newLocation.longitude,
+      _lastPolylineUpdateLocation!.latitude,
+      _lastPolylineUpdateLocation!.longitude,
+    );
+
+    if (kDebugMode && distanceMoved > _minDistanceForPolylineUpdate) {
+      print('Distance moved: $distanceMoved meters - updating polyline');
+    }
+
+    return distanceMoved > _minDistanceForPolylineUpdate;
+  }
+
+  // Helper method to check if destination is reached
+  void _checkDestinationReached(LatLng currentPos) {
+    if (EndingLocation != null) {
+      double distanceInMeters = Geolocator.distanceBetween(
+        currentPos.latitude,
+        currentPos.longitude,
+        EndingLocation.latitude,
+        EndingLocation.longitude,
+      );
+
+      if (kDebugMode) {
+        print('Distance to end: $distanceInMeters meters');
+      }
+
+      // If distance is less than 40 meters, consider it reached
+      if (distanceInMeters < 40 && mounted) {
+        context.read<MapProvider>().changeRouteLocation(context);
+      }
+    }
+  }
+
+  // <<-- UPDATE LOCATION TO DATABASE -->>
   Future<void> _updateDriverLocationToDB(
       String driverID, LocationData newLocation) async {
     try {
@@ -237,13 +275,12 @@ class MapScreenState extends State<MapScreen> {
       final response = await Supabase.instance.client
           .from('driverTable')
           .update({
-            'current_location': wktPoint, // Pass the WKT string
+            'current_location': wktPoint,
           })
           .eq('driver_id', driverID)
           .select('current_location');
 
       if (kDebugMode) {
-        // Note: The response format might represent the geometry differently now (e.g., GeoJSON)
         print(
             'Location updated to DB (WKT sent): ${response[0]['current_location']}');
       }
@@ -256,7 +293,7 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // <<-- ERROR HANDLING & TOAST -->>
-  // helper function for showing alert dialogs to reduce repetition
+  // Helper function for showing alert dialogs to reduce repetition
   void showAlertDialog(String title, String content) {
     showDialog(
       context: context,
@@ -273,7 +310,7 @@ class MapScreenState extends State<MapScreen> {
     );
   }
 
-  // specific error dialog using the helper function
+  // Specific error dialog using the helper function
   void showLocationErrorDialog() {
     showAlertDialog(
       'Location Error',
@@ -281,7 +318,7 @@ class MapScreenState extends State<MapScreen> {
     );
   }
 
-  // generic error dialog using the helper function
+  // Generic error dialog using the helper function
   void showError(String message) {
     showAlertDialog('Error', message);
   }
@@ -289,8 +326,7 @@ class MapScreenState extends State<MapScreen> {
   // <<-- ANIMATION -->>
   // animate yung camera papunta sa current location ng user
   Future<void> animateToLocation(LatLng target) async {
-    final GoogleMapController controller =
-        await _mapControllerCompleter.future; // Changed here
+    final GoogleMapController controller = await _mapControllerCompleter.future;
     controller.animateCamera(
       CameraUpdate.newCameraPosition(CameraPosition(
         target: target,
@@ -299,26 +335,11 @@ class MapScreenState extends State<MapScreen> {
     );
   }
 
-  // <<-- LOCATION -->>
-
-  // ito yung method para sa pick-up and drop-off location
-  // void updateLocations({LatLng? pickup, LatLng? dropoff}) {
-  //   if (pickup != null) StartingLocation = pickup;
-
-  //   if (dropoff != null) EndingLocation = dropoff;
-
-  //   // gawa method here para kunin yung coordinates ng route galing sa DB
-  //   generatePolylineBetween(StartingLocation, IntermediateLocation1,
-  //       IntermediateLocation2, EndingLocation);
-  // }
-
   // <<-- POLYLINES -->>
-
   Future<void> generatePolylineBetween(LatLng start, LatLng intermediate1,
       LatLng intermediate2, LatLng destination) async {
     try {
       final String apiKey = dotenv.env['ANDROID_MAPS_API_KEY']!;
-
       final polylinePoints = PolylinePoints();
 
       // routes API request
@@ -328,8 +349,6 @@ class MapScreenState extends State<MapScreen> {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
         'X-Goog-FieldMask': 'routes.polyline.encodedPolyline',
-        // 'X-Goog-FieldMask': 'routes.distanceMeters',
-        // 'X-Goog-FieldMask': 'routes.duration',
       };
       final body = jsonEncode({
         'origin': {
@@ -407,39 +426,33 @@ class MapScreenState extends State<MapScreen> {
         return;
       }
 
-      // ignore: unnecessary_null_comparison
-      if (response != null) {
-        final data = json.decode(response);
-        if (data['routes']?.isNotEmpty ?? false) {
-          final polyline = data['routes'][0]['polyline']['encodedPolyline'];
-          List<PointLatLng> decodedPolyline =
-              polylinePoints.decodePolyline(polyline);
-          List<LatLng> polylineCoordinates = decodedPolyline
-              .map((point) => LatLng(point.latitude, point.longitude))
-              .toList();
+      List<PointLatLng> decodedPolyline =
+          polylinePoints.decodePolyline(polyline);
+      List<LatLng> polylineCoordinates = decodedPolyline
+          .map((point) => LatLng(point.latitude, point.longitude))
+          .toList();
 
-          setState(() {
-            polylines = {
-              const PolylineId('route'): Polyline(
-                polylineId: const PolylineId('route'),
-                points: polylineCoordinates,
-                color: const Color.fromARGB(255, 255, 35, 35),
-                width: 8,
-              )
-            };
-          });
-
-          // ShowMessage().showToast('Route generated successfully');
-          debugPrint('Route generated successfully');
-          return;
-        }
+      if (mounted) {
+        setState(() {
+          polylines = {
+            const PolylineId('route'): Polyline(
+              polylineId: const PolylineId('route'),
+              points: polylineCoordinates,
+              color: const Color.fromARGB(255, 255, 35, 35),
+              width: 8,
+            )
+          };
+        });
       }
-      ShowMessage().showToast('Failed to generate route');
+
       if (kDebugMode) {
-        print('Failed to generate route: $response');
+        print('Route generated successfully');
       }
     } catch (e) {
       ShowMessage().showToast('Error: ${e.toString()}');
+      if (kDebugMode) {
+        print('Error generating polyline: $e');
+      }
     }
   }
 
@@ -466,13 +479,12 @@ class MapScreenState extends State<MapScreen> {
     return markers;
   }
 
-  // late final CameraPosition _initialCameraPosition;
-  // final Completer<GoogleMapController> _controllerCompleter = Completer();
-
   @override
   Widget build(BuildContext context) {
-    // Call getRouteCoordinates here to ensure context is available
-    getRouteCoordinates();
+    // Ensure route coordinates are loaded
+    if (!_routeCoordinatesLoaded) {
+      getRouteCoordinates();
+    }
 
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
@@ -542,7 +554,9 @@ class MapScreenState extends State<MapScreen> {
             height: 50,
             child: FloatingActionButton(
               onPressed: () {
-                animateToLocation(currentLocation!);
+                if (currentLocation != null) {
+                  animateToLocation(currentLocation!);
+                }
               },
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(

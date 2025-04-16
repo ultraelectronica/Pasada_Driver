@@ -138,17 +138,17 @@ class MapProvider with ChangeNotifier {
       int currentRouteID = context.read<DriverProvider>().routeID;
 
       //Original route
-      // if (currentRouteID == 1) {
-      //   // change route to Malinta to Novaliches
-      //   currentRouteID = 2;
-      //   context.read<DriverProvider>().setRouteID(currentRouteID);
-      //   getRouteCoordinates(currentRouteID);
-      // } else {
-      //   // change route to Novaliches to Malinta
-      //   currentRouteID = 1;
-      //   context.read<DriverProvider>().setRouteID(currentRouteID);
-      //   getRouteCoordinates(currentRouteID);
-      // }
+      if (currentRouteID == 1) {
+        // change route to Malinta to Novaliches
+        currentRouteID = 2;
+        context.read<DriverProvider>().setRouteID(currentRouteID);
+        getRouteCoordinates(currentRouteID);
+      } else if (currentRouteID == 2) {
+        // change route to Novaliches to Malinta
+        currentRouteID = 1;
+        context.read<DriverProvider>().setRouteID(currentRouteID);
+        getRouteCoordinates(currentRouteID);
+      }
 
       //Test route
       if (currentRouteID == 3) {
@@ -156,7 +156,7 @@ class MapProvider with ChangeNotifier {
         currentRouteID = 4;
         context.read<DriverProvider>().setRouteID(currentRouteID);
         getRouteCoordinates(currentRouteID);
-      } else {
+      } else if (currentRouteID == 4) {
         // change route to STI to Home
         currentRouteID = 3;
         context.read<DriverProvider>().setRouteID(currentRouteID);
