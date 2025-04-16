@@ -19,6 +19,7 @@ class MainPage extends StatefulWidget {
 class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   int _currentIndex = 0;
   Timer? _timer;
+  bool isDialogShown = false;
 
   final List<Widget> pages = [
     const HomeScreen(),
@@ -74,15 +75,19 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
   void isDriving(DriverProvider driverProvider) {
     if (driverProvider.isDriving == false && _currentIndex == 0) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showStartDrivingDialog();
-      });
+      if (!isDialogShown) {
+        isDialogShown = true; // Set flag before showing dialog
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          // Make callback async
+          await _showStartDrivingDialog(); // Await the dialog
+        });
+      }
     }
   }
 
   // START DRIVING DIALOG
-  void _showStartDrivingDialog() {
-    showDialog(
+  Future<void> _showStartDrivingDialog() async {
+    await showDialog(
       context: context,
       barrierDismissible: true, // Enables dismissing dialog by tapping outside
       builder: (BuildContext context) {
@@ -106,11 +111,13 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
               Center(
                 child: ElevatedButton(
                   onPressed: () {
+                    context.read<DriverProvider>().updateStatusToDB(
+                        'Driving', context); //update status to driving
+                    context.read<DriverProvider>().setDriverStatus(
+                        'Driving'); //update driver status to driving
                     context
                         .read<DriverProvider>()
-                        .updateStatusToDB('Driving', context);
-                    context.read<DriverProvider>().setDriverStatus('Driving');
-                    context.read<DriverProvider>().setIsDriving(true);
+                        .setIsDriving(true); //update is driving to true
 
                     Navigator.of(context).pop();
                   },
@@ -135,6 +142,8 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
         );
       },
     );
+    // This runs after the dialog is dismissed by any means
+    isDialogShown = false;
   }
 
   @override

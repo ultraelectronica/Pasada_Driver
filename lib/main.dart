@@ -22,11 +22,7 @@ Future<void> main() async {
         url: dotenv.env['SUPABASE_URL']!);
 
     final driverProvider = DriverProvider();
-    await driverProvider
-        .loadFromSecureStorage(); //load data from secure storage
     final mapProvider = MapProvider();
-
-    // await mapProvider.getPassenger(int.parse(driverProvider.driverID)); bug here, commented for now
 
     runApp(MultiProvider(
       providers: [
@@ -84,8 +80,14 @@ class _MyAppState extends State<MyApp> {
 
       // User is still logged in
       if (hasSession) {
+        await context
+            .read<DriverProvider>()
+            .loadFromSecureStorage(); //load data from secure storage
+
         await context.read<MapProvider>().getRouteCoordinates(
             context.read<DriverProvider>().routeID); //get route coordinates
+
+        // await mapProvider.getPassenger(int.parse(driverProvider.driverID)); bug here, commented for now
       }
     }
   }

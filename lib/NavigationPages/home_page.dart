@@ -45,14 +45,6 @@ class HomePageState extends State<HomePage> {
   // LocationData? _currentLocation;
   // late Location _location;
 
-  //para makuha yung route ng driver
-  RouteLocation? InitialLocation; // 14.721061, 121.037486  savemore novaliches
-  RouteLocation? FinalLocation; // 14.692621, 120.969886 valenzuela peoples park
-  static const LatLng StartingLocation =
-      LatLng(14.721957951314671, 121.03660698876655);
-  static const LatLng EndingLocation =
-      LatLng(14.693043926864853, 120.96837288743365);
-
   //used to access MapScreenState
   final GlobalKey<MapScreenState> mapScreenKey = GlobalKey<MapScreenState>();
 
