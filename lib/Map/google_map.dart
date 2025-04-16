@@ -187,9 +187,8 @@ class MapScreenState extends State<MapScreen> {
       location.onLocationChanged.listen((LocationData newLocation) {
         if (newLocation.latitude != null && newLocation.longitude != null) {
           //save location to DB
-          final String vehicleID = context.read<DriverProvider>().vehicleID;
-
-          _updateVehicleLocationToDB(vehicleID, newLocation);
+          final String driverID = context.read<DriverProvider>().driverID;
+          _updateDriverLocationToDB(driverID, newLocation);
 
           setState(() {
             currentLocation =
@@ -228,27 +227,31 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // <<-- UPDATE LOCATOIN TO DATABASE -->>
-  Future<void> _updateVehicleLocationToDB(
-      String vehicleID, LocationData newLocation) async {
+  Future<void> _updateDriverLocationToDB(
+      String driverID, LocationData newLocation) async {
     try {
+      // Convert LocationData to WKT (Well-Known Text) Point format
+      final wktPoint =
+          'POINT(${newLocation.longitude} ${newLocation.latitude})';
+
       final response = await Supabase.instance.client
-          .from('vehicleTable')
+          .from('driverTable')
           .update({
-            'vehicle_location':
-                '${newLocation.latitude}, ${newLocation.longitude}'
+            'current_location': wktPoint, // Pass the WKT string
           })
-          .eq('vehicle_id', vehicleID)
-          .select('vehicle_location');
+          .eq('driver_id', driverID)
+          .select('current_location');
 
       if (kDebugMode) {
-        // Fluttertoast.showToast(
-        //   msg: 'Location updated to: ${response[0]['vehicleLocation']}',
-        //   toastLength: Toast.LENGTH_SHORT,
-        // );
-        print('Location updated to: ${response[0]['vehicle_location']}');
+        // Note: The response format might represent the geometry differently now (e.g., GeoJSON)
+        print(
+            'Location updated to DB (WKT sent): ${response[0]['current_location']}');
       }
     } catch (e) {
-      Fluttertoast.showToast(msg: 'Error Location: $e');
+      Fluttertoast.showToast(msg: 'Error updating location to DB: $e');
+      if (kDebugMode) {
+        print('Error updating location to DB: $e');
+      }
     }
   }
 
