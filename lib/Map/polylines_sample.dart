@@ -7,6 +7,8 @@ import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:http/http.dart' as http;
 
 class MapScreen extends StatefulWidget {
+  const MapScreen({super.key});
+
   @override
   _MapScreenState createState() => _MapScreenState();
 }
@@ -15,9 +17,9 @@ class _MapScreenState extends State<MapScreen> {
   late GoogleMapController mapController;
   LocationData? _currentLocation;
   late Location _location;
-  LatLng _endPosition = LatLng(37.42796133580664, -122.085749655962);
-  Set<Marker> _markers = {};
-  Set<Polyline> _polylines = {};
+  final LatLng _endPosition = const LatLng(37.42796133580664, -122.085749655962);
+  final Set<Marker> _markers = {};
+  final Set<Polyline> _polylines = {};
   PolylinePoints polylinePoints = PolylinePoints();
 
   @override
@@ -76,14 +78,14 @@ class _MapScreenState extends State<MapScreen> {
       _markers
         ..clear()
         ..add(Marker(
-          markerId: MarkerId('current'),
+          markerId: const MarkerId('current'),
           position: currentLatLng,
-          infoWindow: InfoWindow(title: 'Current Location'),
+          infoWindow: const InfoWindow(title: 'Current Location'),
         ))
         ..add(Marker(
-          markerId: MarkerId('end'),
+          markerId: const MarkerId('end'),
           position: _endPosition,
-          infoWindow: InfoWindow(title: 'Destination'),
+          infoWindow: const InfoWindow(title: 'Destination'),
         ));
 
       // Move camera to current location
@@ -96,8 +98,8 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _getPolyline() async {
     if (_currentLocation == null) return;
 
-    final String apiKey = 'AIzaSyAPCBttjYmWAWgsVJlCdC6EBf2y0XpOHPo';
-    final String url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+    const String apiKey = 'AIzaSyAPCBttjYmWAWgsVJlCdC6EBf2y0XpOHPo';
+    const String url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
 
     try {
       final response = await http.post(
@@ -140,7 +142,7 @@ class _MapScreenState extends State<MapScreen> {
 
           setState(() {
             _polylines.add(Polyline(
-              polylineId: PolylineId('route'),
+              polylineId: const PolylineId('route'),
               points: polylineCoordinates,
               color: Colors.blue,
               width: 5,
@@ -157,12 +159,12 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final LatLng fallbackPosition = LatLng(37.427961, -122.085749);
+    const LatLng fallbackPosition = LatLng(37.427961, -122.085749);
 
     return Scaffold(
-      appBar: AppBar(title: Text('Route Map')),
+      appBar: AppBar(title: const Text('Route Map')),
       body: _currentLocation == null
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : GoogleMap(
               onMapCreated: (controller) => mapController = controller,
               initialCameraPosition: CameraPosition(

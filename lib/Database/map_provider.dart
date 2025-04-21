@@ -113,7 +113,8 @@ class MapProvider with ChangeNotifier {
           _parseLatLng(response['intermediate_location1'])!;
       MapScreenState.IntermediateLocation2 =
           _parseLatLng(response['intermediate_location2'])!;
-      MapScreenState.EndingLocation = _parseLatLng(response['ending_location'])!;
+      MapScreenState.EndingLocation =
+          _parseLatLng(response['ending_location'])!;
 
       if (kDebugMode) {
         print('Route ID: $routeID');

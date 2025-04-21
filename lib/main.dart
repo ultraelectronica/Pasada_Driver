@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
+import 'package:pasada_driver_side/Database/passenger_provider.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
@@ -23,11 +24,13 @@ Future<void> main() async {
 
     final driverProvider = DriverProvider();
     final mapProvider = MapProvider();
+    final passengerProvider = PassengerProvider();
 
     runApp(MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => driverProvider),
         ChangeNotifierProvider(create: (_) => mapProvider),
+        ChangeNotifierProvider(create: (_) => passengerProvider),
       ],
       child: const MyApp(),
     ));

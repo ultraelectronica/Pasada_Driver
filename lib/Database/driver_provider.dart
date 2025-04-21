@@ -7,7 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 // this class is used to store values just like a global variable
 class DriverProvider with ChangeNotifier {
-  String _driverID = 'N/A';
+  String _driverID = '';
   String _driverStatus = 'Online';
   String _vehicleID = 'N/A';
   int _routeID = 0;
@@ -186,27 +186,85 @@ class DriverProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> loadFromSecureStorage() async {
+    try {
+      final sessionData = await AuthService.getSession();
+
+      if (sessionData.isEmpty) {
+        if (kDebugMode) {
+          print('Session data is empty');
+        }
+        return false;
+      }
+
+      if (sessionData['driver_id'] == null || sessionData['driver_id'] == '') {
+        if (kDebugMode) {
+          print('Driver ID is missing in session data');
+        }
+        return false;
+      }
+
+      // Ensure driver_id is a string
+      _driverID = sessionData['driver_id'].toString();
+      _vehicleID = sessionData['vehicle_id'].toString();
+      _routeID = int.tryParse(sessionData['route_id'] ?? '0') ?? 0;
+
+      if (kDebugMode) {
+        print('Loaded driver_id: $_driverID');
+        print('Loaded vehicle_id: $_vehicleID');
+        print('Loaded route_id: $_routeID');
+      }
+
+      // Load other data needed
+      await getDriverCreds();
+      await getPassengerCapacity();
+      await getDriverRoute();
+      await getRouteCoordinates();
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error on loading secure storage: $e');
+      }
+      return false;
+    }
+  }
+
   Future<void> updateLastOnline() async {
     try {
+      // Try to load session data if driver_id is empty
+      if (_driverID.isEmpty) {
+        bool loaded = await loadFromSecureStorage();
+        if (!loaded || _driverID.isEmpty) {
+          if (kDebugMode) {
+            print('Failed to load driver session data');
+          }
+          return;
+        }
+      }
+
+      // Format date as PostgreSQL timestamp
+      final now = DateTime.now().toUtc();
+      final formattedDate = now.toIso8601String();
+
       final response = await supabase
           .from('driverTable')
           .update({
-            'last_online': DateTime.now().toUtc().toIso8601String(),
+            'last_online': formattedDate,
           })
           .eq('driver_id', _driverID)
           .select('last_online')
           .single();
 
       if (kDebugMode) {
-        ShowMessage().showToast(
-            'Time updated ${DateTime.now().toUtc().toIso8601String()}');
         print('Last online updated: ${response['last_online'].toString()}');
       }
-    } catch (e) {
+    } catch (e, stacktrace) {
       if (kDebugMode) {
         print('Error updating last online: $e');
+        print('Update Last Online StackTrace: $stacktrace');
       }
-      ShowMessage().showToast('Error: $e');
     }
   }
 
@@ -261,35 +319,6 @@ class DriverProvider with ChangeNotifier {
     } catch (e) {
       if (kDebugMode) {
         print('Error: $e');
-      }
-    }
-  }
-
-  Future<void> loadFromSecureStorage() async {
-    try {
-      final sessionData = await AuthService.getSession();
-
-      if (sessionData.isNotEmpty) {
-        _driverID = sessionData['driver_id'] ?? '';
-        _vehicleID = sessionData['vehicle_id'] ?? '';
-        _routeID = int.tryParse(sessionData['route_id']!)!;
-
-        if (kDebugMode) {
-          print('session data: ${sessionData.toString()}');
-        }
-
-        // Load other data needed
-        await getDriverCreds(); // Get first name, last name, etc.
-        await getPassengerCapacity(); // Get passenger capacity
-        await getDriverRoute(); // Get route galing DB
-        await getRouteCoordinates(); // Get coords and route name galing DB
-
-        notifyListeners();
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        ShowMessage().showToast('Error loading data: $e');
-        print('Error on loading secure storage: $e');
       }
     }
   }

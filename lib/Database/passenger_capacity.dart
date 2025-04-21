@@ -10,7 +10,7 @@ class PassengerCapacity {
 
   Future<void> getPassengerCapacityToDB(BuildContext context) async {
     try {
-      final String? vehicleID = context.read<DriverProvider>().vehicleID;
+      final String vehicleID = context.read<DriverProvider>().vehicleID;
 
       if (vehicleID == null) {
         if (kDebugMode) {

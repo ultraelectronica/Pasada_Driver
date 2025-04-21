@@ -75,7 +75,7 @@ class GlobalVar {
   }
 
   Future<void> updateStatusToDB(String newStatus, BuildContext context) async {
-    final String? driverID = context.read<DriverProvider>().driverID;
+    final String driverID = context.read<DriverProvider>().driverID;
     if (kDebugMode) {
       print('Driver ID in GlobarVar: $driverID');
       print('Driver new driving status in method: $newStatus');
