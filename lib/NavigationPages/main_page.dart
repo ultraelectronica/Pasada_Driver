@@ -8,6 +8,7 @@ import 'package:pasada_driver_side/NavigationPages/profile_page.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:provider/provider.dart';
+import 'package:pasada_driver_side/Database/passenger_provider.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -30,6 +31,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    context.read<PassengerProvider>().getBookingIDs(context);
     _startTimer();
     WidgetsBinding.instance.addObserver(this);
   }

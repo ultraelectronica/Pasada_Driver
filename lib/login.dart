@@ -208,7 +208,7 @@ class _LogInState extends State<LogIn> {
   }
 
   Widget _buildLogInButton(double buttonHeight) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
       height: buttonHeight,
       child: ElevatedButton(

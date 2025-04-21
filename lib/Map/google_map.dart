@@ -245,24 +245,22 @@ class MapScreenState extends State<MapScreen> {
 
   // Helper method to check if destination is reached
   void _checkDestinationReached(LatLng currentPos) {
-    if (EndingLocation != null) {
-      double distanceInMeters = Geolocator.distanceBetween(
-        currentPos.latitude,
-        currentPos.longitude,
-        EndingLocation.latitude,
-        EndingLocation.longitude,
-      );
+    double distanceInMeters = Geolocator.distanceBetween(
+      currentPos.latitude,
+      currentPos.longitude,
+      EndingLocation.latitude,
+      EndingLocation.longitude,
+    );
 
-      if (kDebugMode) {
-        print('Distance to end: $distanceInMeters meters');
-      }
-
-      // If distance is less than 40 meters, consider it reached
-      if (distanceInMeters < 40 && mounted) {
-        context.read<MapProvider>().changeRouteLocation(context);
-      }
+    if (kDebugMode) {
+      print('Distance to end: $distanceInMeters meters');
     }
-  }
+
+    // If distance is less than 40 meters, consider it reached
+    if (distanceInMeters < 40 && mounted) {
+      context.read<MapProvider>().changeRouteLocation(context);
+    }
+    }
 
   // <<-- UPDATE LOCATION TO DATABASE -->>
   Future<void> _updateDriverLocationToDB(
