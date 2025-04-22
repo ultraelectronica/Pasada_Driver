@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:pasada_driver_side/UI/constants.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/NavigationPages/activity_page.dart';
 import 'package:pasada_driver_side/NavigationPages/home_page.dart';
@@ -153,7 +154,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     isDriving(driverProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F2),
+      backgroundColor: Constants.WHITE_COLOR,
       body: IndexedStack(
         index: _currentIndex,
         children: pages,
@@ -164,7 +165,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
   BottomNavigationBar _buildBottomNavBar() {
     return BottomNavigationBar(
-      backgroundColor: const Color(0xFFF2F2F2),
+      backgroundColor: Constants.WHITE_COLOR,
       currentIndex: _currentIndex,
       onTap: onTap,
       showSelectedLabels: true,
@@ -173,7 +174,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
           Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
       unselectedLabelStyle:
           Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
-      selectedItemColor: const Color(0xff067837),
+      selectedItemColor: Constants.GREEN_COLOR,
       type: BottomNavigationBarType.fixed,
       items: [
         _buildNavItem(0, 'Home', 'homefilled.svg', 'home.svg'),
@@ -200,7 +201,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
           ? SvgPicture.asset(
               'assets/svg/$selectedIcon',
               colorFilter:
-                  const ColorFilter.mode(Color(0xff067837), BlendMode.srcIn),
+                  ColorFilter.mode(Constants.GREEN_COLOR, BlendMode.srcIn),
               width: 28,
               height: 28,
             )
