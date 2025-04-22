@@ -10,7 +10,7 @@ class PassengerProvider with ChangeNotifier {
   ///Statuses
   ///[requested, accepted, ongoing, completed, cancelled]
   ///
-  final List<List<int>> _bookingDetails = [];
+  // final List<List<int>> _bookingDetails = [];
 
   int _passengerCapacity = 0;
   List<int> _bookingIDs = [];
@@ -39,7 +39,9 @@ class PassengerProvider with ChangeNotifier {
           .select(
               'booking_id, passenger_id, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng')
           .eq('driver_id', driverID)
-          .eq('ride_status', 'active');
+          .eq('ride_status', 'accepted');   // Ride Statuses: [requested, accepted, ongoing, completed, cancelled]
+
+      debugPrint('Driver ID: $driverID');
 
       if (response.isNotEmpty) {
         List<int> ids =
@@ -65,6 +67,7 @@ class PassengerProvider with ChangeNotifier {
 
       if (kDebugMode) {
         print('Booking IDs: $_bookingIDs');
+        print('Booking response: $response');
       }
     } catch (e, stackTrace) {
       if (kDebugMode) {
