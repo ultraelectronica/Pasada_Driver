@@ -39,7 +39,7 @@ class PassengerProvider with ChangeNotifier {
           .select(
               'booking_id, passenger_id, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng')
           .eq('driver_id', driverID)
-          .eq('ride_status', 'accepted');   // Ride Statuses: [requested, accepted, ongoing, completed, cancelled]
+          .eq('ride_status', 'requested');   // Ride Statuses: [requested, accepted, ongoing, completed, cancelled]
 
       debugPrint('Driver ID: $driverID');
 
