@@ -130,35 +130,35 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // <<-- LOCATION SERVICES -->>
-  Future<void> _checkLocationServices() async {
-    // check if yung location services ay available
-    bool serviceEnabled = await location.serviceEnabled();
-    if (!serviceEnabled) {
-      serviceEnabled = await location.requestService();
-      if (!serviceEnabled) {
-        showAlertDialog(
-          'Enable Location Services',
-          'Location services are disabled. Please enable them to use this feature.',
-        );
-        return;
-      }
-    }
-  }
+  // Future<void> _checkLocationServices() async {
+  //   // check if yung location services ay available
+  //   bool serviceEnabled = await location.serviceEnabled();
+  //   if (!serviceEnabled) {
+  //     serviceEnabled = await location.requestService();
+  //     if (!serviceEnabled) {
+  //       showAlertDialog(
+  //         'Enable Location Services',
+  //         'Location services are disabled. Please enable them to use this feature.',
+  //       );
+  //       return;
+  //     }
+  //   }
+  // }
 
-  Future<void> _checkLocationPermissions() async {
-    // Check location permissions
-    PermissionStatus permissionGranted = await location.hasPermission();
-    if (permissionGranted == PermissionStatus.denied) {
-      permissionGranted = await location.requestPermission();
-      if (permissionGranted != PermissionStatus.granted) {
-        showAlertDialog(
-          'Permission Required',
-          'This app needs location permission to work. Please allow it in your settings.',
-        );
-        return;
-      }
-    }
-  }
+  // Future<void> _checkLocationPermissions() async {
+  //   // Check location permissions
+  //   PermissionStatus permissionGranted = await location.hasPermission();
+  //   if (permissionGranted == PermissionStatus.denied) {
+  //     permissionGranted = await location.requestPermission();
+  //     if (permissionGranted != PermissionStatus.granted) {
+  //       showAlertDialog(
+  //         'Permission Required',
+  //         'This app needs location permission to work. Please allow it in your settings.',
+  //       );
+  //       return;
+  //     }
+  //   }
+  // }
 
   Future<void> getLocationUpdates() async {
     try {

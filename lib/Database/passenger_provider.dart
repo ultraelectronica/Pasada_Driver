@@ -4,32 +4,65 @@ import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart';
 import 'driver_provider.dart';
 
+class BookingDetail {
+  final String bookingId;
+  final String passengerId;
+  final String rideStatus;
+  final double pickupLat;
+  final double pickupLng;
+  final double dropoffLat;
+  final double dropoffLng;
+
+  BookingDetail({
+    required this.bookingId,
+    required this.passengerId,
+    required this.rideStatus,
+    required this.pickupLat,
+    required this.pickupLng,
+    required this.dropoffLat,
+    required this.dropoffLng,
+  });
+
+  factory BookingDetail.fromJson(Map<String, dynamic> json) {
+    return BookingDetail(
+      bookingId: json['booking_id'].toString(),
+      passengerId: json['passenger_id'].toString(),
+      rideStatus: json['ride_status'] as String,
+      pickupLat: (json['pickup_lat'] as num).toDouble(),
+      pickupLng: (json['pickup_lng'] as num).toDouble(),
+      dropoffLat: (json['dropoff_lat'] as num).toDouble(),
+      dropoffLng: (json['dropoff_lng'] as num).toDouble(),
+    );
+  }
+}
+
 class PassengerProvider with ChangeNotifier {
   final SupabaseClient supabase = Supabase.instance.client;
 
-  ///Statuses
-  ///[requested, accepted, ongoing, completed, cancelled]
-  ///
-  // final List<List<int>> _bookingDetails = [];
-
   int _passengerCapacity = 0;
-  List<int> _bookingIDs = [];
+  List<String> _bookingIDs = [];
+  List<BookingDetail> _bookingDetails = [];
 
   int get passengerCapacity => _passengerCapacity;
-  List<int> get bookingIDs => _bookingIDs;
+  List<String> get bookingIDs => _bookingIDs;
+  List<BookingDetail> get bookingDetails => _bookingDetails;
 
   void setPassengerCapacity(int value) {
     _passengerCapacity = value;
     notifyListeners();
   }
 
-  void setBookingIDs(List<int> value) {
-    // _bookingIDs.addAll(value);
+  void setBookingIDs(List<String> value) {
     _bookingIDs = value;
     notifyListeners();
   }
 
-  /// method to get all booking IDs in the DB
+  void setBookingDetails(List<BookingDetail> value) {
+    _bookingDetails = value;
+    notifyListeners();
+  }
+
+  /// method to get all booking details from the DB
   Future<void> getBookingIDs(BuildContext context) async {
     try {
       final driverID = context.read<DriverProvider>().driverID;
@@ -37,42 +70,35 @@ class PassengerProvider with ChangeNotifier {
       final response = await supabase
           .from('bookings')
           .select(
-              'booking_id, passenger_id, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng')
+              'booking_id, passenger_id, ride_status, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng')
           .eq('driver_id', driverID)
           .eq('ride_status', 'requested');   // Ride Statuses: [requested, accepted, ongoing, completed, cancelled]
 
       debugPrint('Driver ID: $driverID');
 
       if (response.isNotEmpty) {
-        List<int> ids =
-            response.map<int>((record) => record['booking_id'] as int).toList();
+        // Store full booking details
+        List<BookingDetail> details = response
+            .map<BookingDetail>((record) => BookingDetail.fromJson(record))
+            .toList();
+        setBookingDetails(details);
 
-        // //method to check if the booking ID is already in the list
-        // flawed, high change of out of bounds error
-        // for (int i = 0; i < bookingIDs.length; i++) {
-        //   if (ids[i] == bookingIDs[i]) {
-        //     ids.removeAt(i);
-        //   }
-        // }
-
-        // Ensure no duplicates (extra safeguard)
-        ids = ids.toSet().toList();
-
-        // replace with currently active bookings
+        // Also maintain the list of booking IDs for backward compatibility
+        List<String> ids = details.map((detail) => detail.bookingId).toList();
         setBookingIDs(ids);
       } else {
-        // clear list if no active bookings
+        setBookingDetails([]);
         setBookingIDs([]);
       }
 
       if (kDebugMode) {
-        print('Booking IDs: $_bookingIDs');
+        print('Booking Details: $_bookingDetails');
         print('Booking response: $response');
       }
     } catch (e, stackTrace) {
       if (kDebugMode) {
-        print('Error fetching booking IDs: $e');
-        print('Booking IDs Stack Trace: $stackTrace');
+        print('Error fetching booking details: $e');
+        print('Stack Trace: $stackTrace');
       }
     }
   }
