@@ -90,7 +90,9 @@ class _MyAppState extends State<MyApp> {
         await context
             .read<DriverProvider>()
             .loadFromSecureStorage(); //load data from secure storage
-        await context.read<PassengerProvider>().getBookingIDs(context); //check booking assigned to the driver
+        await context
+            .read<PassengerProvider>()
+            .getBookingIDs(context); //check booking assigned to the driver
 
         await context.read<MapProvider>().getRouteCoordinates(
             context.read<DriverProvider>().routeID); //get route coordinates
