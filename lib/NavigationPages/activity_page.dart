@@ -13,15 +13,10 @@ class ActivityPage extends StatefulWidget {
 
 class ActivityPageState extends State<ActivityPage> {
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    final bookingIDs = context.watch<PassengerProvider>().bookingIDs;
+    final bookingDetails = context.watch<PassengerProvider>().bookingDetails;
 
     return Center(
       child: Padding(
@@ -46,27 +41,31 @@ class ActivityPageState extends State<ActivityPage> {
                 context.read<PassengerProvider>().getBookingIDs(context);
               },
               icon: const Icon(Icons.refresh),
-              label: const Text('Refresh Bookings'),
+              label: Text('Refresh Bookings',
+                  style: Styles()
+                      .textStyle(14, FontWeight.w400, Styles.customBlack)),
             ),
 
             const SizedBox(height: 10),
 
             // Booking List
             Expanded(
-              child: bookingIDs.isEmpty
-                ? Center(
-                    child: Text(
-                      'No active bookings',
-                      style: Styles().textStyle(16, FontWeight.w400, Colors.grey),
+              child: bookingDetails.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No active bookings',
+                        style: Styles()
+                            .textStyle(16, FontWeight.w400, Colors.grey),
+                      ),
+                    )
+                  : ListView.separated(
+                      itemCount: bookingDetails.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        return _buildBookingItem(bookingDetails[index]);
+                      },
                     ),
-                  )
-                : ListView.separated(
-                    itemCount: bookingIDs.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      return _buildBookingItem(bookingIDs[index]);
-                    },
-                  ),
             ),
           ],
         ),
@@ -74,7 +73,7 @@ class ActivityPageState extends State<ActivityPage> {
     );
   }
 
-  Widget _buildBookingItem(dynamic bookingID) {
+  Widget _buildBookingItem(BookingDetail booking) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -90,13 +89,32 @@ class ActivityPageState extends State<ActivityPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Booking ID: ${bookingID.toString()}',
-                  style: Styles().textStyle(14, FontWeight.w500, Styles.customBlack),
+                  'Booking ID: ${booking.bookingId}',
+                  style: Styles()
+                      .textStyle(14, FontWeight.w500, Styles.customBlack),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Status: Requested',
-                  style: Styles().textStyle(14, FontWeight.w400, Colors.grey[700]!),
+                  'Passenger ID: ${booking.passengerId}',
+                  style: Styles()
+                      .textStyle(14, FontWeight.w400, Colors.grey[700]!),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Status: ${booking.rideStatus}',
+                  style: Styles()
+                      .textStyle(14, FontWeight.w400, Colors.grey[700]!),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Pickup: (${booking.pickupLat.toStringAsFixed(2)}, ${booking.pickupLng.toStringAsFixed(2)})',
+                  style: Styles()
+                      .textStyle(12, FontWeight.w400, Colors.grey[700]!),
+                ),
+                Text(
+                  'Dropoff: (${booking.dropoffLat.toStringAsFixed(2)}, ${booking.dropoffLng.toStringAsFixed(2)})',
+                  style: Styles()
+                      .textStyle(12, FontWeight.w400, Colors.grey[700]!),
                 ),
               ],
             ),
