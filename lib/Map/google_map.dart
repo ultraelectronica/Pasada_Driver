@@ -162,8 +162,8 @@ class MapScreenState extends State<MapScreen> {
 
   Future<void> getLocationUpdates() async {
     try {
-      await _checkLocationServices();
-      await _checkLocationPermissions();
+      // await _checkLocationServices();
+      // await _checkLocationPermissions();
 
       // Get initial route coordinates after permissions are granted
       if (mounted) {

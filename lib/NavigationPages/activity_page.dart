@@ -58,7 +58,10 @@ class ActivityPageState extends State<ActivityPage> {
             TextButton(
                 onPressed: () {
                   // Call the method to get booking IDs
-                  context.read<PassengerProvider>().getBookingIDs(context).toString();
+                  context
+                      .read<PassengerProvider>()
+                      .getBookingIDs(context)
+                      .toString();
                 },
                 child: Text('Check Booking IDs')),
           ],
@@ -67,7 +70,5 @@ class ActivityPageState extends State<ActivityPage> {
     );
   }
 
-  void _getIndividualPassengers() {
-    
-  }
+  void _getIndividualPassengers() {}
 }
