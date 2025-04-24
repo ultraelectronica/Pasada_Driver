@@ -35,40 +35,75 @@ class ActivityPageState extends State<ActivityPage> {
             // TITLE
             Text(
               'Driver Activity',
-              style:
-                  Styles().textStyle(20, FontWeight.w600, Styles.customBlack),
+              style: Styles().textStyle(20, FontWeight.w600, Styles.customBlack),
             ),
 
             SizedBox(height: screenHeight * 0.03),
 
-            // First Container
-            Container(
-              padding: const EdgeInsets.all(20),
-              width: double.infinity,
-              decoration: BoxDecoration(
-                border: Border.all(color: Constants.GREEN_COLOR, width: 2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              alignment: Alignment.center,
-              // CONTAINER CONTENT
-              child: Text(bookingIDs.toString()),
+            // Refresh Button
+            TextButton.icon(
+              onPressed: () {
+                context.read<PassengerProvider>().getBookingIDs(context);
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Refresh Bookings'),
             ),
 
             const SizedBox(height: 10),
-            TextButton(
-                onPressed: () {
-                  // Call the method to get booking IDs
-                  context
-                      .read<PassengerProvider>()
-                      .getBookingIDs(context)
-                      .toString();
-                },
-                child: Text('Check Booking IDs')),
+
+            // Booking List
+            Expanded(
+              child: bookingIDs.isEmpty
+                ? Center(
+                    child: Text(
+                      'No active bookings',
+                      style: Styles().textStyle(16, FontWeight.w400, Colors.grey),
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: bookingIDs.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      return _buildBookingItem(bookingIDs[index]);
+                    },
+                  ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  void _getIndividualPassengers() {}
+  Widget _buildBookingItem(dynamic bookingID) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Constants.GREEN_COLOR, width: 2),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.bookmark, color: Constants.GREEN_COLOR),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Booking ID: ${bookingID.toString()}',
+                  style: Styles().textStyle(14, FontWeight.w500, Styles.customBlack),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Status: Requested',
+                  style: Styles().textStyle(14, FontWeight.w400, Colors.grey[700]!),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+        ],
+      ),
+    );
+  }
 }
