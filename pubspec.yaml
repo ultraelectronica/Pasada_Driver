@@ -104,6 +104,8 @@ flutter:
     - assets/svg/settingsSelectedIcon.svg
     - assets/svg/message.svg
     - assets/svg/rightArrow.svg
+    - assets/svg/list.svg
+    - assets/svg/listFilled.svg
     - .env
 
   # To add assets to your application, add an assets section, like this:
