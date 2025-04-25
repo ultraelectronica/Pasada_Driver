@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:pasada_driver_side/NavigationPages/passenger_counter.dart';
 import 'package:pasada_driver_side/UI/constants.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/NavigationPages/activity_page.dart';
@@ -24,6 +25,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
   final List<Widget> pages = [
     const HomeScreen(),
+    const PassengerCounter(),
     const ActivityPage(),
     const ProfilePage(),
   ];
@@ -178,8 +180,9 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
       type: BottomNavigationBarType.fixed,
       items: [
         _buildNavItem(0, 'Home', 'homefilled.svg', 'home.svg'),
-        _buildNavItem(1, 'Activity', 'recentfilled.svg', 'recent.svg'),
-        _buildNavItem(2, 'Profile', 'profilefilled.svg', 'profile.svg'),
+        _buildNavItem(1, 'Counter', 'listfilled.svg', 'list.svg'),
+        _buildNavItem(2, 'Activity', 'recentfilled.svg', 'recent.svg'),
+        _buildNavItem(3, 'Profile', 'profilefilled.svg', 'profile.svg'),
       ],
 
       // Old icons
