@@ -116,7 +116,7 @@ class _LogInState extends State<LogIn> {
 
     await context.read<DriverProvider>().getRouteCoordinates();
 
-    await context.read<PassengerProvider>().getBookingIDs(context);
+    await context.read<PassengerProvider>().getBookingRequestsID(context);
     debugPrint('Fetching passenger bookings');
 
     await context

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:pasada_driver_side/NavigationPages/passenger_counter.dart';
+// import 'package:pasada_driver_side/NavigationPages/passenger_counter.dart';
 import 'package:pasada_driver_side/UI/constants.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/NavigationPages/activity_page.dart';
@@ -25,7 +25,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
   final List<Widget> pages = [
     const HomeScreen(),
-    const PassengerCounter(),
+    // const PassengerCounter(),
     const ActivityPage(),
     const ProfilePage(),
   ];
@@ -51,7 +51,8 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       // set driving status to Online
       context.read<DriverProvider>().updateStatusToDB(
-          context.read<DriverProvider>().lastDriverStatus!, context); //Error here
+          context.read<DriverProvider>().lastDriverStatus!,
+          context); //Error here
       ShowMessage().showToast('App resumed');
     } else if (state == AppLifecycleState.paused) {
       // set driving status to idling
@@ -65,7 +66,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     context.read<DriverProvider>().updateLastOnline();
 
     // Then update every 30 seconds
-    _timer = Timer.periodic(const Duration(seconds: 60), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
       context.read<DriverProvider>().updateLastOnline();
     });
   }
@@ -180,9 +181,9 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
       type: BottomNavigationBarType.fixed,
       items: [
         _buildNavItem(0, 'Home', 'homefilled.svg', 'home.svg'),
-        _buildNavItem(1, 'Counter', 'listfilled.svg', 'list.svg'),
-        _buildNavItem(2, 'Activity', 'recentfilled.svg', 'recent.svg'),
-        _buildNavItem(3, 'Profile', 'profilefilled.svg', 'profile.svg'),
+        // _buildNavItem(1, 'Counter', 'listfilled.svg', 'list.svg'),
+        _buildNavItem(1, 'Activity', 'recentfilled.svg', 'recent.svg'),
+        _buildNavItem(2, 'Profile', 'profilefilled.svg', 'profile.svg'),
       ],
 
       // Old icons

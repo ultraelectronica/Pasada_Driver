@@ -30,7 +30,8 @@ class ActivityPageState extends State<ActivityPage> {
             // TITLE
             Text(
               'Driver Activity',
-              style: Styles().textStyle(20, FontWeight.w600, Styles.customBlack),
+              style:
+                  Styles().textStyle(20, FontWeight.w600, Styles.customBlack),
             ),
 
             SizedBox(height: screenHeight * 0.03),
@@ -38,7 +39,7 @@ class ActivityPageState extends State<ActivityPage> {
             // Refresh Button
             TextButton.icon(
               onPressed: () {
-                context.read<PassengerProvider>().getBookingIDs(context);
+                context.read<PassengerProvider>().getBookingRequestsID(context);
               },
               icon: const Icon(Icons.refresh),
               label: Text('Refresh Bookings',

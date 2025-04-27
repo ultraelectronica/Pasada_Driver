@@ -63,7 +63,7 @@ class PassengerProvider with ChangeNotifier {
   }
 
   /// method to get all booking details from the DB
-  Future<void> getBookingIDs(BuildContext context) async {
+  Future<void> getBookingRequestsID(BuildContext context) async {
     try {
       final driverID = context.read<DriverProvider>().driverID;
 
@@ -72,7 +72,8 @@ class PassengerProvider with ChangeNotifier {
           .select(
               'booking_id, passenger_id, ride_status, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng')
           .eq('driver_id', driverID)
-          .eq('ride_status', 'requested');   // Ride Statuses: [requested, accepted, ongoing, completed, cancelled]
+          .eq('ride_status',
+              'requested'); // Ride Statuses: [requested, accepted, ongoing, completed, cancelled]
 
       debugPrint('Driver ID: $driverID');
 
@@ -100,6 +101,32 @@ class PassengerProvider with ChangeNotifier {
         print('Error fetching booking details: $e');
         print('Stack Trace: $stackTrace');
       }
+    }
+  }
+
+  Future<void> saveBookingRequestToDriver(
+    String bookingID,
+    String passengerID,
+    String rideStatus,
+    double pickupLat,
+    double pickupLng,
+    double dropoffLat,
+    double dropoffLng,
+  ) async {
+    try {
+      final response = await supabase.from('bookings').insert({
+        'booking_id': bookingID,
+        'passenger_id': passengerID,
+        'ride_status': rideStatus,
+        'pickup_lat': pickupLat,
+        'pickup_lng': pickupLng,
+        'dropoff_lat': dropoffLat,
+        'dropoff_lng': dropoffLng,
+      }).single();
+
+      debugPrint('Error saving booking request: $response');
+    } catch (e) {
+      debugPrint('Error saving booking request: $e');
     }
   }
 }
