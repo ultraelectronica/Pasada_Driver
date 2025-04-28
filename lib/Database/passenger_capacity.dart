@@ -9,7 +9,6 @@ class PassengerCapacity {
 
   Future<void> getPassengerCapacityToDB(BuildContext context) async {
     try {
-      final String vehicleID = context.read<DriverProvider>().vehicleID;
       final String driverID = context.read<DriverProvider>().driverID;
 
       print('Driver ID in getPassengerCapacityToDB: $driverID');

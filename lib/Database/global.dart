@@ -81,11 +81,6 @@ class GlobalVar {
       print('Driver new driving status in method: $newStatus');
     }
 
-    if (driverID == null) {
-      if (kDebugMode) print("DriverID is null; cannot update status.");
-      return;
-    }
-
     final response = await supabase
         .from('driverTable')
         .update({'driving_status': newStatus})
