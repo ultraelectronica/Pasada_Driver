@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/Database/AuthService.dart';
+import 'package:pasada_driver_side/Database/passenger_capacity.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
@@ -134,7 +135,8 @@ class _LogInState extends State<LogIn> {
   }
 
   void _setPassengerCapacity() {
-    context.read<DriverProvider>().getPassengerCapacity();
+    // context.read<DriverProvider>().getPassengerCapacity();
+    PassengerCapacity().getPassengerCapacityToDB(context);
   }
 
   void _setVehicleID(PostgrestMap response) {

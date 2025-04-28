@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:pasada_driver_side/Database/passenger_capacity.dart';
 import 'package:pasada_driver_side/Map/google_map.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
@@ -52,7 +53,8 @@ class HomePageState extends State<HomePage> {
 
   Future<void> getPassengerCapacity() async {
     // get the passenger capacity from the DB
-    await context.read<DriverProvider>().getPassengerCapacity();
+    // await context.read<DriverProvider>().getPassengerCapacity();
+    await PassengerCapacity().getPassengerCapacityToDB(context);
     // _showToast('Vehicle capacity: $Capacity');
   }
 
@@ -84,9 +86,11 @@ class HomePageState extends State<HomePage> {
 
             // PASSENGER CAPACITY
             FloatingPassengerCapacity(
-                screenHeight: screenHeight,
-                screenWidth: screenWidth,
-                Provider: driverProvider),
+              screenHeight: screenHeight,
+              screenWidth: screenWidth,
+              Provider: driverProvider,
+              passengerCapacity: PassengerCapacity()
+            ),
           ],
         ),
       ),
@@ -135,11 +139,13 @@ class FloatingPassengerCapacity extends StatelessWidget {
       {super.key,
       required this.screenHeight,
       required this.screenWidth,
-      required this.Provider});
+      required this.Provider,
+      required this.passengerCapacity});
 
   final double screenHeight;
   final double screenWidth;
   final DriverProvider Provider;
+  final PassengerCapacity passengerCapacity;
 
   @override
   Widget build(BuildContext context) {
@@ -150,17 +156,19 @@ class FloatingPassengerCapacity extends StatelessWidget {
         width: 50,
         height: 50,
         child: FloatingActionButton(
-            heroTag: null,
-            onPressed: () {},
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Text(
-              Provider.passengerCapacity.toString(),
-              style:
-                  Styles().textStyle(22, Styles.w600Weight, Styles.customBlack),
-            )),
+          onPressed: () {
+            passengerCapacity.getPassengerCapacityToDB(context);
+          },
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Text(
+            Provider.passengerCapacity.toString(),
+            style:
+                Styles().textStyle(22, Styles.w600Weight, Styles.customBlack),
+          ),
+        ),
       ),
     );
   }

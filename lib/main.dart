@@ -89,14 +89,13 @@ class _MyAppState extends State<MyApp> {
       if (hasSession) {
         await context
             .read<DriverProvider>()
-            .loadFromSecureStorage(); //load data from secure storage
+            .loadFromSecureStorage(context); //load data from secure storage
         await context.read<PassengerProvider>().getBookingRequestsID(
             context); //check booking assigned to the driver
 
         await context.read<MapProvider>().getRouteCoordinates(
             context.read<DriverProvider>().routeID); //get route coordinates
 
-        // await mapProvider.getPassenger(int.parse(driverProvider.driverID)); bug here, commented for now
       }
     }
   }
