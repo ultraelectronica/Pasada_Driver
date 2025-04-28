@@ -12,7 +12,7 @@ class MapProvider with ChangeNotifier {
   LatLng? _endingLocation;
   LatLng? _intermediateLoc1;
   LatLng? _intermediateLoc2;
-  LatLng? _dropoffLocation;
+  LatLng? _pickupLocation;
   // int _routeID = 0;
   String? _routeName;
 
@@ -22,7 +22,7 @@ class MapProvider with ChangeNotifier {
   LatLng? get endingLocation => _endingLocation;
   LatLng? get intermediateLoc1 => _intermediateLoc1;
   LatLng? get intermediateLoc2 => _intermediateLoc2;
-  LatLng? get dropoffLocation => _dropoffLocation;
+  LatLng? get dropoffLocation => _pickupLocation;
 
   // int get routeID => _routeID;
   String? get routeName => _routeName;
@@ -47,8 +47,8 @@ class MapProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setDropoffLocation(LatLng value) {
-    _dropoffLocation = value;
+  void setPickUpLocation(LatLng value) {
+    _pickupLocation = value;
     notifyListeners();
   }
 

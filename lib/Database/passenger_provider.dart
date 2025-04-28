@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:location/location.dart';
+import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart';
@@ -63,10 +67,18 @@ class PassengerProvider with ChangeNotifier {
   }
 
   /// method to get all booking details from the DB
+  ///
+  /// TODO: get all first the booking request
+  /// TODO: get the nearest passenger
+  /// TODO: set booking request to accepted
+  /// TODO: set drop off location in the map screen
+  /// TODO: check if the driver is near the drop off location
+  /// TODO: when driver is in the drop off location, set ride status to completed
   Future<void> getBookingRequestsID(BuildContext context) async {
     try {
       final driverID = context.read<DriverProvider>().driverID;
 
+      //Get booking requests
       final response = await supabase
           .from('bookings')
           .select(
@@ -75,7 +87,46 @@ class PassengerProvider with ChangeNotifier {
           .eq('ride_status',
               'requested'); // Ride Statuses: [requested, accepted, ongoing, completed, cancelled]
 
-      debugPrint('Driver ID: $driverID');
+      String nearestPassenger;
+      double? currentNearestPassengerDistance;
+
+      //Get nearest passenger
+      for (var booking in response) {
+        Location location = Location();
+        LatLng? currentLocation;
+        currentLocation = context.read<MapProvider>().currentLocation;
+        LatLng? passengerLocation;
+        passengerLocation =
+            LatLng(booking['pickup_lat'], booking['pickup_lng']);
+
+        if (currentLocation != null && passengerLocation != null) {
+          // Calculate distance between driver and passenger
+          double distance = Geolocator.distanceBetween(
+            currentLocation.latitude,
+            currentLocation.longitude,
+            passengerLocation.latitude,
+            passengerLocation.longitude,
+          );
+          //set nearest passenger if currentNearestPassengerDistance is null
+          currentNearestPassengerDistance ??= distance;
+
+          // Update nearest passenger if current distance is smaller
+          if (distance < currentNearestPassengerDistance) {
+            currentNearestPassengerDistance = distance;
+            nearestPassenger = booking['booking_id'].toString();
+            debugPrint('nearest passenger ID: $nearestPassenger');
+
+            //set the drop off location in the map screen
+            context.read<MapProvider>().setPickUpLocation(passengerLocation);
+          }
+
+          if (kDebugMode) {
+            print('Booking distance: $distance');
+          }
+        }
+        debugPrint(
+            'booking request: ID: ${booking['booking_id']} | pickup: ${booking['pickup_lat']}, ${booking['pickup_lng']}');
+      }
 
       if (response.isNotEmpty) {
         // Store full booking details
@@ -93,8 +144,8 @@ class PassengerProvider with ChangeNotifier {
       }
 
       if (kDebugMode) {
-        print('Booking Details: $_bookingDetails');
-        print('Booking response: $response');
+        // print('Booking Details: $_bookingDetails');
+        // print('Booking response: $response');
       }
     } catch (e, stackTrace) {
       if (kDebugMode) {
@@ -104,29 +155,36 @@ class PassengerProvider with ChangeNotifier {
     }
   }
 
-  Future<void> saveBookingRequestToDriver(
-    String bookingID,
-    String passengerID,
-    String rideStatus,
-    double pickupLat,
-    double pickupLng,
-    double dropoffLat,
-    double dropoffLng,
-  ) async {
-    try {
-      final response = await supabase.from('bookings').insert({
-        'booking_id': bookingID,
-        'passenger_id': passengerID,
-        'ride_status': rideStatus,
-        'pickup_lat': pickupLat,
-        'pickup_lng': pickupLng,
-        'dropoff_lat': dropoffLat,
-        'dropoff_lng': dropoffLng,
-      }).single();
+  // Future<void> getBookingRequest(
+  //   String bookingID,
+  //   String passengerID,
+  //   String rideStatus,
+  //   double pickupLat,
+  //   double pickupLng,
+  //   double dropoffLat,
+  //   double dropoffLng,
+  // ) async {
+  //   try {
+  //     final response = await supabase.from('bookings').insert({
+  //       'booking_id': bookingID,
+  //       'passenger_id': passengerID,
+  //       'ride_status': rideStatus,
+  //       'pickup_lat': pickupLat,
+  //       'pickup_lng': pickupLng,
+  //       'dropoff_lat': dropoffLat,
+  //       'dropoff_lng': dropoffLng,
+  //     }).single();
 
-      debugPrint('Error saving booking request: $response');
-    } catch (e) {
-      debugPrint('Error saving booking request: $e');
+  //     debugPrint('Error saving booking request: $response');
+  //   } catch (e) {
+  //     debugPrint('Error saving booking request: $e');
+  //   }
+  // }
+
+  Future<void> _checkPassengerLocation(
+      double pickupLat, double pickupLng) async {
+    try {} catch (e) {
+      debugPrint('Error checking passenger location: $e');
     }
   }
 }
