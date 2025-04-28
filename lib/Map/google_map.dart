@@ -177,6 +177,7 @@ class MapScreenState extends State<MapScreen> {
         setState(() {
           currentLocation =
               LatLng(locationData.latitude!, locationData.longitude!);
+              context.read<MapProvider>().setCurrentLocation(currentLocation!);
         });
 
         // Generate initial polyline
