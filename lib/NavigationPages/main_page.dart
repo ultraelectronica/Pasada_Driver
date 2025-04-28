@@ -63,11 +63,11 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
   void _startTimer() {
     // Update immediately when starting
-    context.read<DriverProvider>().updateLastOnline();
+    context.read<DriverProvider>().updateLastOnline(context);
 
     // Then update every 30 seconds
     _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      context.read<DriverProvider>().updateLastOnline();
+      context.read<DriverProvider>().updateLastOnline(context);
     });
   }
 

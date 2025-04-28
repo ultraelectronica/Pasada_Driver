@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pasada_driver_side/Database/AuthService.dart';
+import 'package:pasada_driver_side/Database/passenger_capacity.dart';
 // import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -186,7 +187,7 @@ class DriverProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> loadFromSecureStorage() async {
+  Future<bool> loadFromSecureStorage(BuildContext context) async {
     try {
       final sessionData = await AuthService.getSession();
 
@@ -217,7 +218,9 @@ class DriverProvider with ChangeNotifier {
 
       // Load other data needed
       await getDriverCreds();
-      await getPassengerCapacity();
+      await updateLastOnline(context);
+      // await getPassengerCapacity();
+      await PassengerCapacity().getPassengerCapacityToDB(context);
       await getDriverRoute();
       await getRouteCoordinates();
 
@@ -231,11 +234,11 @@ class DriverProvider with ChangeNotifier {
     }
   }
 
-  Future<void> updateLastOnline() async {
+  Future<void> updateLastOnline(BuildContext context) async {
     try {
       // Try to load session data if driver_id is empty
       if (_driverID.isEmpty) {
-        bool loaded = await loadFromSecureStorage();
+        bool loaded = await loadFromSecureStorage(context);
         if (!loaded || _driverID.isEmpty) {
           if (kDebugMode) {
             print('Failed to load driver session data');

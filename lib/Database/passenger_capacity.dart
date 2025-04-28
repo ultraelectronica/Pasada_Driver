@@ -5,45 +5,60 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PassengerCapacity {
-  int capacity = 0;
   final SupabaseClient supabase = Supabase.instance.client;
 
   Future<void> getPassengerCapacityToDB(BuildContext context) async {
     try {
       final String vehicleID = context.read<DriverProvider>().vehicleID;
+      final String driverID = context.read<DriverProvider>().driverID;
 
-      if (vehicleID == null) {
-        if (kDebugMode) {
-          print('DriverID not fount');
-        }
-        return;
-      }
+      print('Driver ID in getPassengerCapacityToDB: $driverID');
 
-      final getPassengerCapacity = await supabase
-          .from('vehicleTable')
-          .select('passenger_capacity')
-          .eq('vehicle_id', vehicleID)
+      final getOngoingPassenger = await supabase
+          .from('bookings')
+          .select('booking_id')
+          .eq('driver_id', driverID)
+          .eq('ride_status', 'ongoing')
           .single();
 
       if (kDebugMode) {
-        print('Vehicle ID: $getPassengerCapacity');
+        print('Ongoing Passenger: $getOngoingPassenger');
       }
 
-      context
-          .read<DriverProvider>()
-          .setPassengerCapacity(getPassengerCapacity['passenger_capacity']);
-
-      if (kDebugMode) {
+      if (getOngoingPassenger.isNotEmpty) {
+        context
+            .read<DriverProvider>()
+            .setPassengerCapacity(getOngoingPassenger.length);
         print(
-          'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
+            'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
+      } else {
+        context.read<DriverProvider>().setPassengerCapacity(0);
       }
 
-      // Fluttertoast.showToast(msg: msg)
-    } catch (e) {
+      // final getPassengerCapacity = await supabase
+      //     .from('vehicleTable')
+      //     .select('passenger_capacity')
+      //     .eq('vehicle_id', vehicleID)
+      //     .single();
+
+      // if (kDebugMode) {
+      //   print('Vehicle ID: $getPassengerCapacity');
+      // }
+
+      // context
+      //     .read<DriverProvider>()
+      //     .setPassengerCapacity(getPassengerCapacity['passenger_capacity']);
+
+      // if (kDebugMode) {
+      //   print(
+      //       'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
+      // }
+
+    } catch (e, StackTrace) {
       if (kDebugMode) {
-        print('Error: $e');
+        print('Error fetching passenger capacity: $e');
+        print('Passenger Capacity Stack Trace: $StackTrace');
       }
     }
-
   }
 }
