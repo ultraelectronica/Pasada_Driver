@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:location/location.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
@@ -92,14 +91,13 @@ class PassengerProvider with ChangeNotifier {
 
       //Get nearest passenger
       for (var booking in response) {
-        Location location = Location();
         LatLng? currentLocation;
         currentLocation = context.read<MapProvider>().currentLocation;
         LatLng? passengerLocation;
         passengerLocation =
             LatLng(booking['pickup_lat'], booking['pickup_lng']);
 
-        if (currentLocation != null && passengerLocation != null) {
+        if (currentLocation != null) {
           // Calculate distance between driver and passenger
           double distance = Geolocator.distanceBetween(
             currentLocation.latitude,
@@ -181,10 +179,10 @@ class PassengerProvider with ChangeNotifier {
   //   }
   // }
 
-  Future<void> _checkPassengerLocation(
-      double pickupLat, double pickupLng) async {
-    try {} catch (e) {
-      debugPrint('Error checking passenger location: $e');
-    }
-  }
+  // Future<void> _checkPassengerLocation(
+  //     double pickupLat, double pickupLng) async {
+  //   try {} catch (e) {
+  //     debugPrint('Error checking passenger location: $e');
+  //   }
+  // }
 }
