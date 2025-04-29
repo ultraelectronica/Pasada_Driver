@@ -7,11 +7,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class PassengerCapacity {
   final SupabaseClient supabase = Supabase.instance.client;
 
+  ///Checks how many passengers are ongoing in the bookings table
   Future<void> getPassengerCapacityToDB(BuildContext context) async {
     try {
       final String driverID = context.read<DriverProvider>().driverID;
+      final String vehicleID = context.read<DriverProvider>().vehicleID;
 
-      print('Driver ID in getPassengerCapacityToDB: $driverID');
+      debugPrint('Driver ID in getPassengerCapacityToDB: $driverID');
+      debugPrint('Vehicle ID in getPassengerCapacityToDB: $vehicleID');
 
       final getOngoingPassenger = await supabase
           .from('bookings')
@@ -20,15 +23,23 @@ class PassengerCapacity {
           .eq('ride_status', 'ongoing')
           .single();
 
-      if (kDebugMode) {
-        print('Ongoing Passenger: $getOngoingPassenger');
-      }
+      debugPrint('Ongoing Passenger: $getOngoingPassenger');
+
+      //updates how many passengers are ongoing in the vehicle table
+      final response = await supabase
+          .from('vehicleTable')
+          .update({'passenger_capacity': getOngoingPassenger.length})
+          .eq('vehicle_id', vehicleID)
+          .select();
+
+      debugPrint('Passenger capacity updated to DB: $response');
 
       if (getOngoingPassenger.isNotEmpty) {
         context
             .read<DriverProvider>()
             .setPassengerCapacity(getOngoingPassenger.length);
-        print(
+
+        debugPrint(
             'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
       } else {
         context.read<DriverProvider>().setPassengerCapacity(0);
@@ -52,12 +63,13 @@ class PassengerCapacity {
       //   print(
       //       'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
       // }
-
     } catch (e, StackTrace) {
-      if (kDebugMode) {
-        print('Error fetching passenger capacity: $e');
-        print('Passenger Capacity Stack Trace: $StackTrace');
-      }
+      debugPrint('Error fetching passenger capacity: $e');
+      debugPrint('Passenger Capacity Stack Trace: $StackTrace');
+      debugPrint(
+          'Error: Driver ID in checking capacity: ${context.read<DriverProvider>().driverID}');
+      debugPrint(
+          'Error: Vehicle ID in checking capacity: ${context.read<DriverProvider>().vehicleID}');
     }
   }
 }

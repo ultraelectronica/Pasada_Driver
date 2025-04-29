@@ -85,6 +85,7 @@ class PassengerProvider with ChangeNotifier {
           .eq('driver_id', driverID)
           .eq('ride_status',
               'requested'); // Ride Statuses: [requested, accepted, ongoing, completed, cancelled]
+              
 
       String nearestPassenger;
       double? currentNearestPassengerDistance;
