@@ -95,7 +95,6 @@ class _MyAppState extends State<MyApp> {
 
         await context.read<MapProvider>().getRouteCoordinates(
             context.read<DriverProvider>().routeID); //get route coordinates
-
       }
     }
   }
