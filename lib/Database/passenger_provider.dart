@@ -82,15 +82,50 @@ class PassengerProvider with ChangeNotifier {
           .from('bookings')
           .select(
               'booking_id, passenger_id, ride_status, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng')
-          .eq('driver_id', driverID)
-          .eq('ride_status',
-              'requested'); // Ride Statuses: [requested, accepted, ongoing, completed, cancelled]
-              
+          .eq('driver_id', driverID);
+      // .eq('ride_status',
+      //     'requested'); // Ride Statuses: [requested, accepted, ongoing, completed, cancelled]
 
-      String nearestPassenger;
-      double? currentNearestPassengerDistance;
+      checkNearestBookingRequest(response, context);
+      debugPrint('Checking nearest booking request');
+
+      debugPrint('Booking response: $response');
+
+      if (response.isNotEmpty) {
+        // Store full booking details
+        List<BookingDetail> details = response
+            .map<BookingDetail>((record) => BookingDetail.fromJson(record))
+            .toList();
+        setBookingDetails(details);
+
+        List<String> ids = details.map((detail) => detail.bookingId).toList();
+        setBookingIDs(ids);
+      } else {
+        setBookingDetails([]);
+        setBookingIDs([]);
+      }
+
+      if (kDebugMode) {
+        // print('Booking Details: $_bookingDetails');
+        // print('Booking response: $response');
+      }
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        print('Error fetching booking details: $e');
+        print('Stack Trace: $stackTrace');
+      }
+    }
+  }
+
+  void checkNearestBookingRequest(
+      PostgrestList response, BuildContext context) {
+    try {
+      String nearestPassenger; //stores nearest passenger
+      double?
+          currentNearestPassengerDistance; //serves as a placeholder for the nearest passenger distance
 
       //Get nearest passenger
+      //loops through the booking requests
       for (var booking in response) {
         LatLng? currentLocation;
         currentLocation = context.read<MapProvider>().currentLocation;
@@ -117,6 +152,7 @@ class PassengerProvider with ChangeNotifier {
 
             //set the drop off location in the map screen
             context.read<MapProvider>().setPickUpLocation(passengerLocation);
+            debugPrint('Passenger Location: $passengerLocation');
           }
 
           if (kDebugMode) {
@@ -126,64 +162,9 @@ class PassengerProvider with ChangeNotifier {
         debugPrint(
             'booking request: ID: ${booking['booking_id']} | pickup: ${booking['pickup_lat']}, ${booking['pickup_lng']}');
       }
-
-      if (response.isNotEmpty) {
-        // Store full booking details
-        List<BookingDetail> details = response
-            .map<BookingDetail>((record) => BookingDetail.fromJson(record))
-            .toList();
-        setBookingDetails(details);
-
-        // Also maintain the list of booking IDs for backward compatibility
-        List<String> ids = details.map((detail) => detail.bookingId).toList();
-        setBookingIDs(ids);
-      } else {
-        setBookingDetails([]);
-        setBookingIDs([]);
-      }
-
-      if (kDebugMode) {
-        // print('Booking Details: $_bookingDetails');
-        // print('Booking response: $response');
-      }
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('Error fetching booking details: $e');
-        print('Stack Trace: $stackTrace');
-      }
+    } on Exception catch (e, StackTrace) {
+      debugPrint('Error checking nearest passenger: $e');
+      debugPrint('Stack Trace in nearest passenger: $StackTrace');
     }
   }
-
-  // Future<void> getBookingRequest(
-  //   String bookingID,
-  //   String passengerID,
-  //   String rideStatus,
-  //   double pickupLat,
-  //   double pickupLng,
-  //   double dropoffLat,
-  //   double dropoffLng,
-  // ) async {
-  //   try {
-  //     final response = await supabase.from('bookings').insert({
-  //       'booking_id': bookingID,
-  //       'passenger_id': passengerID,
-  //       'ride_status': rideStatus,
-  //       'pickup_lat': pickupLat,
-  //       'pickup_lng': pickupLng,
-  //       'dropoff_lat': dropoffLat,
-  //       'dropoff_lng': dropoffLng,
-  //     }).single();
-
-  //     debugPrint('Error saving booking request: $response');
-  //   } catch (e) {
-  //     debugPrint('Error saving booking request: $e');
-  //   }
-  // }
-
-  // Future<void> _checkPassengerLocation(
-  //     double pickupLat, double pickupLng) async {
-  //   try {} catch (e) {
-  //     debugPrint('Error checking passenger location: $e');
-  //   }
-  // }
 }

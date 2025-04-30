@@ -34,7 +34,7 @@ class MapScreen extends StatefulWidget {
 }
 
 class MapScreenState extends State<MapScreen> {
-  LatLng? currentLocation; // Location Data
+  LatLng? currentLocation;
   LocationData? locationData;
   final Location location = Location();
   LatLng? _lastPolylineUpdateLocation; // Tracks last polyline update location
@@ -43,9 +43,12 @@ class MapScreenState extends State<MapScreen> {
   // <<-- POLYLINES -->>
   Map<PolylineId, Polyline> polylines = {};
 
+  // <<-- MARKERS -->>
+  Set<Marker> markers = {};
+
   // <<-- DEFAULT LOCATIONS -->>
 
-  // Novaliches to Malinta
+  /// Novaliches to Malinta
   static LatLng StartingLocation = const LatLng(
       14.721957951314671, 121.03660698876655); // savemore novaliches
   static LatLng IntermediateLocation1 =
@@ -60,7 +63,7 @@ class MapScreenState extends State<MapScreen> {
   // LatLng? IntermediateLocation2;
   // LatLng? EndingLocation;
 
-  // Malinta to Novaliches
+  /// Malinta to Novaliches
   // LatLng StartingLocation =
   //     const LatLng(14.694370509154878, 120.97003705410779);
 
@@ -83,7 +86,7 @@ class MapScreenState extends State<MapScreen> {
   bool isAnimatingLocation = false;
 
   // Minimum distance in meters to update polyline
-  final double _minDistanceForPolylineUpdate = 20;
+  final double _minDistanceForPolylineUpdate = 10;
 
   // Flag to prevent redundant route coordinate fetches
   bool _routeCoordinatesLoaded = false;
@@ -94,98 +97,95 @@ class MapScreenState extends State<MapScreen> {
     getLocationUpdates();
   }
 
-  void getRouteCoordinates() {
+  Future<void> getRouteCoordinates() async {
     if (_routeCoordinatesLoaded) return;
 
     try {
       final mapProvider = context.read<MapProvider>();
+      final driverProvider = context.read<DriverProvider>();
 
-      if (mapProvider.currentLocation != null) {
-        debugPrint('Current Location: ${mapProvider.currentLocation}');
-        StartingLocation = mapProvider.currentLocation!;
+      // Make sure we have a valid route ID
+      if (driverProvider.routeID <= 0) {
+        await driverProvider.getDriverRoute();
       }
+
+      // Wait for the route coordinates to be fetched
+      await mapProvider.getRouteCoordinates(driverProvider.routeID);
+
+      debugPrint('Is location loaded: ${mapProvider.currentLocation != null}');
+
+      // Update current location in MapProvider if we have it
+      if (currentLocation != null && mapProvider.currentLocation == null) {
+        mapProvider.setCurrentLocation(currentLocation!);
+      }
+
+      // Use the static locations from MapProvider if available
       if (mapProvider.intermediateLoc1 != null) {
         debugPrint('Intermediate Location 1: ${mapProvider.intermediateLoc1}');
         IntermediateLocation1 = mapProvider.intermediateLoc1!;
       }
+
       if (mapProvider.intermediateLoc2 != null) {
         debugPrint('Intermediate Location 2: ${mapProvider.intermediateLoc2}');
         IntermediateLocation2 = mapProvider.intermediateLoc2!;
       }
+
       if (mapProvider.endingLocation != null) {
         debugPrint('Ending Location: ${mapProvider.endingLocation}');
         EndingLocation = mapProvider.endingLocation!;
+      }
+
+      // Initialize markers with the route points
+      _initializeMarkers();
+
+      // Generate polyline once coordinates are loaded
+      if (currentLocation != null) {
+        generatePolylineBetween(currentLocation!, IntermediateLocation1,
+            IntermediateLocation2, EndingLocation);
+      } else {
+        generatePolylineBetween(StartingLocation, IntermediateLocation1,
+            IntermediateLocation2, EndingLocation);
       }
 
       _routeCoordinatesLoaded = true;
     } catch (e, stackTrace) {
       debugPrint('Error loading route coordinates: $e');
       debugPrint('Stack Trace: $stackTrace');
+      _routeCoordinatesLoaded = false;
     }
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  // <<-- LOCATION SERVICES -->>
-  // Future<void> _checkLocationServices() async {
-  //   // check if yung location services ay available
-  //   bool serviceEnabled = await location.serviceEnabled();
-  //   if (!serviceEnabled) {
-  //     serviceEnabled = await location.requestService();
-  //     if (!serviceEnabled) {
-  //       showAlertDialog(
-  //         'Enable Location Services',
-  //         'Location services are disabled. Please enable them to use this feature.',
-  //       );
-  //       return;
-  //     }
-  //   }
-  // }
-
-  // Future<void> _checkLocationPermissions() async {
-  //   // Check location permissions
-  //   PermissionStatus permissionGranted = await location.hasPermission();
-  //   if (permissionGranted == PermissionStatus.denied) {
-  //     permissionGranted = await location.requestPermission();
-  //     if (permissionGranted != PermissionStatus.granted) {
-  //       showAlertDialog(
-  //         'Permission Required',
-  //         'This app needs location permission to work. Please allow it in your settings.',
-  //       );
-  //       return;
-  //     }
-  //   }
-  // }
-
   Future<void> getLocationUpdates() async {
     try {
-      // await _checkLocationServices();
-      // await _checkLocationPermissions();
-
-      // Get initial route coordinates after permissions are granted
-      if (mounted) {
-        getRouteCoordinates();
-      }
-
-      // Get current location
+      // Get current location first
       LocationData locationData = await location.getLocation();
 
       if (mounted) {
         setState(() {
           currentLocation =
               LatLng(locationData.latitude!, locationData.longitude!);
-              context.read<MapProvider>().setCurrentLocation(currentLocation!);
         });
 
-        // Generate initial polyline
+        // Update MapProvider with current location
+        context.read<MapProvider>().setCurrentLocation(currentLocation!);
+      }
+
+      // Now load route coordinates with the current location available
+      if (mounted) {
+        debugPrint('Getting route coordinates');
+        await getRouteCoordinates();
+      }
+
+      if (mounted) {
+        // Generate initial polyline if not already done
         if (_lastPolylineUpdateLocation == null && currentLocation != null) {
           generatePolylineBetween(currentLocation!, IntermediateLocation1,
               IntermediateLocation2, EndingLocation);
           _lastPolylineUpdateLocation = currentLocation;
         }
+
+        // Make sure markers are initialized
+        _initializeMarkers();
       }
 
       // Listen to location updates
@@ -196,6 +196,7 @@ class MapScreenState extends State<MapScreen> {
           final String driverID = context.read<DriverProvider>().driverID;
           _updateDriverLocationToDB(driverID, newLocation);
 
+          // Convert LocationData to LatLng
           final newLatLng =
               LatLng(newLocation.latitude!, newLocation.longitude!);
 
@@ -205,16 +206,32 @@ class MapScreenState extends State<MapScreen> {
               currentLocation!.longitude != newLatLng.longitude) {
             setState(() {
               currentLocation = newLatLng;
+
+              // Update current location marker
+              markers.removeWhere((marker) =>
+                  marker.markerId == const MarkerId('CurrentLocation'));
+              markers.add(
+                Marker(
+                  markerId: const MarkerId('CurrentLocation'),
+                  position: newLatLng,
+                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                      BitmapDescriptor.hueCyan),
+                  infoWindow: const InfoWindow(title: 'Current Location'),
+                  zIndex:
+                      2, // Higher zIndex to ensure it's on top of other markers
+                ),
+              );
             });
           }
 
-          // Check if we need to update the polyline
+          // Check user is far enough to update polyline
           if (_shouldUpdatePolyline(newLatLng)) {
             generatePolylineBetween(newLatLng, IntermediateLocation1,
                 IntermediateLocation2, EndingLocation);
             _lastPolylineUpdateLocation = newLatLng;
           }
 
+          // Move the camera to new location
           animateToLocation(newLatLng);
 
           // Check if near EndingLocation
@@ -222,7 +239,8 @@ class MapScreenState extends State<MapScreen> {
         }
       });
     } catch (e) {
-      showError('An error occurred while fetching the location. $e');
+      ShowMessage()
+          .showToast('An error occurred while fetching the location. $e');
     }
   }
 
@@ -237,8 +255,10 @@ class MapScreenState extends State<MapScreen> {
       _lastPolylineUpdateLocation!.longitude,
     );
 
+    // check if the distance moved is greater than the minimum distance
     if (kDebugMode && distanceMoved > _minDistanceForPolylineUpdate) {
-      print('Distance moved: $distanceMoved meters - updating polyline');
+      // Don't call getRouteCoordinates() here - it's too frequent and causes issues
+      debugPrint('Distance moved: $distanceMoved meters - updating polyline');
     }
 
     return distanceMoved > _minDistanceForPolylineUpdate;
@@ -261,7 +281,7 @@ class MapScreenState extends State<MapScreen> {
     if (distanceInMeters < 40 && mounted) {
       context.read<MapProvider>().changeRouteLocation(context);
     }
-    }
+  }
 
   // <<-- UPDATE LOCATION TO DATABASE -->>
   Future<void> _updateDriverLocationToDB(
@@ -289,37 +309,6 @@ class MapScreenState extends State<MapScreen> {
         print('Error updating location to DB: $e');
       }
     }
-  }
-
-  // <<-- ERROR HANDLING & TOAST -->>
-  // Helper function for showing alert dialogs to reduce repetition
-  void showAlertDialog(String title, String content) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Specific error dialog using the helper function
-  void showLocationErrorDialog() {
-    showAlertDialog(
-      'Location Error',
-      'Unable to fetch the current location. Please try again later.',
-    );
-  }
-
-  // Generic error dialog using the helper function
-  void showError(String message) {
-    showAlertDialog('Error', message);
   }
 
   // <<-- ANIMATION -->>
@@ -455,6 +444,80 @@ class MapScreenState extends State<MapScreen> {
     }
   }
 
+  // Initialize markers with the route points
+  void _initializeMarkers() {
+    setState(() {
+      markers.clear();
+
+      // Add starting location marker
+      markers.add(
+        Marker(
+          markerId: const MarkerId('StartingLocation'),
+          position: StartingLocation,
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          infoWindow: const InfoWindow(title: 'Starting Point'),
+          zIndex: 1,
+        ),
+      );
+
+      // Add intermediate location 1 marker
+      markers.add(
+        Marker(
+          markerId: const MarkerId('IntermediateLocation1'),
+          position: IntermediateLocation1,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          infoWindow: const InfoWindow(title: 'Stop 1'),
+          zIndex: 1,
+        ),
+      );
+
+      // Add intermediate location 2 marker
+      markers.add(
+        Marker(
+          markerId: const MarkerId('IntermediateLocation2'),
+          position: IntermediateLocation2,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          infoWindow: const InfoWindow(title: 'Stop 2'),
+          zIndex: 1,
+        ),
+      );
+
+      // Add ending location marker
+      markers.add(
+        Marker(
+          markerId: const MarkerId('EndingLocation'),
+          position: EndingLocation,
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+          infoWindow: const InfoWindow(title: 'Destination'),
+          zIndex: 1,
+        ),
+      );
+
+      // Add pickup location marker if available
+      final mapProvider = context.read<MapProvider>();
+
+      debugPrint('Pickup Location: ${mapProvider.pickupLocation}');
+
+      if (mapProvider.pickupLocation != null) {
+        debugPrint('Pickup Location: ${mapProvider.pickupLocation}');
+        markers.add(
+          Marker(
+            markerId: const MarkerId('Pickup'),
+            position: mapProvider.pickupLocation!,
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueViolet),
+            infoWindow: const InfoWindow(title: 'Pickup Location'),
+            zIndex: 1,
+          ),
+        );
+      }
+    });
+
+    debugPrint('Markers initialized: ${markers.length}');
+  }
+
   Set<Marker> buildMarkers() {
     final markers = <Marker>{};
 
@@ -504,32 +567,7 @@ class MapScreenState extends State<MapScreen> {
                     zoom: 15,
                     tilt: 45.0,
                   ),
-                  markers: {
-                    Marker(
-                      markerId: const MarkerId('StartingLocation'),
-                      position: StartingLocation,
-                      icon: BitmapDescriptor.defaultMarkerWithHue(
-                          BitmapDescriptor.hueGreen),
-                    ),
-                    Marker(
-                      markerId: const MarkerId('IntermediateLocation1'),
-                      position: IntermediateLocation1,
-                      icon: BitmapDescriptor.defaultMarkerWithHue(
-                          BitmapDescriptor.hueBlue),
-                    ),
-                    Marker(
-                      markerId: const MarkerId('IntermediateLocation2'),
-                      position: IntermediateLocation2,
-                      icon: BitmapDescriptor.defaultMarkerWithHue(
-                          BitmapDescriptor.hueBlue),
-                    ),
-                    Marker(
-                      markerId: const MarkerId('EndingLocation'),
-                      position: EndingLocation,
-                      icon: BitmapDescriptor.defaultMarkerWithHue(
-                          BitmapDescriptor.hueOrange),
-                    ),
-                  },
+                  markers: markers,
                   polylines: Set<Polyline>.of(polylines.values),
                   mapType: MapType.normal,
                   buildingsEnabled: false,

@@ -21,7 +21,7 @@ class PassengerCapacity {
           .select('booking_id')
           .eq('driver_id', driverID)
           .eq('ride_status', 'ongoing')
-          .single();
+          .select();
 
       debugPrint('Ongoing Passenger: $getOngoingPassenger');
 
@@ -42,7 +42,11 @@ class PassengerCapacity {
         debugPrint(
             'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
       } else {
-        context.read<DriverProvider>().setPassengerCapacity(0);
+        context
+            .read<DriverProvider>()
+            .setPassengerCapacity(getOngoingPassenger.length);
+        debugPrint(
+            'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
       }
 
       // final getPassengerCapacity = await supabase
