@@ -22,7 +22,7 @@ class MapProvider with ChangeNotifier {
   LatLng? get endingLocation => _endingLocation;
   LatLng? get intermediateLoc1 => _intermediateLoc1;
   LatLng? get intermediateLoc2 => _intermediateLoc2;
-  LatLng? get dropoffLocation => _pickupLocation;
+  LatLng? get pickupLocation => _pickupLocation;
 
   // int get routeID => _routeID;
   String? get routeName => _routeName;

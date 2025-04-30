@@ -86,7 +86,7 @@ class _MyAppState extends State<MyApp> {
       }
 
       // User is still logged in
-      if (hasSession) {
+      if (hasSession) { 
         await context
             .read<DriverProvider>()
             .loadFromSecureStorage(context); //load data from secure storage
