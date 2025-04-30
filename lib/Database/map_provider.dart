@@ -48,7 +48,9 @@ class MapProvider with ChangeNotifier {
   }
 
   void setPickUpLocation(LatLng value) {
+    debugPrint('Setting pickup location: $value');
     _pickupLocation = value;
+    debugPrint('Pickup location set: $_pickupLocation');
     notifyListeners();
   }
 
@@ -93,17 +95,24 @@ class MapProvider with ChangeNotifier {
 
       if (kDebugMode) {
         print('Passenger: ${response['booking_id']}');
-        print('     Get passenger response: $response');
+        print('Get passenger response: $response');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error: $e');
+        print('Error getting passenger: $e');
       }
     }
   }
 
   Future<void> getRouteCoordinates(int routeID) async {
     try {
+      if (routeID <= 0) {
+        if (kDebugMode) {
+          print('Invalid route ID: $routeID');
+        }
+        return;
+      }
+
       final response = await supabase
           .from('driverRouteTable')
           .select()
@@ -111,23 +120,41 @@ class MapProvider with ChangeNotifier {
           .single();
 
       _routeName = response['route'];
-      _intermediateLoc1 = _parseLatLng(response['intermediate_location1']);
-      _intermediateLoc2 = _parseLatLng(response['intermediate_location2']);
-      _endingLocation = _parseLatLng(response['ending_location']);
 
-      MapScreenState.StartingLocation =
-          _parseLatLng(response['starting_location'])!;
-      MapScreenState.IntermediateLocation1 =
-          _parseLatLng(response['intermediate_location1'])!;
-      MapScreenState.IntermediateLocation2 =
-          _parseLatLng(response['intermediate_location2'])!;
-      MapScreenState.EndingLocation =
-          _parseLatLng(response['ending_location'])!;
+      // Parse location coordinates
+      final startingLocation = _parseLatLng(response['starting_location']);
+      final intermediateLoc1 = _parseLatLng(response['intermediate_location1']);
+      final intermediateLoc2 = _parseLatLng(response['intermediate_location2']);
+      final endingLocation = _parseLatLng(response['ending_location']);
+
+      // Update provider state
+      if (startingLocation != null) {
+        MapScreenState.StartingLocation = startingLocation;
+      }
+
+      if (intermediateLoc1 != null) {
+        _intermediateLoc1 = intermediateLoc1;
+        MapScreenState.IntermediateLocation1 = intermediateLoc1;
+      }
+
+      if (intermediateLoc2 != null) {
+        _intermediateLoc2 = intermediateLoc2;
+        MapScreenState.IntermediateLocation2 = intermediateLoc2;
+      }
+
+      if (endingLocation != null) {
+        _endingLocation = endingLocation;
+        MapScreenState.EndingLocation = endingLocation;
+      }
+
+      // Notify listeners to update UI
+      notifyListeners();
 
       if (kDebugMode) {
         print('Route ID: $routeID');
         print('''
         Route: $_routeName
+        Starting: ${startingLocation?.latitude},${startingLocation?.longitude}
         Intermediate 1: ${_intermediateLoc1?.latitude},${_intermediateLoc1?.longitude}
         Intermediate 2: ${_intermediateLoc2?.latitude},${_intermediateLoc2?.longitude}
         End: ${_endingLocation?.latitude},${_endingLocation?.longitude}
@@ -187,7 +214,7 @@ class MapProvider with ChangeNotifier {
             .showToast('Reached destination! Triggering route change...');
       }
     } catch (e) {
-      debugPrint('Error: $e');
+      debugPrint('Error changing route location: $e');
     }
   }
 

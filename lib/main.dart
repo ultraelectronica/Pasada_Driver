@@ -86,13 +86,13 @@ class _MyAppState extends State<MyApp> {
       }
 
       // User is still logged in
-      if (hasSession) { 
+      if (hasSession) {
         await context
             .read<DriverProvider>()
             .loadFromSecureStorage(context); //load data from secure storage
         await context.read<PassengerProvider>().getBookingRequestsID(
             context); //check booking assigned to the driver
-
+        debugPrint('Fetching route coordinates');
         await context.read<MapProvider>().getRouteCoordinates(
             context.read<DriverProvider>().routeID); //get route coordinates
       }

@@ -158,7 +158,8 @@ class DriverProvider with ChangeNotifier {
       // sets the capacity to the provider
       _passengerCapacity = response['passenger_capacity'];
     } catch (e) {
-      ShowMessage().showToast('Error: $e');
+      debugPrint('Error getting passenger capacity: $e');
+      ShowMessage().showToast('Error on passenger capacity: $e');
     }
   }
 
@@ -180,9 +181,9 @@ class DriverProvider with ChangeNotifier {
       _driverLastName = response['last_name'].toString();
       _driverNumber = response['driver_number'].toString();
     } catch (e) {
-      ShowMessage().showToast('Error: $e');
+      ShowMessage().showToast('Error fetching driver creds: $e');
       if (kDebugMode) {
-        print('Error: $e');
+        print('Error fetching driver creds: $e');
       }
     }
   }
@@ -282,15 +283,12 @@ class DriverProvider with ChangeNotifier {
       _routeID = response['route_id'];
       // context.read<MapProvider>().setRouteID(response['route_id'] as int);
 
-      if (kDebugMode) {
-        print('Get driver route response: ${response['route_id'].toString()}');
-        ShowMessage()
-            .showToast('Driver route: ${response['route_id'].toString()}');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error: $e');
-      }
+      debugPrint('Get driver route response: ${response['route_id'].toString()}');
+      ShowMessage()
+          .showToast('Driver route: ${response['route_id'].toString()}');
+    } catch (e, stacktrace) {
+      debugPrint('Error getting driver route: $e');
+      debugPrint('Get Driver Route StackTrace: $stacktrace');
     }
   }
 
@@ -321,7 +319,7 @@ class DriverProvider with ChangeNotifier {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error: $e');
+        print('Error getting route coordinates: $e');
       }
     }
   }

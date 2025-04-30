@@ -82,9 +82,9 @@ class PassengerProvider with ChangeNotifier {
           .from('bookings')
           .select(
               'booking_id, passenger_id, ride_status, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng')
-          .eq('driver_id', driverID)
-          .eq('ride_status',
-              'requested'); // Ride Statuses: [requested, accepted, ongoing, completed, cancelled]
+          .eq('driver_id', driverID);
+      // .eq('ride_status',
+      //     'requested'); // Ride Statuses: [requested, accepted, ongoing, completed, cancelled]
 
       checkNearestBookingRequest(response, context);
       debugPrint('Checking nearest booking request');
