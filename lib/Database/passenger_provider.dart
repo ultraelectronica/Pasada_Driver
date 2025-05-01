@@ -65,21 +65,18 @@ class PassengerProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// method to get all booking details from the DB
+  /// Method to get all booking details from the DB
   ///
-  /// TODO: get all first the booking request that is requested
-  /// TODO: check if the booking request is hindi pa nalalagpasan
-  /// TODO: once na nameet yung requirement, mark booking as accepted
-  /// TODO: get the nearest passenger
-  /// TODO: set booking request to accepted
-  /// TODO: set drop off location in the map screen
-  /// TODO: check if the driver is near the drop off location
-  /// TODO: when driver is in the drop off location, set ride status to completed
+  /// This method:
+  /// 1. Fetches booking requests with 'requested' status for the current driver
+  /// 2. Processes the booking requests to find valid ones (passenger ahead by >20m)
+  /// 3. Finds the nearest valid passenger
+  /// 4. Updates the provider state with booking details
   Future<void> getBookingRequestsID(BuildContext context) async {
     try {
       final driverID = context.read<DriverProvider>().driverID;
 
-      //Get booking requests
+      // Get booking requests
       final response = await supabase
           .from('bookings')
           .select(
@@ -88,117 +85,15 @@ class PassengerProvider with ChangeNotifier {
           .eq('ride_status', 'requested');
       // Ride Statuses: [requested, accepted, ongoing, completed, cancelled]
 
-      debugPrint('Booking response: $response');
-
-      debugPrint('Check if booking request has passed the driver...');
-      //loops through the booking requests in the database and checks if the passenger is in front of the driver
-      for (var booking in response) {
-        //this serves as a default base location for comparing
-        LatLng? EndingLocation;
-        EndingLocation = context.read<MapProvider>().endingLocation;
-        debugPrint('Check Ending Location: $EndingLocation');
-
-        //this is the pickup location of the passenger
-        LatLng? PickUpLocation;
-        PickUpLocation = LatLng(booking['pickup_lat'], booking['pickup_lng']);
-
-        //this is the current location of the driver
-        LatLng? DriverLocation;
-        DriverLocation = context.read<MapProvider>().currentLocation;
-        debugPrint('Check Driver Location: $DriverLocation');
-
-        if (EndingLocation != null && DriverLocation != null) {
-          //distance between the passenger and the ending location
-          double passengerDistanceToEnd = Geolocator.distanceBetween(
-            EndingLocation.latitude,
-            EndingLocation.longitude,
-            PickUpLocation.latitude,
-            PickUpLocation.longitude,
-          );
-
-          //distance between the driver and the ending location
-          double driverDistanceToEnd = Geolocator.distanceBetween(
-            EndingLocation.latitude,
-            EndingLocation.longitude,
-            DriverLocation.latitude,
-            DriverLocation.longitude,
-          );
-
-          debugPrint('\n\t\tchecking distance');
-          debugPrint('Check booking ID: ${booking['booking_id']}');
-          debugPrint(
-              'Check passenger distance to end: $passengerDistanceToEnd');
-          debugPrint('Check driver distance to end: $driverDistanceToEnd');
-          debugPrint('Check pickup location: $PickUpLocation');
-          debugPrint('Check driver location: $DriverLocation');
-          debugPrint('Check ending location: $EndingLocation');
-
-          // Check if passenger is ahead of driver (closer to destination)
-          if (passengerDistanceToEnd < driverDistanceToEnd) {
-            // Calculate how far ahead the passenger is
-            double metersAhead = driverDistanceToEnd - passengerDistanceToEnd;
-            debugPrint('Passenger is ahead of driver by $metersAhead meters');
-
-            // Check if passenger is more than 20 meters ahead
-            if (metersAhead > 20) {
-              // ACCEPT BOOKING - Passenger is more than 20 meters ahead
-              debugPrint(
-                  'ACCEPT BOOKING: Passenger is more than 20 meters ahead of driver');
-
-              // Accept the booking by updating the ride status
-              try {
-                await supabase
-                    .from('bookings')
-                    .update({'ride_status': 'accepted'}).eq(
-                        'booking_id', booking['booking_id']);
-                debugPrint(
-                    'Successfully accepted booking ${booking['booking_id']}');
-              } catch (e) {
-                debugPrint('Error accepting booking: $e');
-              }
-            } else {
-              // REJECT BOOKING - Passenger is ahead but not far enough
-              debugPrint(
-                  'REJECT BOOKING: Passenger is ahead but less than 20 meters');
-
-              // Reject the booking by updating the ride status
-              try {
-                await supabase
-                    .from('bookings')
-                    .update({'ride_status': 'rejected'}).eq(
-                        'booking_id', booking['booking_id']);
-                debugPrint(
-                    'Successfully rejected booking ${booking['booking_id']} - not far enough ahead');
-              } catch (e) {
-                debugPrint('Error rejecting booking: $e');
-              }
-            }
-          } else {
-            // REJECT BOOKING - Passenger is behind the driver
-            debugPrint('REJECT BOOKING: Passenger is behind the driver');
-            debugPrint(
-                'Passenger is behind driver by ${passengerDistanceToEnd - driverDistanceToEnd} meters');
-
-            // Reject the booking by updating the ride status
-            try {
-              await supabase
-                  .from('bookings')
-                  .update({'ride_status': 'rejected'}).eq(
-                      'booking_id', booking['booking_id']);
-              debugPrint(
-                  'Successfully rejected booking ${booking['booking_id']} - passenger is behind driver');
-            } catch (e) {
-              debugPrint('Error rejecting booking: $e');
-            }
-          }
-        }
+      if (kDebugMode) {
+        debugPrint('Retrieved ${response.length} booking requests');
       }
 
       // Store the context in a local variable to avoid BuildContext across async gaps warning
       final currentContext = context;
       if (currentContext.mounted) {
+        // Find the nearest valid booking request
         checkNearestBookingRequest(response, currentContext);
-        debugPrint('Checking nearest booking request');
       }
 
       if (response.isNotEmpty) {
@@ -214,11 +109,6 @@ class PassengerProvider with ChangeNotifier {
         setBookingDetails([]);
         setBookingIDs([]);
       }
-
-      if (kDebugMode) {
-        // print('Booking Details: $_bookingDetails');
-        // print('Booking response: $response');
-      }
     } catch (e, stackTrace) {
       if (kDebugMode) {
         print('Error fetching booking details: $e');
@@ -230,47 +120,93 @@ class PassengerProvider with ChangeNotifier {
   void checkNearestBookingRequest(
       PostgrestList response, BuildContext context) {
     try {
-      String nearestPassenger; //stores nearest passenger
-      double?
-          currentNearestPassengerDistance; //serves as a placeholder for the nearest passenger distance
+      // Early exit if no bookings
+      if (response.isEmpty) {
+        return;
+      }
 
-      //Get nearest passenger
-      //loops through the booking requests
+      // Get locations once outside the loop
+      final LatLng? currentLocation =
+          context.read<MapProvider>().currentLocation;
+      final LatLng? endingLocation = context.read<MapProvider>().endingLocation;
+
+      if (currentLocation == null || endingLocation == null) {
+        debugPrint(
+            'Cannot check nearest booking: current or ending location is null');
+        return;
+      }
+
+      String? nearestPassengerId;
+      double? nearestDistance;
+      LatLng? nearestPassengerLocation;
+
+      // Pre-filter valid bookings (passengers ahead by more than 20 meters)
+      List<Map<String, dynamic>> validBookings = [];
+
       for (var booking in response) {
-        LatLng? currentLocation;
-        currentLocation = context.read<MapProvider>().currentLocation;
-        LatLng? passengerLocation;
-        passengerLocation =
+        final LatLng pickupLocation =
             LatLng(booking['pickup_lat'], booking['pickup_lng']);
 
-        if (currentLocation != null) {
-          // Calculate distance between driver and passenger
-          double distance = Geolocator.distanceBetween(
-            currentLocation.latitude,
-            currentLocation.longitude,
-            passengerLocation.latitude,
-            passengerLocation.longitude,
-          );
-          //set nearest passenger if currentNearestPassengerDistance is null
-          currentNearestPassengerDistance ??= distance;
+        // Calculate distances once
+        final double passengerDistanceToEnd = Geolocator.distanceBetween(
+          endingLocation.latitude,
+          endingLocation.longitude,
+          pickupLocation.latitude,
+          pickupLocation.longitude,
+        );
 
-          // Update nearest passenger if current distance is smaller
-          if (distance < currentNearestPassengerDistance) {
-            currentNearestPassengerDistance = distance;
-            nearestPassenger = booking['booking_id'].toString();
-            debugPrint('nearest passenger ID: $nearestPassenger');
+        final double driverDistanceToEnd = Geolocator.distanceBetween(
+          endingLocation.latitude,
+          endingLocation.longitude,
+          currentLocation.latitude,
+          currentLocation.longitude,
+        );
 
-            //set the drop off location in the map screen
-            context.read<MapProvider>().setPickUpLocation(passengerLocation);
-            debugPrint('Passenger Location: $passengerLocation');
-          }
+        // Check if passenger is ahead of driver by more than 20 meters
+        if (passengerDistanceToEnd < driverDistanceToEnd) {
+          final double metersAhead =
+              driverDistanceToEnd - passengerDistanceToEnd;
+          if (metersAhead > 20) {
+            // Calculate distance to driver once
+            final double distanceToDriver = Geolocator.distanceBetween(
+              currentLocation.latitude,
+              currentLocation.longitude,
+              pickupLocation.latitude,
+              pickupLocation.longitude,
+            );
 
-          if (kDebugMode) {
-            print('Booking distance: $distance');
+            // Add to valid bookings with pre-calculated distance
+            validBookings.add({
+              ...booking,
+              'distance_to_driver': distanceToDriver,
+              'pickup_location': pickupLocation,
+            });
           }
         }
+      }
+
+      // Sort valid bookings by distance (most efficient way to find nearest)
+      if (validBookings.isNotEmpty) {
+        validBookings.sort((a, b) => (a['distance_to_driver'] as double)
+            .compareTo(b['distance_to_driver'] as double));
+
+        // The first booking is now the nearest
+        final nearestBooking = validBookings.first;
+        nearestPassengerId = nearestBooking['booking_id'].toString();
+        nearestDistance = nearestBooking['distance_to_driver'];
+        nearestPassengerLocation = nearestBooking['pickup_location'];
+
+        // Set the pickup location for the nearest valid passenger
+        if (nearestPassengerLocation != null) {
+          context
+              .read<MapProvider>()
+              .setPickUpLocation(nearestPassengerLocation);
+          debugPrint(
+              'Set nearest passenger: ID: $nearestPassengerId, Distance: $nearestDistance meters, location: $nearestPassengerLocation');
+        }
+      } else {
         debugPrint(
-            'booking request: ID: ${booking['booking_id']} | pickup: ${booking['pickup_lat']}, ${booking['pickup_lng']}');
+            'No valid bookings found (passengers must be ahead by >20m)');
       }
     } on Exception catch (e, stackTrace) {
       debugPrint('Error checking nearest passenger: $e');

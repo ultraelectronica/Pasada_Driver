@@ -58,6 +58,8 @@ class MapScreenState extends State<MapScreen> {
   static LatLng EndingLocation = const LatLng(
       14.693028415325333, 120.96837623290318); // valenzuela peoples park
 
+  static LatLng? PickupLocation;
+
   // LatLng? StartingLocation;
   // LatLng? IntermediateLocation1;
   // LatLng? IntermediateLocation2;
@@ -95,6 +97,13 @@ class MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     getLocationUpdates();
+  }
+
+  void getPickUpLocation() {
+    PickupLocation = context.read<MapProvider>().pickupLocation;
+    debugPrint('Pickup Location: $PickupLocation');
+    setState(() {});
+    _initializeMarkers();
   }
 
   Future<void> getRouteCoordinates() async {
@@ -135,8 +144,8 @@ class MapScreenState extends State<MapScreen> {
         EndingLocation = mapProvider.endingLocation!;
       }
 
-      // Initialize markers with the route points
-      _initializeMarkers();
+      // // Initialize markers with the route points
+      // _initializeMarkers();
 
       // Generate polyline once coordinates are loaded
       if (currentLocation != null) {
@@ -184,8 +193,8 @@ class MapScreenState extends State<MapScreen> {
           _lastPolylineUpdateLocation = currentLocation;
         }
 
-        // Make sure markers are initialized
-        _initializeMarkers();
+        // // Make sure markers are initialized
+        // _initializeMarkers();
       }
 
       // Listen to location updates
@@ -230,6 +239,8 @@ class MapScreenState extends State<MapScreen> {
                 IntermediateLocation2, EndingLocation);
             _lastPolylineUpdateLocation = newLatLng;
           }
+
+          getPickUpLocation();
 
           // Move the camera to new location
           animateToLocation(newLatLng);
@@ -498,10 +509,12 @@ class MapScreenState extends State<MapScreen> {
       // Add pickup location marker if available
       final mapProvider = context.read<MapProvider>();
 
-      debugPrint('Pickup Location: ${mapProvider.pickupLocation}');
+      debugPrint(
+          'Pickup Location in _initializeMarkers: ${mapProvider.pickupLocation}');
 
       if (mapProvider.pickupLocation != null) {
-        debugPrint('Pickup Location: ${mapProvider.pickupLocation}');
+        debugPrint(
+            'Adding pickup location marker: ${mapProvider.pickupLocation}');
         markers.add(
           Marker(
             markerId: const MarkerId('Pickup'),
@@ -547,6 +560,16 @@ class MapScreenState extends State<MapScreen> {
     if (!_routeCoordinatesLoaded) {
       getRouteCoordinates();
     }
+
+    // // Check if pickup location is available and refresh markers if needed
+    // final mapProvider = Provider.of<MapProvider>(context);
+    // if (mapProvider.pickupLocation != null) {
+    //   debugPrint('Pickup Location in build: ${mapProvider.pickupLocation}');
+    //   // Refresh markers to include pickup location
+    //   _initializeMarkers();
+    // }
+    // getPickUpLocation();
+    // debugPrint('Pickup Location in build: ${mapProvider.pickupLocation}');
 
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;

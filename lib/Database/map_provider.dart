@@ -48,10 +48,15 @@ class MapProvider with ChangeNotifier {
   }
 
   void setPickUpLocation(LatLng value) {
-    debugPrint('Setting pickup location: $value');
-    _pickupLocation = value;
-    debugPrint('Pickup location set: $_pickupLocation');
-    notifyListeners();
+    try {
+      debugPrint('Setting pickup location: $value');
+      _pickupLocation = value;
+      debugPrint('Pickup location set: $_pickupLocation');
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error setting pickup location: $e');
+      debugPrint('Pickup location not set: $_pickupLocation');
+    }
   }
 
   // void setRouteID(int value) {
@@ -106,13 +111,6 @@ class MapProvider with ChangeNotifier {
 
   Future<void> getRouteCoordinates(int routeID) async {
     try {
-      if (routeID <= 0) {
-        if (kDebugMode) {
-          print('Invalid route ID: $routeID');
-        }
-        return;
-      }
-
       final response = await supabase
           .from('driverRouteTable')
           .select()
