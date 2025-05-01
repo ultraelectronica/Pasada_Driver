@@ -107,7 +107,7 @@ class PassengerProvider with ChangeNotifier {
         DriverLocation = context.read<MapProvider>().currentLocation;
         debugPrint('Check Driver Location: $DriverLocation');
 
-        if (EndingLocation != null) {
+        if (EndingLocation != null && DriverLocation != null) {
           //distance between the passenger and the ending location
           double passengerDistanceToEnd = Geolocator.distanceBetween(
             EndingLocation.latitude,
@@ -120,53 +120,86 @@ class PassengerProvider with ChangeNotifier {
           double driverDistanceToEnd = Geolocator.distanceBetween(
             EndingLocation.latitude,
             EndingLocation.longitude,
-            DriverLocation!.latitude,
+            DriverLocation.latitude,
             DriverLocation.longitude,
           );
 
-          //if the passenger is in front of the driver, accept the booking request
           debugPrint('\n\t\tchecking distance');
           debugPrint('Check booking ID: ${booking['booking_id']}');
+          debugPrint(
+              'Check passenger distance to end: $passengerDistanceToEnd');
+          debugPrint('Check driver distance to end: $driverDistanceToEnd');
+          debugPrint('Check pickup location: $PickUpLocation');
+          debugPrint('Check driver location: $DriverLocation');
+          debugPrint('Check ending location: $EndingLocation');
 
-          //check if passenger pick up is in front of the driver
+          // Check if passenger is ahead of driver (closer to destination)
           if (passengerDistanceToEnd < driverDistanceToEnd) {
+            // Calculate how far ahead the passenger is
             double metersAhead = driverDistanceToEnd - passengerDistanceToEnd;
+            debugPrint('Passenger is ahead of driver by $metersAhead meters');
 
-            //check if passenger pickup is more than 20 meters ahead
+            // Check if passenger is more than 20 meters ahead
             if (metersAhead > 20) {
-              //accept booking request
-              debugPrint('Pickup is in front of the driver');
-              debugPrint('Check if passenger is not in front of the driver');
+              // ACCEPT BOOKING - Passenger is more than 20 meters ahead
               debugPrint(
-                  'Check passenger distance to end: $passengerDistanceToEnd');
-              debugPrint('Check driver distance to end: $driverDistanceToEnd');
+                  'ACCEPT BOOKING: Passenger is more than 20 meters ahead of driver');
 
-              debugPrint(
-                  'check if distance between driver and passenger: ${passengerDistanceToEnd - driverDistanceToEnd} meters.');
-              debugPrint(
-                  'check if passenger distance to driver less than 20 meters? ${passengerDistanceToEnd - driverDistanceToEnd > 20}');
+              // Accept the booking by updating the ride status
+              try {
+                await supabase
+                    .from('bookings')
+                    .update({'ride_status': 'accepted'}).eq(
+                        'booking_id', booking['booking_id']);
+                debugPrint(
+                    'Successfully accepted booking ${booking['booking_id']}');
+              } catch (e) {
+                debugPrint('Error accepting booking: $e');
+              }
             } else {
-              //reject booking request
-              debugPrint('Passenger is not in front of the driver');
+              // REJECT BOOKING - Passenger is ahead but not far enough
+              debugPrint(
+                  'REJECT BOOKING: Passenger is ahead but less than 20 meters');
+
+              // Reject the booking by updating the ride status
+              try {
+                await supabase
+                    .from('bookings')
+                    .update({'ride_status': 'rejected'}).eq(
+                        'booking_id', booking['booking_id']);
+                debugPrint(
+                    'Successfully rejected booking ${booking['booking_id']} - not far enough ahead');
+              } catch (e) {
+                debugPrint('Error rejecting booking: $e');
+              }
             }
           } else {
-            //passenger pickup is behind the driver
-            //reject booking request
-            debugPrint('passenger is not in front of the driver');
+            // REJECT BOOKING - Passenger is behind the driver
+            debugPrint('REJECT BOOKING: Passenger is behind the driver');
             debugPrint(
-                'Check passenger distance to end: $passengerDistanceToEnd');
-            debugPrint('Check driver distance to end: $driverDistanceToEnd');
+                'Passenger is behind driver by ${passengerDistanceToEnd - driverDistanceToEnd} meters');
 
-            debugPrint(
-                'check if distance between driver and passenger: ${passengerDistanceToEnd - driverDistanceToEnd} meters.');
-            debugPrint(
-                'check if passenger distance to driver less than 20 meters? ${passengerDistanceToEnd - driverDistanceToEnd > 20}');
+            // Reject the booking by updating the ride status
+            try {
+              await supabase
+                  .from('bookings')
+                  .update({'ride_status': 'rejected'}).eq(
+                      'booking_id', booking['booking_id']);
+              debugPrint(
+                  'Successfully rejected booking ${booking['booking_id']} - passenger is behind driver');
+            } catch (e) {
+              debugPrint('Error rejecting booking: $e');
+            }
           }
         }
       }
 
-      checkNearestBookingRequest(response, context);
-      debugPrint('Checking nearest booking request');
+      // Store the context in a local variable to avoid BuildContext across async gaps warning
+      final currentContext = context;
+      if (currentContext.mounted) {
+        checkNearestBookingRequest(response, currentContext);
+        debugPrint('Checking nearest booking request');
+      }
 
       if (response.isNotEmpty) {
         // Store full booking details
@@ -239,9 +272,9 @@ class PassengerProvider with ChangeNotifier {
         debugPrint(
             'booking request: ID: ${booking['booking_id']} | pickup: ${booking['pickup_lat']}, ${booking['pickup_lng']}');
       }
-    } on Exception catch (e, StackTrace) {
+    } on Exception catch (e, stackTrace) {
       debugPrint('Error checking nearest passenger: $e');
-      debugPrint('Stack Trace in nearest passenger: $StackTrace');
+      debugPrint('Stack Trace in nearest passenger: $stackTrace');
     }
   }
 }
