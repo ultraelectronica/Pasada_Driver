@@ -67,7 +67,9 @@ class PassengerProvider with ChangeNotifier {
 
   /// method to get all booking details from the DB
   ///
-  /// TODO: get all first the booking request
+  /// TODO: get all first the booking request that is requested
+  /// TODO: check if the booking request is hindi pa nalalagpasan
+  /// TODO: once na nameet yung requirement, mark booking as accepted
   /// TODO: get the nearest passenger
   /// TODO: set booking request to accepted
   /// TODO: set drop off location in the map screen
@@ -82,14 +84,89 @@ class PassengerProvider with ChangeNotifier {
           .from('bookings')
           .select(
               'booking_id, passenger_id, ride_status, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng')
-          .eq('driver_id', driverID);
-      // .eq('ride_status',
-      //     'requested'); // Ride Statuses: [requested, accepted, ongoing, completed, cancelled]
+          .eq('driver_id', driverID)
+          .eq('ride_status', 'requested');
+      // Ride Statuses: [requested, accepted, ongoing, completed, cancelled]
+
+      debugPrint('Booking response: $response');
+
+      debugPrint('Check if booking request has passed the driver...');
+      //loops through the booking requests in the database and checks if the passenger is in front of the driver
+      for (var booking in response) {
+        //this serves as a default base location for comparing
+        LatLng? EndingLocation;
+        EndingLocation = context.read<MapProvider>().endingLocation;
+        debugPrint('Check Ending Location: $EndingLocation');
+
+        //this is the pickup location of the passenger
+        LatLng? PickUpLocation;
+        PickUpLocation = LatLng(booking['pickup_lat'], booking['pickup_lng']);
+
+        //this is the current location of the driver
+        LatLng? DriverLocation;
+        DriverLocation = context.read<MapProvider>().currentLocation;
+        debugPrint('Check Driver Location: $DriverLocation');
+
+        if (EndingLocation != null) {
+          //distance between the passenger and the ending location
+          double passengerDistanceToEnd = Geolocator.distanceBetween(
+            EndingLocation.latitude,
+            EndingLocation.longitude,
+            PickUpLocation.latitude,
+            PickUpLocation.longitude,
+          );
+
+          //distance between the driver and the ending location
+          double driverDistanceToEnd = Geolocator.distanceBetween(
+            EndingLocation.latitude,
+            EndingLocation.longitude,
+            DriverLocation!.latitude,
+            DriverLocation.longitude,
+          );
+
+          //if the passenger is in front of the driver, accept the booking request
+          debugPrint('\n\t\tchecking distance');
+          debugPrint('Check booking ID: ${booking['booking_id']}');
+
+          //check if passenger pick up is in front of the driver
+          if (passengerDistanceToEnd < driverDistanceToEnd) {
+            double metersAhead = driverDistanceToEnd - passengerDistanceToEnd;
+
+            //check if passenger pickup is more than 20 meters ahead
+            if (metersAhead > 20) {
+              //accept booking request
+              debugPrint('Pickup is in front of the driver');
+              debugPrint('Check if passenger is not in front of the driver');
+              debugPrint(
+                  'Check passenger distance to end: $passengerDistanceToEnd');
+              debugPrint('Check driver distance to end: $driverDistanceToEnd');
+
+              debugPrint(
+                  'check if distance between driver and passenger: ${passengerDistanceToEnd - driverDistanceToEnd} meters.');
+              debugPrint(
+                  'check if passenger distance to driver less than 20 meters? ${passengerDistanceToEnd - driverDistanceToEnd > 20}');
+            } else {
+              //reject booking request
+              debugPrint('Passenger is not in front of the driver');
+            }
+          } else {
+            //passenger pickup is behind the driver
+            //reject booking request
+            debugPrint('passenger is not in front of the driver');
+            debugPrint(
+                'Check passenger distance to end: $passengerDistanceToEnd');
+            debugPrint('Check driver distance to end: $driverDistanceToEnd');
+
+            debugPrint(
+                'check if distance between driver and passenger: ${passengerDistanceToEnd - driverDistanceToEnd} meters.');
+            debugPrint(
+                'check if passenger distance to driver less than 20 meters? ${passengerDistanceToEnd - driverDistanceToEnd > 20}');
+          }
+        }
+      }
 
       checkNearestBookingRequest(response, context);
       debugPrint('Checking nearest booking request');
-
-      debugPrint('Booking response: $response');
 
       if (response.isNotEmpty) {
         // Store full booking details
