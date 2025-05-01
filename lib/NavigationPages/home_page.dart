@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pasada_driver_side/Database/passenger_capacity.dart';
+import 'package:pasada_driver_side/Database/passenger_provider.dart';
 import 'package:pasada_driver_side/Map/google_map.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
@@ -86,11 +87,10 @@ class HomePageState extends State<HomePage> {
 
             // PASSENGER CAPACITY
             FloatingPassengerCapacity(
-              screenHeight: screenHeight,
-              screenWidth: screenWidth,
-              Provider: driverProvider,
-              passengerCapacity: PassengerCapacity()
-            ),
+                screenHeight: screenHeight,
+                screenWidth: screenWidth,
+                Provider: driverProvider,
+                passengerCapacity: PassengerCapacity()),
           ],
         ),
       ),
@@ -118,7 +118,9 @@ class FloatingMessageButton extends StatelessWidget {
         height: 50,
         child: FloatingActionButton(
           heroTag: null,
-          onPressed: () {},
+          onPressed: () {
+            PassengerProvider().getBookingRequestsID(context);
+          },
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
@@ -156,6 +158,7 @@ class FloatingPassengerCapacity extends StatelessWidget {
         width: 50,
         height: 50,
         child: FloatingActionButton(
+          heroTag: null,
           onPressed: () {
             passengerCapacity.getPassengerCapacityToDB(context);
           },
