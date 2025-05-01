@@ -101,7 +101,6 @@ class PassengerProvider with ChangeNotifier {
         //this is the pickup location of the passenger
         LatLng? PickUpLocation;
         PickUpLocation = LatLng(booking['pickup_lat'], booking['pickup_lng']);
-        debugPrint('Check Pickup Location: $PickUpLocation booking ID: ${booking['booking_id']}');
 
         //this is the current location of the driver
         LatLng? DriverLocation;
@@ -126,20 +125,43 @@ class PassengerProvider with ChangeNotifier {
           );
 
           //if the passenger is in front of the driver, accept the booking request
-          if (passengerDistanceToEnd > driverDistanceToEnd &&
-              ((passengerDistanceToEnd - driverDistanceToEnd) > 20)) {
-            debugPrint('Passenger is in front of the driver');
-          }
-          else {
-            debugPrint('Check if passenger is not in front of the driver');
-            debugPrint('Check passenger distance to end: $passengerDistanceToEnd');
+          debugPrint('\n\t\tchecking distance');
+          debugPrint('Check booking ID: ${booking['booking_id']}');
+
+          //check if passenger pick up is in front of the driver
+          if (passengerDistanceToEnd < driverDistanceToEnd) {
+            double metersAhead = driverDistanceToEnd - passengerDistanceToEnd;
+
+            //check if passenger pickup is more than 20 meters ahead
+            if (metersAhead > 20) {
+              //accept booking request
+              debugPrint('Pickup is in front of the driver');
+              debugPrint('Check if passenger is not in front of the driver');
+              debugPrint(
+                  'Check passenger distance to end: $passengerDistanceToEnd');
+              debugPrint('Check driver distance to end: $driverDistanceToEnd');
+
+              debugPrint(
+                  'check if distance between driver and passenger: ${passengerDistanceToEnd - driverDistanceToEnd} meters.');
+              debugPrint(
+                  'check if passenger distance to driver less than 20 meters? ${passengerDistanceToEnd - driverDistanceToEnd > 20}');
+            } else {
+              //reject booking request
+              debugPrint('Passenger is not in front of the driver');
+            }
+          } else {
+            //passenger pickup is behind the driver
+            //reject booking request
+            debugPrint('passenger is not in front of the driver');
+            debugPrint(
+                'Check passenger distance to end: $passengerDistanceToEnd');
             debugPrint('Check driver distance to end: $driverDistanceToEnd');
 
-            debugPrint('check if distance between driver and passenger: ${passengerDistanceToEnd - driverDistanceToEnd} meters.');
-            debugPrint('check if passenger distance to driver less than 20 meters? ${passengerDistanceToEnd - driverDistanceToEnd > 20}');
-            debugPrint('check\n');
+            debugPrint(
+                'check if distance between driver and passenger: ${passengerDistanceToEnd - driverDistanceToEnd} meters.');
+            debugPrint(
+                'check if passenger distance to driver less than 20 meters? ${passengerDistanceToEnd - driverDistanceToEnd > 20}');
           }
-          
         }
       }
 
