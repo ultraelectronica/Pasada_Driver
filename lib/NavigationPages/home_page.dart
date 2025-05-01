@@ -82,15 +82,11 @@ class HomePageState extends State<HomePage> {
             ),
 
             // FLOATING MESSAGE BUTTON
-            FloatingMessageButton(
-                screenHeight: screenHeight, screenWidth: screenWidth),
+            FloatingMessageButton(screenHeight: screenHeight, screenWidth: screenWidth),
 
             // PASSENGER CAPACITY
             FloatingPassengerCapacity(
-                screenHeight: screenHeight,
-                screenWidth: screenWidth,
-                Provider: driverProvider,
-                passengerCapacity: PassengerCapacity()),
+                screenHeight: screenHeight, screenWidth: screenWidth, Provider: driverProvider, passengerCapacity: PassengerCapacity()),
           ],
         ),
       ),
@@ -138,11 +134,7 @@ class FloatingMessageButton extends StatelessWidget {
 
 class FloatingPassengerCapacity extends StatelessWidget {
   const FloatingPassengerCapacity(
-      {super.key,
-      required this.screenHeight,
-      required this.screenWidth,
-      required this.Provider,
-      required this.passengerCapacity});
+      {super.key, required this.screenHeight, required this.screenWidth, required this.Provider, required this.passengerCapacity});
 
   final double screenHeight;
   final double screenWidth;
@@ -168,8 +160,7 @@ class FloatingPassengerCapacity extends StatelessWidget {
           ),
           child: Text(
             Provider.passengerCapacity.toString(),
-            style:
-                Styles().textStyle(22, Styles.w600Weight, Styles.customBlack),
+            style: Styles().textStyle(22, Styles.w600Weight, Styles.customBlack),
           ),
         ),
       ),

@@ -135,10 +135,8 @@ class _MapScreenState extends State<MapScreen> {
         final Map<String, dynamic> data = json.decode(response.body);
         if (data['routes'] != null && data['routes'].isNotEmpty) {
           final String encodedPolyline = data['routes'][0]['polyline']['encodedPolyline'];
-          List<LatLng> polylineCoordinates = polylinePoints
-              .decodePolyline(encodedPolyline)
-              .map((point) => LatLng(point.latitude, point.longitude))
-              .toList();
+          List<LatLng> polylineCoordinates =
+              polylinePoints.decodePolyline(encodedPolyline).map((point) => LatLng(point.latitude, point.longitude)).toList();
 
           setState(() {
             _polylines.add(Polyline(
@@ -168,14 +166,12 @@ class _MapScreenState extends State<MapScreen> {
           : GoogleMap(
               onMapCreated: (controller) => mapController = controller,
               initialCameraPosition: CameraPosition(
-                target: _currentLocation != null
-                    ? LatLng(_currentLocation!.latitude!, _currentLocation!.longitude!)
-                    : fallbackPosition,
+                target: _currentLocation != null ? LatLng(_currentLocation!.latitude!, _currentLocation!.longitude!) : fallbackPosition,
                 zoom: 14,
               ),
               markers: _markers,
               polylines: _polylines,
-              myLocationEnabled: true,  // Show user's location dot
+              myLocationEnabled: true, // Show user's location dot
               myLocationButtonEnabled: true,
             ),
     );

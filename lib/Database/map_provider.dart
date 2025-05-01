@@ -92,11 +92,7 @@ class MapProvider with ChangeNotifier {
   // TODO: This is still incomplete, need to work after finishing the features in the map
   Future<void> getPassenger(int driverID) async {
     try {
-      final response = await supabase
-          .from('bookings')
-          .select()
-          .eq('driver_id', driverID)
-          .single();
+      final response = await supabase.from('bookings').select().eq('driver_id', driverID).single();
 
       if (kDebugMode) {
         print('Passenger: ${response['booking_id']}');
@@ -111,11 +107,7 @@ class MapProvider with ChangeNotifier {
 
   Future<void> getRouteCoordinates(int routeID) async {
     try {
-      final response = await supabase
-          .from('driverRouteTable')
-          .select()
-          .eq('route_id', routeID)
-          .single();
+      final response = await supabase.from('driverRouteTable').select().eq('route_id', routeID).single();
 
       _routeName = response['route'];
 
@@ -206,10 +198,8 @@ class MapProvider with ChangeNotifier {
       debugPrint('Change route response: $response');
 
       if (kDebugMode) {
-        print(
-            "Reached destination! Triggering route change. Current Route: $currentRouteID");
-        ShowMessage()
-            .showToast('Reached destination! Triggering route change...');
+        print("Reached destination! Triggering route change. Current Route: $currentRouteID");
+        ShowMessage().showToast('Reached destination! Triggering route change...');
       }
     } catch (e) {
       debugPrint('Error changing route location: $e');

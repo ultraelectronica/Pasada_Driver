@@ -13,13 +13,7 @@ class AuthService {
   static const String _keyVehicleId = 'vehicle_id';
 
   // List of all keys managed by this service
-  static const _allKeys = [
-    _keySessionToken,
-    _keyExpirationTime,
-    _keyDriverId,
-    _keyRouteId,
-    _keyVehicleId
-  ];
+  static const _allKeys = [_keySessionToken, _keyExpirationTime, _keyDriverId, _keyRouteId, _keyVehicleId];
 
   static Future<void> saveCredentials({
     required String sessionToken,
@@ -27,8 +21,7 @@ class AuthService {
     required String routeId,
     required String vehicleId,
   }) async {
-    final expirationTime =
-        DateTime.now().add(const Duration(hours: 1)).toIso8601String();
+    final expirationTime = DateTime.now().add(const Duration(hours: 1)).toIso8601String();
 
     await _storage.write(key: _keySessionToken, value: sessionToken);
     await _storage.write(key: _keyExpirationTime, value: expirationTime);

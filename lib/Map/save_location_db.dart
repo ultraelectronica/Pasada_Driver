@@ -1,3 +1,1 @@
-class SaveLocationDb {
-    
-}
+class SaveLocationDb {}

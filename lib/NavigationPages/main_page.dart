@@ -50,9 +50,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
     if (state == AppLifecycleState.resumed) {
       // set driving status to Online
-      context.read<DriverProvider>().updateStatusToDB(
-          context.read<DriverProvider>().lastDriverStatus!,
-          context); //Error here
+      context.read<DriverProvider>().updateStatusToDB(context.read<DriverProvider>().lastDriverStatus!, context); //Error here
       ShowMessage().showToast('App resumed');
     } else if (state == AppLifecycleState.paused) {
       // set driving status to idling
@@ -99,8 +97,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
           title: Text(
             'Welcome Manong!',
             textAlign: TextAlign.center,
-            style:
-                Styles().textStyle(22, Styles.w600Weight, Styles.customBlack),
+            style: Styles().textStyle(22, Styles.w600Weight, Styles.customBlack),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -108,26 +105,20 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
               Text(
                 'To start getting passengers, start driving.',
                 textAlign: TextAlign.center,
-                style: Styles()
-                    .textStyle(15, Styles.w500Weight, Styles.customBlack),
+                style: Styles().textStyle(15, Styles.w500Weight, Styles.customBlack),
               ),
               const SizedBox(height: 20), // Add some spacing
               Center(
                 child: ElevatedButton(
                   onPressed: () {
-                    context.read<DriverProvider>().updateStatusToDB(
-                        'Driving', context); //update status to driving
-                    context.read<DriverProvider>().setDriverStatus(
-                        'Driving'); //update driver status to driving
-                    context
-                        .read<DriverProvider>()
-                        .setIsDriving(true); //update is driving to true
+                    context.read<DriverProvider>().updateStatusToDB('Driving', context); //update status to driving
+                    context.read<DriverProvider>().setDriverStatus('Driving'); //update driver status to driving
+                    context.read<DriverProvider>().setIsDriving(true); //update is driving to true
 
                     Navigator.of(context).pop();
                   },
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 30, vertical: 15),
+                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
@@ -136,8 +127,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
                   ),
                   child: Text(
                     'Start Driving',
-                    style: Styles()
-                        .textStyle(16, Styles.normalWeight, Styles.customWhite),
+                    style: Styles().textStyle(16, Styles.normalWeight, Styles.customWhite),
                   ),
                 ),
               ),
@@ -173,10 +163,8 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
       onTap: onTap,
       showSelectedLabels: true,
       showUnselectedLabels: false,
-      selectedLabelStyle:
-          Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
-      unselectedLabelStyle:
-          Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
+      selectedLabelStyle: Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
+      unselectedLabelStyle: Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
       selectedItemColor: Constants.GREEN_COLOR,
       type: BottomNavigationBarType.fixed,
       items: [
@@ -197,15 +185,13 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     );
   }
 
-  BottomNavigationBarItem _buildNavItem(
-      int index, String label, String selectedIcon, String unselectedIcon) {
+  BottomNavigationBarItem _buildNavItem(int index, String label, String selectedIcon, String unselectedIcon) {
     return BottomNavigationBarItem(
       label: label,
       icon: _currentIndex == index
           ? SvgPicture.asset(
               'assets/svg/$selectedIcon',
-              colorFilter:
-                  ColorFilter.mode(Constants.GREEN_COLOR, BlendMode.srcIn),
+              colorFilter: ColorFilter.mode(Constants.GREEN_COLOR, BlendMode.srcIn),
               width: 28,
               height: 28,
             )

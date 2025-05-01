@@ -16,37 +16,24 @@ class PassengerCapacity {
       debugPrint('Driver ID in getPassengerCapacityToDB: $driverID');
       debugPrint('Vehicle ID in getPassengerCapacityToDB: $vehicleID');
 
-      final getOngoingPassenger = await supabase
-          .from('bookings')
-          .select('booking_id')
-          .eq('driver_id', driverID)
-          .eq('ride_status', 'ongoing')
-          .select();
+      final getOngoingPassenger =
+          await supabase.from('bookings').select('booking_id').eq('driver_id', driverID).eq('ride_status', 'ongoing').select();
 
       debugPrint('Ongoing Passenger: $getOngoingPassenger');
 
       //updates how many passengers are ongoing in the vehicle table
-      final response = await supabase
-          .from('vehicleTable')
-          .update({'passenger_capacity': getOngoingPassenger.length})
-          .eq('vehicle_id', vehicleID)
-          .select();
+      final response =
+          await supabase.from('vehicleTable').update({'passenger_capacity': getOngoingPassenger.length}).eq('vehicle_id', vehicleID).select();
 
       debugPrint('Passenger capacity updated to DB: $response');
 
       if (getOngoingPassenger.isNotEmpty) {
-        context
-            .read<DriverProvider>()
-            .setPassengerCapacity(getOngoingPassenger.length);
+        context.read<DriverProvider>().setPassengerCapacity(getOngoingPassenger.length);
 
-        debugPrint(
-            'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
+        debugPrint('provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
       } else {
-        context
-            .read<DriverProvider>()
-            .setPassengerCapacity(getOngoingPassenger.length);
-        debugPrint(
-            'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
+        context.read<DriverProvider>().setPassengerCapacity(getOngoingPassenger.length);
+        debugPrint('provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
       }
 
       // final getPassengerCapacity = await supabase
@@ -70,10 +57,8 @@ class PassengerCapacity {
     } catch (e, StackTrace) {
       debugPrint('Error fetching passenger capacity: $e');
       debugPrint('Passenger Capacity Stack Trace: $StackTrace');
-      debugPrint(
-          'Error: Driver ID in checking capacity: ${context.read<DriverProvider>().driverID}');
-      debugPrint(
-          'Error: Vehicle ID in checking capacity: ${context.read<DriverProvider>().vehicleID}');
+      debugPrint('Error: Driver ID in checking capacity: ${context.read<DriverProvider>().driverID}');
+      debugPrint('Error: Vehicle ID in checking capacity: ${context.read<DriverProvider>().vehicleID}');
     }
   }
 }
