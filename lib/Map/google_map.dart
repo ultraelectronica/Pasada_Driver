@@ -329,7 +329,7 @@ class MapScreenState extends State<MapScreen> {
     controller.animateCamera(
       CameraUpdate.newCameraPosition(CameraPosition(
         target: target,
-        zoom: 17.0,
+        zoom: 16,
       )),
     );
   }
@@ -472,27 +472,27 @@ class MapScreenState extends State<MapScreen> {
         ),
       );
 
-      // Add intermediate location 1 marker
-      markers.add(
-        Marker(
-          markerId: const MarkerId('IntermediateLocation1'),
-          position: IntermediateLocation1,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-          infoWindow: const InfoWindow(title: 'Stop 1'),
-          zIndex: 1,
-        ),
-      );
+      // // Add intermediate location 1 marker
+      // markers.add(
+      //   Marker(
+      //     markerId: const MarkerId('IntermediateLocation1'),
+      //     position: IntermediateLocation1,
+      //     icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+      //     infoWindow: const InfoWindow(title: 'Stop 1'),
+      //     zIndex: 1,
+      //   ),
+      // );
 
-      // Add intermediate location 2 marker
-      markers.add(
-        Marker(
-          markerId: const MarkerId('IntermediateLocation2'),
-          position: IntermediateLocation2,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-          infoWindow: const InfoWindow(title: 'Stop 2'),
-          zIndex: 1,
-        ),
-      );
+      // // Add intermediate location 2 marker
+      // markers.add(
+      //   Marker(
+      //     markerId: const MarkerId('IntermediateLocation2'),
+      //     position: IntermediateLocation2,
+      //     icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+      //     infoWindow: const InfoWindow(title: 'Stop 2'),
+      //     zIndex: 1,
+      //   ),
+      // );
 
       // Add ending location marker
       markers.add(
