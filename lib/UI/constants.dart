@@ -1,6 +1,7 @@
 // ignore_for_file: non_constant_identifier_names
 
 import 'package:flutter/material.dart';
+
 /// Used to define constants for the application.
 /// This class contains static variables for screen width, corner radius, and also colors.
 /// It is used to maintain a consistent design throughout the app.

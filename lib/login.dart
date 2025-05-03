@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/passenger_capacity.dart';
+import 'package:pasada_driver_side/Services/password_util.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
@@ -48,10 +49,18 @@ class _LogInState extends State<LogIn> {
       //Query to get the driverID and password from the driverTable
       final response = await Supabase.instance.client
           .from('driverTable')
-          .select('first_name, driver_id, vehicle_id')
+          .select('first_name, driver_id, vehicle_id, driver_password')
           .eq('driver_id', enteredDriverID)
-          .eq('driver_password', enteredPassword)
           .single();
+
+      final storedHashedPassword = await response['driver_password'] as String;
+
+      bool checkPassword = PasswordUtil().checkPassword(enteredPassword, storedHashedPassword);
+
+      if (!checkPassword) {
+        ShowMessage().showToast('Invalid credentials. Please try again.');
+        throw Exception('Error: Invalid credentials $checkPassword');
+      }
 
       if (mounted) {
         // saves all the infos to the provider
@@ -72,16 +81,16 @@ class _LogInState extends State<LogIn> {
           print('Vehicle ID: ${response['vehicle_id']}');
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('Error during login: $e');
+        print('Error Login, Stack Trace: $stackTrace');
       }
       ShowMessage().showToast('Invalid credentials. Please try again.');
     }
   }
 
-  Future<void> saveSession(
-      String enteredDriverID, PostgrestMap response) async {
+  Future<void> saveSession(String enteredDriverID, PostgrestMap response) async {
     final sessionToken = AuthService.generateSecureToken();
     // final expirationTime =
     //     DateTime.now().add(const Duration(hours: 24)).toIso8601String();
@@ -120,9 +129,7 @@ class _LogInState extends State<LogIn> {
     await context.read<PassengerProvider>().getBookingRequestsID(context);
     debugPrint('Fetching passenger bookings');
 
-    await context
-        .read<MapProvider>()
-        .getRouteCoordinates(context.read<DriverProvider>().routeID);
+    await context.read<MapProvider>().getRouteCoordinates(context.read<DriverProvider>().routeID);
   }
 
   void _updateStatusToDB() {
@@ -140,15 +147,11 @@ class _LogInState extends State<LogIn> {
   }
 
   void _setVehicleID(PostgrestMap response) {
-    context
-        .read<DriverProvider>()
-        .setVehicleID(response['vehicle_id'].toString());
+    context.read<DriverProvider>().setVehicleID(response['vehicle_id'].toString());
   }
 
   void _setDriverID(PostgrestMap response) {
-    context
-        .read<DriverProvider>()
-        .setDriverID(response['driver_id'].toString());
+    context.read<DriverProvider>().setDriverID(response['driver_id'].toString());
   }
 
   @override
@@ -176,8 +179,7 @@ class _LogInState extends State<LogIn> {
                     horizontal: horizontalPadding,
                   ),
                   child: Column(
-                    mainAxisAlignment:
-                        MainAxisAlignment.center, // Center column content
+                    mainAxisAlignment: MainAxisAlignment.center, // Center column content
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Use screenHeight/Width directly for spacing and sizing
@@ -231,8 +233,7 @@ class _LogInState extends State<LogIn> {
             ? const CircularProgressIndicator(color: Colors.white)
             : Text(
                 'Log in',
-                style: Styles()
-                    .textStyle(20, Styles.w700Weight, Styles.customWhite),
+                style: Styles().textStyle(20, Styles.w700Weight, Styles.customWhite),
               ),
       ),
     );
@@ -277,9 +278,7 @@ class _LogInState extends State<LogIn> {
                 });
               },
               icon: Icon(
-                isPasswordVisible
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
+                isPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
               ),
             ),
             hintText: 'Enter your Password here',
@@ -294,8 +293,7 @@ class _LogInState extends State<LogIn> {
               Icons.lock_outline,
               color: Colors.black54,
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
           ),
           style: const TextStyle(
             fontSize: 16,
@@ -312,13 +310,11 @@ class _LogInState extends State<LogIn> {
         children: [
           Text(
             'Enter your ',
-            style:
-                Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
+            style: Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
           ),
           Text(
             'Password',
-            style:
-                Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
+            style: Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
           ),
         ],
       ),
@@ -331,13 +327,11 @@ class _LogInState extends State<LogIn> {
         children: [
           Text(
             'Enter your ',
-            style:
-                Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
+            style: Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
           ),
           Text(
             'Driver ID',
-            style:
-                Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
+            style: Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
           ),
         ],
       ),
@@ -373,8 +367,7 @@ class _LogInState extends State<LogIn> {
               Icons.person_outline,
               color: Colors.black54,
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
           ),
           style: const TextStyle(
             fontSize: 16,
@@ -399,8 +392,7 @@ class _LogInState extends State<LogIn> {
           margin: EdgeInsets.only(top: topMargin),
           child: Text(
             'Log-in to your account',
-            style:
-                Styles().textStyle(18, Styles.w700Weight, Styles.customBlack),
+            style: Styles().textStyle(18, Styles.w700Weight, Styles.customBlack),
           ),
         ),
       ],

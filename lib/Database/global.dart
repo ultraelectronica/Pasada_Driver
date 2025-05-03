@@ -57,9 +57,7 @@ class GlobalVar {
       currentStatusNotifier.value = driverStatus[index];
 
       //updates the driver status in the provider
-      context
-          .read<DriverProvider>()
-          .setDriverStatus(currentStatusNotifier.value);
+      context.read<DriverProvider>().setDriverStatus(currentStatusNotifier.value);
 
       //updates the database
       updateStatusToDB(currentStatusNotifier.value, context);

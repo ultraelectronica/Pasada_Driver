@@ -69,18 +69,24 @@ class PassengerProvider with ChangeNotifier {
   ///
   /// This method:
   /// 1. Fetches booking requests with 'requested' status for the current driver
-  /// 2. Processes the booking requests to find valid ones (passenger ahead by >20m)
+  /// 2. Checks all valid booking request | Conditions: passenger ahead to driver by > 20m
   /// 3. Finds the nearest valid passenger
-  /// 4. Updates the provider state with booking details
+  /// 4. Sets the pickup location for the nearest valid passenger and displays it on the map
+  /// 5. Updates the provider state with booking details
   Future<void> getBookingRequestsID(BuildContext context) async {
     try {
-      final driverID = context.read<DriverProvider>().driverID;
+      // Store the context in a local variable to avoid BuildContext across async gaps warning
+      final currentContext = context;
 
-      // Get booking requests
+      // Get driver ID and locations before async operation
+      final driverID = currentContext.read<DriverProvider>().driverID;
+      final LatLng? currentLocation = currentContext.read<MapProvider>().currentLocation;
+      final LatLng? endingLocation = currentContext.read<MapProvider>().endingLocation;
+
+      /// Get booking requests
       final response = await supabase
           .from('bookings')
-          .select(
-              'booking_id, passenger_id, ride_status, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng')
+          .select('booking_id, passenger_id, ride_status, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng')
           .eq('driver_id', driverID)
           .eq('ride_status', 'requested');
       // Ride Statuses: [requested, accepted, ongoing, completed, cancelled]
@@ -89,25 +95,106 @@ class PassengerProvider with ChangeNotifier {
         debugPrint('Retrieved ${response.length} booking requests');
       }
 
-      // Store the context in a local variable to avoid BuildContext across async gaps warning
-      final currentContext = context;
-      if (currentContext.mounted) {
-        // Find the nearest valid booking request
-        checkNearestBookingRequest(response, currentContext);
+      // Check if context is still valid after async operation
+      if (!currentContext.mounted) {
+        debugPrint('Context no longer mounted, aborting operation');
+        return;
       }
 
-      if (response.isNotEmpty) {
-        // Store full booking details
-        List<BookingDetail> details = response
-            .map<BookingDetail>((record) => BookingDetail.fromJson(record))
-            .toList();
-        setBookingDetails(details);
+      // container for valid bookings (passengers ahead by more than 20 meters)
+      List<Map<String, dynamic>> validBookings = [];
 
-        List<String> ids = details.map((detail) => detail.bookingId).toList();
-        setBookingIDs(ids);
+      //check if necessary locations are available
+      if (currentLocation != null && endingLocation != null && response.isNotEmpty) {
+        // Calculate driver's distance to end once
+        final double driverDistanceToEnd = Geolocator.distanceBetween(
+          endingLocation.latitude,
+          endingLocation.longitude,
+          currentLocation.latitude,
+          currentLocation.longitude,
+        );
+
+        // Filter valid bookings and pre-calculate distances to driver
+        for (var booking in response) {
+          final LatLng pickupLocation = LatLng(booking['pickup_lat'], booking['pickup_lng']);
+
+          // Calculate passenger's distance to end
+          final double passengerDistanceToEnd = Geolocator.distanceBetween(
+            endingLocation.latitude,
+            endingLocation.longitude,
+            pickupLocation.latitude,
+            pickupLocation.longitude,
+          );
+
+          // Check if passenger is ahead of driver by more than 20 meters
+          if (passengerDistanceToEnd < driverDistanceToEnd) {
+            final double metersAhead = driverDistanceToEnd - passengerDistanceToEnd;
+            if (metersAhead > 20) {
+              // Calculate distance to driver once
+              final double distanceToDriver = Geolocator.distanceBetween(
+                currentLocation.latitude,
+                currentLocation.longitude,
+                pickupLocation.latitude,
+                pickupLocation.longitude,
+              );
+
+              // Add to valid bookings with pre-calculated distance
+              validBookings.add({
+                ...booking,
+                'distance_to_driver': distanceToDriver,
+                'pickup_location': pickupLocation,
+              });
+            }
+          }
+        }
+
+        debugPrint('Found ${validBookings.length} valid bookings (passengers ahead by >20m)');
+
+        if (currentContext.mounted) {
+          // Find the nearest valid booking request
+          findNearestBookingAndSetPickup(validBookings, currentContext);
+        }
+
+        if (validBookings.isNotEmpty) {
+          // Store only valid booking details
+          List<BookingDetail> details = validBookings
+              .map<BookingDetail>((record) => BookingDetail.fromJson({
+                    'booking_id': record['booking_id'],
+                    'passenger_id': record['passenger_id'],
+                    'ride_status': record['ride_status'],
+                    'pickup_lat': record['pickup_lat'],
+                    'pickup_lng': record['pickup_lng'],
+                    'dropoff_lat': record['dropoff_lat'],
+                    'dropoff_lng': record['dropoff_lng'],
+                  }))
+              .toList();
+          setBookingDetails(details);
+
+          List<String> ids = details.map((detail) => detail.bookingId).toList();
+          setBookingIDs(ids);
+
+          if (kDebugMode) {
+            debugPrint('Stored ${details.length} valid booking details');
+          }
+        } else {
+          setBookingDetails([]);
+          setBookingIDs([]);
+          if (kDebugMode) {
+            debugPrint('No valid bookings to store');
+          }
+        }
       } else {
+        // Handle case when locations are not available or no bookings
         setBookingDetails([]);
         setBookingIDs([]);
+        if (kDebugMode) {
+          if (currentLocation == null || endingLocation == null) {
+            debugPrint(
+                'Missing location data: currentLocation=$currentLocation, endingLocation=$endingLocation');
+          } else if (response.isEmpty) {
+            debugPrint('No booking requests found');
+          }
+        }
       }
     } catch (e, stackTrace) {
       if (kDebugMode) {
@@ -117,99 +204,35 @@ class PassengerProvider with ChangeNotifier {
     }
   }
 
-  void checkNearestBookingRequest(
-      PostgrestList response, BuildContext context) {
+  void findNearestBookingAndSetPickup(List<Map<String, dynamic>> validBookings, BuildContext context) {
     try {
       // Early exit if no bookings
-      if (response.isEmpty) {
-        return;
-      }
-
-      // Get locations once outside the loop
-      final LatLng? currentLocation =
-          context.read<MapProvider>().currentLocation;
-      final LatLng? endingLocation = context.read<MapProvider>().endingLocation;
-
-      if (currentLocation == null || endingLocation == null) {
-        debugPrint(
-            'Cannot check nearest booking: current or ending location is null');
-        return;
-      }
-
-      String? nearestPassengerId;
-      double? nearestDistance;
-      LatLng? nearestPassengerLocation;
-
-      // Pre-filter valid bookings (passengers ahead by more than 20 meters)
-      List<Map<String, dynamic>> validBookings = [];
-
-      for (var booking in response) {
-        final LatLng pickupLocation =
-            LatLng(booking['pickup_lat'], booking['pickup_lng']);
-
-        // Calculate distances once
-        final double passengerDistanceToEnd = Geolocator.distanceBetween(
-          endingLocation.latitude,
-          endingLocation.longitude,
-          pickupLocation.latitude,
-          pickupLocation.longitude,
-        );
-
-        final double driverDistanceToEnd = Geolocator.distanceBetween(
-          endingLocation.latitude,
-          endingLocation.longitude,
-          currentLocation.latitude,
-          currentLocation.longitude,
-        );
-
-        // Check if passenger is ahead of driver by more than 20 meters
-        if (passengerDistanceToEnd < driverDistanceToEnd) {
-          final double metersAhead =
-              driverDistanceToEnd - passengerDistanceToEnd;
-          if (metersAhead > 20) {
-            // Calculate distance to driver once
-            final double distanceToDriver = Geolocator.distanceBetween(
-              currentLocation.latitude,
-              currentLocation.longitude,
-              pickupLocation.latitude,
-              pickupLocation.longitude,
-            );
-
-            // Add to valid bookings with pre-calculated distance
-            validBookings.add({
-              ...booking,
-              'distance_to_driver': distanceToDriver,
-              'pickup_location': pickupLocation,
-            });
-          }
+      if (validBookings.isEmpty) {
+        if (kDebugMode) {
+          debugPrint('No valid bookings to process');
         }
+        return;
       }
 
       // Sort valid bookings by distance (most efficient way to find nearest)
-      if (validBookings.isNotEmpty) {
-        validBookings.sort((a, b) => (a['distance_to_driver'] as double)
-            .compareTo(b['distance_to_driver'] as double));
+      validBookings
+          .sort((a, b) => (a['distance_to_driver'] as double).compareTo(b['distance_to_driver'] as double));
 
-        // The first booking is now the nearest
-        final nearestBooking = validBookings.first;
-        nearestPassengerId = nearestBooking['booking_id'].toString();
-        nearestDistance = nearestBooking['distance_to_driver'];
-        nearestPassengerLocation = nearestBooking['pickup_location'];
+      // The first booking is now the nearest
+      final nearestBooking = validBookings.first;
+      final String nearestPassengerId = nearestBooking['booking_id'].toString();
+      final double nearestDistance = nearestBooking['distance_to_driver'] as double;
+      final LatLng nearestPassengerLocation = nearestBooking['pickup_location'] as LatLng;
 
-        // Set the pickup location for the nearest valid passenger
-        if (nearestPassengerLocation != null) {
-          context
-              .read<MapProvider>()
-              .setPickUpLocation(nearestPassengerLocation);
-          debugPrint(
-              'Set nearest passenger: ID: $nearestPassengerId, Distance: $nearestDistance meters, location: $nearestPassengerLocation');
-        }
-      } else {
+      // Set the pickup location for the nearest valid passenger
+      context.read<MapProvider>().setPickUpLocation(nearestPassengerLocation);
+
+      if (kDebugMode) {
         debugPrint(
-            'No valid bookings found (passengers must be ahead by >20m)');
+            'Set nearest passenger: ID: $nearestPassengerId, Distance: ${nearestDistance.toStringAsFixed(2)} meters');
       }
     } on Exception catch (e, stackTrace) {
-      debugPrint('Error checking nearest passenger: $e');
+      debugPrint('Error finding nearest passenger: $e');
       debugPrint('Stack Trace in nearest passenger: $stackTrace');
     }
   }

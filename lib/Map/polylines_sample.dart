@@ -175,7 +175,7 @@ class _MapScreenState extends State<MapScreen> {
               ),
               markers: _markers,
               polylines: _polylines,
-              myLocationEnabled: true,  // Show user's location dot
+              myLocationEnabled: true, // Show user's location dot
               myLocationButtonEnabled: true,
             ),
     );

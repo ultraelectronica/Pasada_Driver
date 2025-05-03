@@ -35,16 +35,12 @@ class PassengerCapacity {
       debugPrint('Passenger capacity updated to DB: $response');
 
       if (getOngoingPassenger.isNotEmpty) {
-        context
-            .read<DriverProvider>()
-            .setPassengerCapacity(getOngoingPassenger.length);
+        context.read<DriverProvider>().setPassengerCapacity(getOngoingPassenger.length);
 
         debugPrint(
             'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
       } else {
-        context
-            .read<DriverProvider>()
-            .setPassengerCapacity(getOngoingPassenger.length);
+        context.read<DriverProvider>().setPassengerCapacity(getOngoingPassenger.length);
         debugPrint(
             'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
       }
@@ -70,10 +66,8 @@ class PassengerCapacity {
     } catch (e, StackTrace) {
       debugPrint('Error fetching passenger capacity: $e');
       debugPrint('Passenger Capacity Stack Trace: $StackTrace');
-      debugPrint(
-          'Error: Driver ID in checking capacity: ${context.read<DriverProvider>().driverID}');
-      debugPrint(
-          'Error: Vehicle ID in checking capacity: ${context.read<DriverProvider>().vehicleID}');
+      debugPrint('Error: Driver ID in checking capacity: ${context.read<DriverProvider>().driverID}');
+      debugPrint('Error: Vehicle ID in checking capacity: ${context.read<DriverProvider>().vehicleID}');
     }
   }
 }

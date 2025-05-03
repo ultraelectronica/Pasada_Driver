@@ -20,18 +20,15 @@ class ActivityPageState extends State<ActivityPage> {
 
     return Center(
       child: Padding(
-        padding: EdgeInsets.only(
-            top: screenWidth * 0.155,
-            left: screenWidth * 0.04,
-            right: screenWidth * 0.04),
+        padding:
+            EdgeInsets.only(top: screenWidth * 0.155, left: screenWidth * 0.04, right: screenWidth * 0.04),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             // TITLE
             Text(
               'Driver Activity',
-              style:
-                  Styles().textStyle(20, FontWeight.w600, Styles.customBlack),
+              style: Styles().textStyle(20, FontWeight.w600, Styles.customBlack),
             ),
 
             SizedBox(height: screenHeight * 0.03),
@@ -43,8 +40,7 @@ class ActivityPageState extends State<ActivityPage> {
               },
               icon: const Icon(Icons.refresh),
               label: Text('Refresh Bookings',
-                  style: Styles()
-                      .textStyle(14, FontWeight.w400, Styles.customBlack)),
+                  style: Styles().textStyle(14, FontWeight.w400, Styles.customBlack)),
             ),
 
             const SizedBox(height: 10),
@@ -55,14 +51,12 @@ class ActivityPageState extends State<ActivityPage> {
                   ? Center(
                       child: Text(
                         'No active bookings',
-                        style: Styles()
-                            .textStyle(16, FontWeight.w400, Colors.grey),
+                        style: Styles().textStyle(16, FontWeight.w400, Colors.grey),
                       ),
                     )
                   : ListView.separated(
                       itemCount: bookingDetails.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 10),
+                      separatorBuilder: (context, index) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
                         return _buildBookingItem(bookingDetails[index]);
                       },
@@ -91,31 +85,26 @@ class ActivityPageState extends State<ActivityPage> {
               children: [
                 Text(
                   'Booking ID: ${booking.bookingId}',
-                  style: Styles()
-                      .textStyle(14, FontWeight.w500, Styles.customBlack),
+                  style: Styles().textStyle(14, FontWeight.w500, Styles.customBlack),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Passenger ID: ${booking.passengerId}',
-                  style: Styles()
-                      .textStyle(14, FontWeight.w400, Colors.grey[700]!),
+                  style: Styles().textStyle(14, FontWeight.w400, Colors.grey[700]!),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Status: ${booking.rideStatus}',
-                  style: Styles()
-                      .textStyle(14, FontWeight.w400, Colors.grey[700]!),
+                  style: Styles().textStyle(14, FontWeight.w400, Colors.grey[700]!),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Pickup: (${booking.pickupLat.toStringAsFixed(2)}, ${booking.pickupLng.toStringAsFixed(2)})',
-                  style: Styles()
-                      .textStyle(12, FontWeight.w400, Colors.grey[700]!),
+                  style: Styles().textStyle(12, FontWeight.w400, Colors.grey[700]!),
                 ),
                 Text(
                   'Dropoff: (${booking.dropoffLat.toStringAsFixed(2)}, ${booking.dropoffLng.toStringAsFixed(2)})',
-                  style: Styles()
-                      .textStyle(12, FontWeight.w400, Colors.grey[700]!),
+                  style: Styles().textStyle(12, FontWeight.w400, Colors.grey[700]!),
                 ),
               ],
             ),

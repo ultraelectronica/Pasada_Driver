@@ -45,19 +45,16 @@ class PassengerCounterState extends State<PassengerCounter> {
                 children: [
                   Text(
                     'Passenger Counter',
-                    style: Styles()
-                        .textStyle(24, FontWeight.w600, Styles.customBlack),
+                    style: Styles().textStyle(24, FontWeight.w600, Styles.customBlack),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     '${driverProvider.passengerCapacity}',
-                    style: Styles()
-                        .textStyle(48, FontWeight.w700, Styles.customBlack),
+                    style: Styles().textStyle(48, FontWeight.w700, Styles.customBlack),
                   ),
                   Text(
                     'Current Passengers',
-                    style: Styles()
-                        .textStyle(16, FontWeight.w400, Colors.grey[600]!),
+                    style: Styles().textStyle(16, FontWeight.w400, Colors.grey[600]!),
                   ),
                 ],
               ),
@@ -70,8 +67,7 @@ class PassengerCounterState extends State<PassengerCounter> {
               children: [
                 _CounterButton(
                   onPressed: () {
-                    driverProvider.setPassengerCapacity(
-                        driverProvider.passengerCapacity + 1);
+                    driverProvider.setPassengerCapacity(driverProvider.passengerCapacity + 1);
                   },
                   icon: Icons.add_circle_outline,
                   label: 'Add Passenger',
@@ -83,8 +79,7 @@ class PassengerCounterState extends State<PassengerCounter> {
                 _CounterButton(
                   onPressed: () {
                     if (driverProvider.passengerCapacity > 0) {
-                      driverProvider.setPassengerCapacity(
-                          driverProvider.passengerCapacity - 1);
+                      driverProvider.setPassengerCapacity(driverProvider.passengerCapacity - 1);
                     }
                   },
                   icon: Icons.remove_circle_outline,
