@@ -189,7 +189,8 @@ class PassengerProvider with ChangeNotifier {
         setBookingIDs([]);
         if (kDebugMode) {
           if (currentLocation == null || endingLocation == null) {
-            debugPrint('Missing location data: currentLocation=$currentLocation, endingLocation=$endingLocation');
+            debugPrint(
+                'Missing location data: currentLocation=$currentLocation, endingLocation=$endingLocation');
           } else if (response.isEmpty) {
             debugPrint('No booking requests found');
           }
@@ -214,7 +215,8 @@ class PassengerProvider with ChangeNotifier {
       }
 
       // Sort valid bookings by distance (most efficient way to find nearest)
-      validBookings.sort((a, b) => (a['distance_to_driver'] as double).compareTo(b['distance_to_driver'] as double));
+      validBookings
+          .sort((a, b) => (a['distance_to_driver'] as double).compareTo(b['distance_to_driver'] as double));
 
       // The first booking is now the nearest
       final nearestBooking = validBookings.first;
@@ -226,7 +228,8 @@ class PassengerProvider with ChangeNotifier {
       context.read<MapProvider>().setPickUpLocation(nearestPassengerLocation);
 
       if (kDebugMode) {
-        debugPrint('Set nearest passenger: ID: $nearestPassengerId, Distance: ${nearestDistance.toStringAsFixed(2)} meters');
+        debugPrint(
+            'Set nearest passenger: ID: $nearestPassengerId, Distance: ${nearestDistance.toStringAsFixed(2)} meters');
       }
     } on Exception catch (e, stackTrace) {
       debugPrint('Error finding nearest passenger: $e');

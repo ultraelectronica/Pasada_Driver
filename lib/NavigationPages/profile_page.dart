@@ -107,7 +107,8 @@ class ProfilePageState extends State<ProfilePage> {
                     // --- Driver Name ---
                     Text(
                       '${driverProvider.driverFirstName} ${driverProvider.driverLastName}',
-                      style: Styles().textStyle(22, Styles.w700Weight, Styles.customWhite), // White text on gradient
+                      style: Styles()
+                          .textStyle(22, Styles.w700Weight, Styles.customWhite), // White text on gradient
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
@@ -190,7 +191,9 @@ class ProfilePageState extends State<ProfilePage> {
           children: [
             _buildInfoRow(
               icon: Icons.phone_android, // Use Material Icons
-              text: driverProvider.driverNumber.isNotEmpty ? driverProvider.driverNumber : 'No phone number', // Handle empty number
+              text: driverProvider.driverNumber.isNotEmpty
+                  ? driverProvider.driverNumber
+                  : 'No phone number', // Handle empty number
             ),
             const SizedBox(height: 15),
             _buildInfoRow(
@@ -200,7 +203,8 @@ class ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 15),
             _buildInfoRow(
               icon: Icons.route_outlined,
-              text: 'Route: ${driverProvider.routeName} (${driverProvider.routeID})', // Combine Route name and ID
+              text:
+                  'Route: ${driverProvider.routeName} (${driverProvider.routeID})', // Combine Route name and ID
             ),
           ],
         ),

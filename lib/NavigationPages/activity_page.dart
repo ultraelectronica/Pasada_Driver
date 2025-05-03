@@ -20,7 +20,8 @@ class ActivityPageState extends State<ActivityPage> {
 
     return Center(
       child: Padding(
-        padding: EdgeInsets.only(top: screenWidth * 0.155, left: screenWidth * 0.04, right: screenWidth * 0.04),
+        padding:
+            EdgeInsets.only(top: screenWidth * 0.155, left: screenWidth * 0.04, right: screenWidth * 0.04),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
@@ -38,7 +39,8 @@ class ActivityPageState extends State<ActivityPage> {
                 context.read<PassengerProvider>().getBookingRequestsID(context);
               },
               icon: const Icon(Icons.refresh),
-              label: Text('Refresh Bookings', style: Styles().textStyle(14, FontWeight.w400, Styles.customBlack)),
+              label: Text('Refresh Bookings',
+                  style: Styles().textStyle(14, FontWeight.w400, Styles.customBlack)),
             ),
 
             const SizedBox(height: 10),

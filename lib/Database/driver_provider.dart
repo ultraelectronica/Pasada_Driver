@@ -125,7 +125,12 @@ class DriverProvider with ChangeNotifier {
   // }
 
   Future<void> updateStatusToDB(String newStatus, BuildContext context) async {
-    final response = await supabase.from('driverTable').update({'driving_status': newStatus}).eq('driver_id', driverID).select().single();
+    final response = await supabase
+        .from('driverTable')
+        .update({'driving_status': newStatus})
+        .eq('driver_id', driverID)
+        .select()
+        .single();
 
     if (kDebugMode) {
       print('Updated status: ${response['driving_status']}');
@@ -138,7 +143,11 @@ class DriverProvider with ChangeNotifier {
 
   Future<void> getPassengerCapacity() async {
     try {
-      final response = await supabase.from('vehicleTable').select('passenger_capacity').eq('vehicle_id', _vehicleID).single();
+      final response = await supabase
+          .from('vehicleTable')
+          .select('passenger_capacity')
+          .eq('vehicle_id', _vehicleID)
+          .single();
 
       if (kDebugMode) {
         print('Capacity: ${response['passenger_capacity'].toString()}');
@@ -155,7 +164,11 @@ class DriverProvider with ChangeNotifier {
 
   Future<void> getDriverCreds() async {
     try {
-      final response = await supabase.from('driverTable').select('first_name, last_name, driver_number').eq('driver_id', _driverID).single();
+      final response = await supabase
+          .from('driverTable')
+          .select('first_name, last_name, driver_number')
+          .eq('driver_id', _driverID)
+          .single();
 
       // ShowMessage().showToast(response.toString());
 
@@ -260,7 +273,8 @@ class DriverProvider with ChangeNotifier {
 
   Future<void> getDriverRoute() async {
     try {
-      final response = await supabase.from('vehicleTable').select('route_id').eq('vehicle_id', vehicleID).single();
+      final response =
+          await supabase.from('vehicleTable').select('route_id').eq('vehicle_id', vehicleID).single();
 
       _routeID = response['route_id'];
       // context.read<MapProvider>().setRouteID(response['route_id'] as int);

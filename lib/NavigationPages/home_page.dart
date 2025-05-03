@@ -86,7 +86,10 @@ class HomePageState extends State<HomePage> {
 
             // PASSENGER CAPACITY
             FloatingPassengerCapacity(
-                screenHeight: screenHeight, screenWidth: screenWidth, Provider: driverProvider, passengerCapacity: PassengerCapacity()),
+                screenHeight: screenHeight,
+                screenWidth: screenWidth,
+                Provider: driverProvider,
+                passengerCapacity: PassengerCapacity()),
           ],
         ),
       ),
@@ -134,7 +137,11 @@ class FloatingMessageButton extends StatelessWidget {
 
 class FloatingPassengerCapacity extends StatelessWidget {
   const FloatingPassengerCapacity(
-      {super.key, required this.screenHeight, required this.screenWidth, required this.Provider, required this.passengerCapacity});
+      {super.key,
+      required this.screenHeight,
+      required this.screenWidth,
+      required this.Provider,
+      required this.passengerCapacity});
 
   final double screenHeight;
   final double screenWidth;

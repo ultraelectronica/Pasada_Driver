@@ -79,7 +79,12 @@ class GlobalVar {
       print('Driver new driving status in method: $newStatus');
     }
 
-    final response = await supabase.from('driverTable').update({'driving_status': newStatus}).eq('driver_id', driverID).select().single();
+    final response = await supabase
+        .from('driverTable')
+        .update({'driving_status': newStatus})
+        .eq('driver_id', driverID)
+        .select()
+        .single();
 
     if (kDebugMode) {
       print('new data: ${response['driving_status']}');

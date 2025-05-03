@@ -50,7 +50,9 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
     if (state == AppLifecycleState.resumed) {
       // set driving status to Online
-      context.read<DriverProvider>().updateStatusToDB(context.read<DriverProvider>().lastDriverStatus!, context); //Error here
+      context
+          .read<DriverProvider>()
+          .updateStatusToDB(context.read<DriverProvider>().lastDriverStatus!, context); //Error here
       ShowMessage().showToast('App resumed');
     } else if (state == AppLifecycleState.paused) {
       // set driving status to idling
@@ -111,8 +113,12 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
               Center(
                 child: ElevatedButton(
                   onPressed: () {
-                    context.read<DriverProvider>().updateStatusToDB('Driving', context); //update status to driving
-                    context.read<DriverProvider>().setDriverStatus('Driving'); //update driver status to driving
+                    context
+                        .read<DriverProvider>()
+                        .updateStatusToDB('Driving', context); //update status to driving
+                    context
+                        .read<DriverProvider>()
+                        .setDriverStatus('Driving'); //update driver status to driving
                     context.read<DriverProvider>().setIsDriving(true); //update is driving to true
 
                     Navigator.of(context).pop();

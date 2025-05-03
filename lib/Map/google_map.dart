@@ -49,10 +49,13 @@ class MapScreenState extends State<MapScreen> {
   // <<-- DEFAULT LOCATIONS -->>
 
   /// Novaliches to Malinta
-  static LatLng StartingLocation = const LatLng(14.721957951314671, 121.03660698876655); // savemore novaliches
-  static LatLng IntermediateLocation1 = const LatLng(14.711095415234702, 120.99311060642324); // VGC bus terminal
+  static LatLng StartingLocation =
+      const LatLng(14.721957951314671, 121.03660698876655); // savemore novaliches
+  static LatLng IntermediateLocation1 =
+      const LatLng(14.711095415234702, 120.99311060642324); // VGC bus terminal
   static LatLng IntermediateLocation2 = const LatLng(14.701160828529744, 120.98308262221344);
-  static LatLng EndingLocation = const LatLng(14.693028415325333, 120.96837623290318); // valenzuela peoples park
+  static LatLng EndingLocation =
+      const LatLng(14.693028415325333, 120.96837623290318); // valenzuela peoples park
 
   static LatLng? PickupLocation;
 
@@ -145,9 +148,11 @@ class MapScreenState extends State<MapScreen> {
 
       // Generate polyline once coordinates are loaded
       if (currentLocation != null) {
-        generatePolylineBetween(currentLocation!, IntermediateLocation1, IntermediateLocation2, EndingLocation);
+        generatePolylineBetween(
+            currentLocation!, IntermediateLocation1, IntermediateLocation2, EndingLocation);
       } else {
-        generatePolylineBetween(StartingLocation, IntermediateLocation1, IntermediateLocation2, EndingLocation);
+        generatePolylineBetween(
+            StartingLocation, IntermediateLocation1, IntermediateLocation2, EndingLocation);
       }
 
       _routeCoordinatesLoaded = true;
@@ -181,7 +186,8 @@ class MapScreenState extends State<MapScreen> {
       if (mounted) {
         // Generate initial polyline if not already done
         if (_lastPolylineUpdateLocation == null && currentLocation != null) {
-          generatePolylineBetween(currentLocation!, IntermediateLocation1, IntermediateLocation2, EndingLocation);
+          generatePolylineBetween(
+              currentLocation!, IntermediateLocation1, IntermediateLocation2, EndingLocation);
           _lastPolylineUpdateLocation = currentLocation;
         }
 
@@ -201,7 +207,9 @@ class MapScreenState extends State<MapScreen> {
           final newLatLng = LatLng(newLocation.latitude!, newLocation.longitude!);
 
           // Only update UI state if location actually changed
-          if (currentLocation == null || currentLocation!.latitude != newLatLng.latitude || currentLocation!.longitude != newLatLng.longitude) {
+          if (currentLocation == null ||
+              currentLocation!.latitude != newLatLng.latitude ||
+              currentLocation!.longitude != newLatLng.longitude) {
             setState(() {
               currentLocation = newLatLng;
 
@@ -316,7 +324,8 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // <<-- POLYLINES -->>
-  Future<void> generatePolylineBetween(LatLng start, LatLng intermediate1, LatLng intermediate2, LatLng destination) async {
+  Future<void> generatePolylineBetween(
+      LatLng start, LatLng intermediate1, LatLng intermediate2, LatLng destination) async {
     try {
       final String apiKey = dotenv.env['ANDROID_MAPS_API_KEY']!;
       final polylinePoints = PolylinePoints();
@@ -398,7 +407,8 @@ class MapScreenState extends State<MapScreen> {
       }
 
       List<PointLatLng> decodedPolyline = polylinePoints.decodePolyline(polyline);
-      List<LatLng> polylineCoordinates = decodedPolyline.map((point) => LatLng(point.latitude, point.longitude)).toList();
+      List<LatLng> polylineCoordinates =
+          decodedPolyline.map((point) => LatLng(point.latitude, point.longitude)).toList();
 
       if (mounted) {
         setState(() {
