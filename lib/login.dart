@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/passenger_capacity.dart';
+import 'package:pasada_driver_side/Services/password_util.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
@@ -48,10 +49,18 @@ class _LogInState extends State<LogIn> {
       //Query to get the driverID and password from the driverTable
       final response = await Supabase.instance.client
           .from('driverTable')
-          .select('first_name, driver_id, vehicle_id')
+          .select('first_name, driver_id, vehicle_id, driver_password')
           .eq('driver_id', enteredDriverID)
-          .eq('driver_password', enteredPassword)
           .single();
+
+      final storedHashedPassword = await response['driver_password'] as String;
+
+      bool checkPassword = PasswordUtil().checkPassword(enteredPassword, storedHashedPassword);
+
+      if (!checkPassword) {
+        ShowMessage().showToast('Invalid credentials. Please try again.');
+        throw Exception('Error: Invalid credentials $checkPassword');
+      }
 
       if (mounted) {
         // saves all the infos to the provider
@@ -72,9 +81,10 @@ class _LogInState extends State<LogIn> {
           print('Vehicle ID: ${response['vehicle_id']}');
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('Error during login: $e');
+        print('Error Login, Stack Trace: $stackTrace');
       }
       ShowMessage().showToast('Invalid credentials. Please try again.');
     }
