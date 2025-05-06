@@ -15,8 +15,11 @@ class DriverProvider with ChangeNotifier {
   String _routeName = 'N/A';
 
   String? _lastDriverStatus;
-  int _passengerCapacity = 0;
   bool _isDriving = false;
+
+  int _passengerCapacity = 0;
+  int _passengerStandingCapacity = 0;
+  int _passengerSittingCapacity = 0;
 
   String _driverFirstName = 'firstName';
   String _driverLastName = 'lastName';
@@ -35,7 +38,11 @@ class DriverProvider with ChangeNotifier {
   String get routeName => _routeName;
   String get driverStatus => _driverStatus;
   String? get lastDriverStatus => _lastDriverStatus;
+
   int get passengerCapacity => _passengerCapacity;
+  int get passengerStandingCapacity => _passengerStandingCapacity;
+  int get passengerSittingCapacity => _passengerSittingCapacity;
+
   bool get isDriving => _isDriving;
 
   String? get driverFirstName => _driverFirstName;
@@ -80,6 +87,16 @@ class DriverProvider with ChangeNotifier {
 
   void setPassengerCapacity(int value) {
     _passengerCapacity = value;
+    notifyListeners();
+  }
+
+  void setPassengerStandingCapacity(int value) {
+    _passengerStandingCapacity = value;
+    notifyListeners();
+  }
+
+  void setPassengerSittingCapacity(int value) {
+    _passengerSittingCapacity = value;
     notifyListeners();
   }
 
