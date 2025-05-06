@@ -25,6 +25,29 @@ class PassengerCapacity {
 
       debugPrint('Ongoing Passenger: $getOngoingPassenger');
 
+      int standingPassengers = 0;
+      int sittingPassengers = 0;
+
+      for (var passenger in getOngoingPassenger) {
+        if (passenger['seat_type'] == 'standing') {
+          standingPassengers++;
+          debugPrint('Passenger is standing');
+        }
+      }
+
+      for (var passenger in getOngoingPassenger) {
+        if (passenger['seat_type'] == 'sitting') {
+          sittingPassengers++;
+          debugPrint('Passenger is sitting');
+        }
+      }
+
+      debugPrint('Standing Passengers: $standingPassengers');
+      context.read<DriverProvider>().setPassengerStandingCapacity(standingPassengers);
+
+      debugPrint('Sitting Passengers: $sittingPassengers');
+      context.read<DriverProvider>().setPassengerSittingCapacity(sittingPassengers);
+
       //updates how many passengers are ongoing in the vehicle table
       final response = await supabase
           .from('vehicleTable')

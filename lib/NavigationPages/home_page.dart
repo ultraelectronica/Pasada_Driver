@@ -90,6 +90,20 @@ class HomePageState extends State<HomePage> {
                 screenWidth: screenWidth,
                 Provider: driverProvider,
                 passengerCapacity: PassengerCapacity()),
+
+            // PASSENGER STANDING CAPACITY
+            FloatingPassengerStandingCapacity(
+                screenHeight: screenHeight,
+                screenWidth: screenWidth,
+                Provider: driverProvider,
+                passengerCapacity: PassengerCapacity()),
+
+            // PASSENGER SITTING CAPACITY
+            FloatingPassengerSittingCapacity(
+                screenHeight: screenHeight,
+                screenWidth: screenWidth,
+                Provider: driverProvider,
+                passengerCapacity: PassengerCapacity()),
           ],
         ),
       ),
@@ -167,6 +181,86 @@ class FloatingPassengerCapacity extends StatelessWidget {
           ),
           child: Text(
             Provider.passengerCapacity.toString(),
+            style: Styles().textStyle(22, Styles.w600Weight, Styles.customBlack),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class FloatingPassengerStandingCapacity extends StatelessWidget {
+  const FloatingPassengerStandingCapacity(
+      {super.key,
+      required this.screenHeight,
+      required this.screenWidth,
+      required this.Provider,
+      required this.passengerCapacity});
+
+  final double screenHeight;
+  final double screenWidth;
+  final DriverProvider Provider;
+  final PassengerCapacity passengerCapacity;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: screenHeight * 0.25,
+      right: screenWidth * 0.05,
+      child: SizedBox(
+        width: 50,
+        height: 50,
+        child: FloatingActionButton(
+          heroTag: null,
+          onPressed: () {
+            passengerCapacity.getPassengerCapacityToDB(context);
+          },
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Text(
+            Provider.passengerStandingCapacity.toString(),
+            style: Styles().textStyle(22, Styles.w600Weight, Styles.customBlack),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class FloatingPassengerSittingCapacity extends StatelessWidget {
+  const FloatingPassengerSittingCapacity(
+      {super.key,
+      required this.screenHeight,
+      required this.screenWidth,
+      required this.Provider,
+      required this.passengerCapacity});
+
+  final double screenHeight;
+  final double screenWidth;
+  final DriverProvider Provider;
+  final PassengerCapacity passengerCapacity;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: screenHeight * 0.325,
+      right: screenWidth * 0.05,
+      child: SizedBox(
+        width: 50,
+        height: 50,
+        child: FloatingActionButton(
+          heroTag: null,
+          onPressed: () {
+            passengerCapacity.getPassengerCapacityToDB(context);
+          },
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Text(
+            Provider.passengerSittingCapacity.toString(),
             style: Styles().textStyle(22, Styles.w600Weight, Styles.customBlack),
           ),
         ),
