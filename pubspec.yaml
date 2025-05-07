@@ -109,6 +109,7 @@ flutter:
     - assets/svg/listFilled.svg
     - assets/svg/sitting.svg
     - assets/svg/standing.svg
+    - assets/svg/people.svg
     - .env
 
   # To add assets to your application, add an assets section, like this:
