@@ -55,7 +55,8 @@ class _LogInState extends State<LogIn> {
 
       final storedHashedPassword = await response['driver_password'] as String;
 
-      bool checkPassword = PasswordUtil().checkPassword(enteredPassword, storedHashedPassword);
+      bool checkPassword =
+          PasswordUtil().checkPassword(enteredPassword, storedHashedPassword);
 
       if (!checkPassword) {
         ShowMessage().showToast('Invalid credentials. Please try again.');
@@ -90,7 +91,8 @@ class _LogInState extends State<LogIn> {
     }
   }
 
-  Future<void> saveSession(String enteredDriverID, PostgrestMap response) async {
+  Future<void> saveSession(
+      String enteredDriverID, PostgrestMap response) async {
     final sessionToken = AuthService.generateSecureToken();
     // final expirationTime =
     //     DateTime.now().add(const Duration(hours: 24)).toIso8601String();
@@ -111,25 +113,69 @@ class _LogInState extends State<LogIn> {
   }
 
   Future<void> _setDriverInfo(PostgrestMap response) async {
-    _setDriverID(response);
+    try {
+      debugPrint('Starting driver info initialization...');
 
-    _setVehicleID(response);
+      // Set basic driver info first
+      _setDriverID(response);
+      _setVehicleID(response);
+      debugPrint(
+          'Basic driver info set - DriverID: ${response['driver_id']}, VehicleID: ${response['vehicle_id']}');
 
-    // context.read<MapProvider>().getDriverRoute(context);
-    context.read<DriverProvider>().getDriverRoute();
+      // Wait for driver route to be set before proceeding
+      await context.read<DriverProvider>().getDriverRoute();
+      debugPrint('Initial route ID fetch completed');
 
-    _setPassengerCapacity();
+      // Add retry logic for route ID
+      int retryCount = 0;
+      int maxRetries = 3;
+      int currentRouteID = context.read<DriverProvider>().routeID;
 
-    _updateStatusToDB();
+      while (currentRouteID <= 0 && retryCount < maxRetries) {
+        debugPrint(
+            'Retrying to get route ID. Attempt ${retryCount + 1} of $maxRetries');
+        await Future.delayed(const Duration(milliseconds: 500));
+        await context.read<DriverProvider>().getDriverRoute();
+        currentRouteID = context.read<DriverProvider>().routeID;
+        debugPrint('Current route ID after retry: $currentRouteID');
+        retryCount++;
+      }
 
-    await _setDriverCreds();
+      // Only proceed with other operations if we have a valid route ID
+      if (currentRouteID > 0) {
+        debugPrint('Valid route ID obtained: $currentRouteID');
 
-    await context.read<DriverProvider>().getRouteCoordinates();
+        // Set passenger capacity
+        _setPassengerCapacity();
+        debugPrint('Passenger capacity set');
 
-    await context.read<PassengerProvider>().getBookingRequestsID(context);
-    debugPrint('Fetching passenger bookings');
+        // Update driver status
+        _updateStatusToDB();
+        debugPrint('Driver status updated');
 
-    await context.read<MapProvider>().getRouteCoordinates(context.read<DriverProvider>().routeID);
+        // Get driver credentials
+        await _setDriverCreds();
+        debugPrint('Driver credentials fetched');
+
+        // Get route coordinates using MapProvider
+        debugPrint('Fetching route coordinates for route ID: $currentRouteID');
+        await context.read<MapProvider>().getRouteCoordinates(currentRouteID);
+        debugPrint('Route coordinates fetched');
+
+        // Get booking requests
+        await context.read<PassengerProvider>().getBookingRequestsID(context);
+        debugPrint('Booking requests fetched');
+      } else {
+        debugPrint('Failed to get valid route ID after $maxRetries attempts');
+        ShowMessage().showToast(
+            'Warning: Could not load route information. Some features may be limited.');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Error in _setDriverInfo: $e');
+      debugPrint('Stack Trace: $stackTrace');
+      ShowMessage()
+          .showToast('Error initializing driver info. Please try again.');
+    }
   }
 
   void _updateStatusToDB() {
@@ -147,11 +193,15 @@ class _LogInState extends State<LogIn> {
   }
 
   void _setVehicleID(PostgrestMap response) {
-    context.read<DriverProvider>().setVehicleID(response['vehicle_id'].toString());
+    context
+        .read<DriverProvider>()
+        .setVehicleID(response['vehicle_id'].toString());
   }
 
   void _setDriverID(PostgrestMap response) {
-    context.read<DriverProvider>().setDriverID(response['driver_id'].toString());
+    context
+        .read<DriverProvider>()
+        .setDriverID(response['driver_id'].toString());
   }
 
   @override
@@ -179,7 +229,8 @@ class _LogInState extends State<LogIn> {
                     horizontal: horizontalPadding,
                   ),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center, // Center column content
+                    mainAxisAlignment:
+                        MainAxisAlignment.center, // Center column content
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Use screenHeight/Width directly for spacing and sizing
@@ -233,7 +284,8 @@ class _LogInState extends State<LogIn> {
             ? const CircularProgressIndicator(color: Colors.white)
             : Text(
                 'Log in',
-                style: Styles().textStyle(20, Styles.w700Weight, Styles.customWhite),
+                style: Styles()
+                    .textStyle(20, Styles.w700Weight, Styles.customWhite),
               ),
       ),
     );
@@ -278,7 +330,9 @@ class _LogInState extends State<LogIn> {
                 });
               },
               icon: Icon(
-                isPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                isPasswordVisible
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
               ),
             ),
             hintText: 'Enter your Password here',
@@ -293,7 +347,8 @@ class _LogInState extends State<LogIn> {
               Icons.lock_outline,
               color: Colors.black54,
             ),
-            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
           ),
           style: const TextStyle(
             fontSize: 16,
@@ -310,11 +365,13 @@ class _LogInState extends State<LogIn> {
         children: [
           Text(
             'Enter your ',
-            style: Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
+            style:
+                Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
           ),
           Text(
             'Password',
-            style: Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
+            style:
+                Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
           ),
         ],
       ),
@@ -327,11 +384,13 @@ class _LogInState extends State<LogIn> {
         children: [
           Text(
             'Enter your ',
-            style: Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
+            style:
+                Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
           ),
           Text(
             'Driver ID',
-            style: Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
+            style:
+                Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
           ),
         ],
       ),
@@ -367,7 +426,8 @@ class _LogInState extends State<LogIn> {
               Icons.person_outline,
               color: Colors.black54,
             ),
-            contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
           ),
           style: const TextStyle(
             fontSize: 16,
@@ -392,7 +452,8 @@ class _LogInState extends State<LogIn> {
           margin: EdgeInsets.only(top: topMargin),
           child: Text(
             'Log-in to your account',
-            style: Styles().textStyle(18, Styles.w700Weight, Styles.customBlack),
+            style:
+                Styles().textStyle(18, Styles.w700Weight, Styles.customBlack),
           ),
         ),
       ],

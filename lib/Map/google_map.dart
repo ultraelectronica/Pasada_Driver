@@ -37,7 +37,7 @@ class MapScreenState extends State<MapScreen> {
   LatLng? currentLocation;
   LocationData? locationData;
   final Location location = Location();
-  LatLng? _lastPolylineUpdateLocation; // Tracks last polyline update location
+  LatLng? _lastPolylineUpdateLocation;
   final GlobalKey<MapScreenState> mapScreenKey = GlobalKey<MapScreenState>();
 
   // <<-- POLYLINES -->>
@@ -46,35 +46,12 @@ class MapScreenState extends State<MapScreen> {
   // <<-- MARKERS -->>
   Set<Marker> markers = {};
 
-  // <<-- DEFAULT LOCATIONS -->>
-
-  /// Novaliches to Malinta
-  static LatLng StartingLocation =
-      const LatLng(14.721957951314671, 121.03660698876655); // savemore novaliches
-  static LatLng IntermediateLocation1 =
-      const LatLng(14.711095415234702, 120.99311060642324); // VGC bus terminal
-  static LatLng IntermediateLocation2 = const LatLng(14.701160828529744, 120.98308262221344);
-  static LatLng EndingLocation =
-      const LatLng(14.693028415325333, 120.96837623290318); // valenzuela peoples park
-
-  static LatLng? PickupLocation;
-
-  // LatLng? StartingLocation;
-  // LatLng? IntermediateLocation1;
-  // LatLng? IntermediateLocation2;
-  // LatLng? EndingLocation;
-
-  /// Malinta to Novaliches
-  // LatLng StartingLocation =
-  //     const LatLng(14.694370509154878, 120.97003705410779);
-
-  // LatLng IntermediateLocation1 =
-  //     const LatLng(14.703456631743745, 120.98572633206065);
-
-  // LatLng IntermediateLocation2 =
-  //     const LatLng(14.7111498286728, 120.99310735112863);
-
-  // LatLng EndingLocation = const LatLng(14.721876764899815, 121.0366831829442);
+  // Remove static default locations
+  LatLng? _startingLocation;
+  LatLng? _intermediateLocation1;
+  LatLng? _intermediateLocation2;
+  LatLng? _endingLocation;
+  LatLng? _pickupLocation;
 
   final Completer<GoogleMapController> _mapControllerCompleter = Completer();
   final String apiKey = dotenv.env['ANDROID_MAPS_API_KEY']!;
@@ -95,17 +72,28 @@ class MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
+    // Reset the route coordinates loaded flag when initializing
+    _routeCoordinatesLoaded = false;
     getLocationUpdates();
   }
 
   void getPickUpLocation() {
-    PickupLocation = context.read<MapProvider>().pickupLocation;
-    debugPrint('Pickup Location: $PickupLocation');
+    _pickupLocation = context.read<MapProvider>().pickupLocation;
+    debugPrint('Pickup Location: $_pickupLocation');
     setState(() {});
     _initializeMarkers();
   }
 
   Future<void> getRouteCoordinates() async {
+    // Reset the flag if we don't have valid coordinates
+    if (_routeCoordinatesLoaded &&
+        (_startingLocation == null ||
+            _intermediateLocation1 == null ||
+            _intermediateLocation2 == null ||
+            _endingLocation == null)) {
+      _routeCoordinatesLoaded = false;
+    }
+
     if (_routeCoordinatesLoaded) return;
 
     try {
@@ -127,32 +115,27 @@ class MapScreenState extends State<MapScreen> {
         mapProvider.setCurrentLocation(currentLocation!);
       }
 
-      // Use the static locations from MapProvider if available
-      if (mapProvider.intermediateLoc1 != null) {
-        debugPrint('Intermediate Location 1: ${mapProvider.intermediateLoc1}');
-        IntermediateLocation1 = mapProvider.intermediateLoc1!;
-      }
+      // Get coordinates from MapProvider
+      _startingLocation = mapProvider.currentLocation;
+      _intermediateLocation1 = mapProvider.intermediateLoc1;
+      _intermediateLocation2 = mapProvider.intermediateLoc2;
+      _endingLocation = mapProvider.endingLocation;
 
-      if (mapProvider.intermediateLoc2 != null) {
-        debugPrint('Intermediate Location 2: ${mapProvider.intermediateLoc2}');
-        IntermediateLocation2 = mapProvider.intermediateLoc2!;
-      }
-
-      if (mapProvider.endingLocation != null) {
-        debugPrint('Ending Location: ${mapProvider.endingLocation}');
-        EndingLocation = mapProvider.endingLocation!;
-      }
-
-      // // Initialize markers with the route points
-      // _initializeMarkers();
+      debugPrint('''
+        Route coordinates loaded:
+        Starting: $_startingLocation
+        Intermediate 1: $_intermediateLocation1
+        Intermediate 2: $_intermediateLocation2
+        Ending: $_endingLocation
+      ''');
 
       // Generate polyline once coordinates are loaded
-      if (currentLocation != null) {
-        generatePolylineBetween(
-            currentLocation!, IntermediateLocation1, IntermediateLocation2, EndingLocation);
-      } else {
-        generatePolylineBetween(
-            StartingLocation, IntermediateLocation1, IntermediateLocation2, EndingLocation);
+      if (currentLocation != null &&
+          _intermediateLocation1 != null &&
+          _intermediateLocation2 != null &&
+          _endingLocation != null) {
+        generatePolylineBetween(currentLocation!, _intermediateLocation1!,
+            _intermediateLocation2!, _endingLocation!);
       }
 
       _routeCoordinatesLoaded = true;
@@ -170,7 +153,8 @@ class MapScreenState extends State<MapScreen> {
 
       if (mounted) {
         setState(() {
-          currentLocation = LatLng(locationData.latitude!, locationData.longitude!);
+          currentLocation =
+              LatLng(locationData.latitude!, locationData.longitude!);
         });
 
         // Update MapProvider with current location
@@ -185,14 +169,15 @@ class MapScreenState extends State<MapScreen> {
 
       if (mounted) {
         // Generate initial polyline if not already done
-        if (_lastPolylineUpdateLocation == null && currentLocation != null) {
-          generatePolylineBetween(
-              currentLocation!, IntermediateLocation1, IntermediateLocation2, EndingLocation);
+        if (_lastPolylineUpdateLocation == null &&
+            currentLocation != null &&
+            _intermediateLocation1 != null &&
+            _intermediateLocation2 != null &&
+            _endingLocation != null) {
+          generatePolylineBetween(currentLocation!, _intermediateLocation1!,
+              _intermediateLocation2!, _endingLocation!);
           _lastPolylineUpdateLocation = currentLocation;
         }
-
-        // // Make sure markers are initialized
-        // _initializeMarkers();
       }
 
       // Listen to location updates
@@ -204,7 +189,8 @@ class MapScreenState extends State<MapScreen> {
           _updateDriverLocationToDB(driverID, newLocation);
 
           // Convert LocationData to LatLng
-          final newLatLng = LatLng(newLocation.latitude!, newLocation.longitude!);
+          final newLatLng =
+              LatLng(newLocation.latitude!, newLocation.longitude!);
 
           // Only update UI state if location actually changed
           if (currentLocation == null ||
@@ -214,22 +200,28 @@ class MapScreenState extends State<MapScreen> {
               currentLocation = newLatLng;
 
               // Update current location marker
-              markers.removeWhere((marker) => marker.markerId == const MarkerId('CurrentLocation'));
+              markers.removeWhere((marker) =>
+                  marker.markerId == const MarkerId('CurrentLocation'));
               markers.add(
                 Marker(
                   markerId: const MarkerId('CurrentLocation'),
                   position: newLatLng,
-                  icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
+                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                      BitmapDescriptor.hueCyan),
                   infoWindow: const InfoWindow(title: 'Current Location'),
-                  zIndex: 2, // Higher zIndex to ensure it's on top of other markers
+                  zIndex: 2,
                 ),
               );
             });
           }
 
           // Check user is far enough to update polyline
-          if (_shouldUpdatePolyline(newLatLng)) {
-            generatePolylineBetween(newLatLng, IntermediateLocation1, IntermediateLocation2, EndingLocation);
+          if (_shouldUpdatePolyline(newLatLng) &&
+              _intermediateLocation1 != null &&
+              _intermediateLocation2 != null &&
+              _endingLocation != null) {
+            generatePolylineBetween(newLatLng, _intermediateLocation1!,
+                _intermediateLocation2!, _endingLocation!);
             _lastPolylineUpdateLocation = newLatLng;
           }
 
@@ -239,11 +231,14 @@ class MapScreenState extends State<MapScreen> {
           animateToLocation(newLatLng);
 
           // Check if near EndingLocation
-          _checkDestinationReached(newLatLng);
+          if (_endingLocation != null) {
+            _checkDestinationReached(newLatLng);
+          }
         }
       });
     } catch (e) {
-      ShowMessage().showToast('An error occurred while fetching the location. $e');
+      ShowMessage()
+          .showToast('An error occurred while fetching the location. $e');
     }
   }
 
@@ -269,11 +264,13 @@ class MapScreenState extends State<MapScreen> {
 
   // Helper method to check if destination is reached
   void _checkDestinationReached(LatLng currentPos) {
+    if (_endingLocation == null) return;
+
     double distanceInMeters = Geolocator.distanceBetween(
       currentPos.latitude,
       currentPos.longitude,
-      EndingLocation.latitude,
-      EndingLocation.longitude,
+      _endingLocation!.latitude,
+      _endingLocation!.longitude,
     );
 
     if (kDebugMode) {
@@ -287,10 +284,12 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // <<-- UPDATE LOCATION TO DATABASE -->>
-  Future<void> _updateDriverLocationToDB(String driverID, LocationData newLocation) async {
+  Future<void> _updateDriverLocationToDB(
+      String driverID, LocationData newLocation) async {
     try {
       // Convert LocationData to WKT (Well-Known Text) Point format
-      final wktPoint = 'POINT(${newLocation.longitude} ${newLocation.latitude})';
+      final wktPoint =
+          'POINT(${newLocation.longitude} ${newLocation.latitude})';
 
       final response = await Supabase.instance.client
           .from('driverTable')
@@ -301,7 +300,8 @@ class MapScreenState extends State<MapScreen> {
           .select('current_location');
 
       if (kDebugMode) {
-        print('Location updated to DB (WKT sent): ${response[0]['current_location']}');
+        print(
+            'Location updated to DB (WKT sent): ${response[0]['current_location']}');
       }
     } catch (e) {
       Fluttertoast.showToast(msg: 'Error updating location to DB: $e');
@@ -324,14 +324,15 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // <<-- POLYLINES -->>
-  Future<void> generatePolylineBetween(
-      LatLng start, LatLng intermediate1, LatLng intermediate2, LatLng destination) async {
+  Future<void> generatePolylineBetween(LatLng start, LatLng intermediate1,
+      LatLng intermediate2, LatLng destination) async {
     try {
       final String apiKey = dotenv.env['ANDROID_MAPS_API_KEY']!;
       final polylinePoints = PolylinePoints();
 
       // routes API request
-      final uri = Uri.parse('https://routes.googleapis.com/directions/v2:computeRoutes');
+      final uri = Uri.parse(
+          'https://routes.googleapis.com/directions/v2:computeRoutes');
       final headers = {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
@@ -349,12 +350,18 @@ class MapScreenState extends State<MapScreen> {
         "intermediates": [
           {
             "location": {
-              "latLng": {"latitude": intermediate1.latitude, "longitude": intermediate1.longitude}
+              "latLng": {
+                "latitude": intermediate1.latitude,
+                "longitude": intermediate1.longitude
+              }
             }
           },
           {
             "location": {
-              "latLng": {"latitude": intermediate2.latitude, "longitude": intermediate2.longitude}
+              "latLng": {
+                "latitude": intermediate2.latitude,
+                "longitude": intermediate2.longitude
+              }
             }
           },
         ],
@@ -375,7 +382,8 @@ class MapScreenState extends State<MapScreen> {
       debugPrint('Request Body: $body');
 
       // ito naman na yung gagamitin yung NetworkUtility
-      final response = await NetworkUtility.postUrl(uri, headers: headers, body: body);
+      final response =
+          await NetworkUtility.postUrl(uri, headers: headers, body: body);
 
       if (response == null) {
         ShowMessage().showToast('No response from the server');
@@ -406,9 +414,11 @@ class MapScreenState extends State<MapScreen> {
         return;
       }
 
-      List<PointLatLng> decodedPolyline = polylinePoints.decodePolyline(polyline);
-      List<LatLng> polylineCoordinates =
-          decodedPolyline.map((point) => LatLng(point.latitude, point.longitude)).toList();
+      List<PointLatLng> decodedPolyline =
+          polylinePoints.decodePolyline(polyline);
+      List<LatLng> polylineCoordinates = decodedPolyline
+          .map((point) => LatLng(point.latitude, point.longitude))
+          .toList();
 
       if (mounted) {
         setState(() {
@@ -434,75 +444,74 @@ class MapScreenState extends State<MapScreen> {
     }
   }
 
+  // Add marker creation helper
+  Marker createMarker({
+    required String id,
+    required LatLng position,
+    required BitmapDescriptor icon,
+    required String title,
+    double zIndex = 1.0,
+  }) {
+    return Marker(
+      markerId: MarkerId(id),
+      position: position,
+      icon: icon,
+      infoWindow: InfoWindow(title: title),
+      zIndex: zIndex,
+    );
+  }
+
+  @override
+  void dispose() {
+    // Clean up resources
+    location.onLocationChanged.drain();
+    super.dispose();
+  }
+
   // Initialize markers with the route points
   void _initializeMarkers() {
     setState(() {
       markers.clear();
 
-      // Add starting location marker
-      markers.add(
-        Marker(
-          markerId: const MarkerId('StartingLocation'),
-          position: StartingLocation,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-          infoWindow: const InfoWindow(title: 'Starting Point'),
-          zIndex: 1,
-        ),
-      );
+      // Add starting location marker if available
+      if (_startingLocation != null) {
+        markers.add(
+          createMarker(
+            id: 'StartingLocation',
+            position: _startingLocation!,
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueGreen),
+            title: 'Starting Point',
+          ),
+        );
+      }
 
-      // // Add intermediate location 1 marker
-      // markers.add(
-      //   Marker(
-      //     markerId: const MarkerId('IntermediateLocation1'),
-      //     position: IntermediateLocation1,
-      //     icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-      //     infoWindow: const InfoWindow(title: 'Stop 1'),
-      //     zIndex: 1,
-      //   ),
-      // );
-
-      // // Add intermediate location 2 marker
-      // markers.add(
-      //   Marker(
-      //     markerId: const MarkerId('IntermediateLocation2'),
-      //     position: IntermediateLocation2,
-      //     icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-      //     infoWindow: const InfoWindow(title: 'Stop 2'),
-      //     zIndex: 1,
-      //   ),
-      // );
-
-      // Add ending location marker
-      markers.add(
-        Marker(
-          markerId: const MarkerId('EndingLocation'),
-          position: EndingLocation,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-          infoWindow: const InfoWindow(title: 'Destination'),
-          zIndex: 1,
-        ),
-      );
+      // Add ending location marker if available
+      if (_endingLocation != null) {
+        markers.add(
+          createMarker(
+            id: 'EndingLocation',
+            position: _endingLocation!,
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueOrange),
+            title: 'Destination',
+          ),
+        );
+      }
 
       // Add pickup location marker if available
-      final mapProvider = context.read<MapProvider>();
-
-      debugPrint('Pickup Location in _initializeMarkers: ${mapProvider.pickupLocation}');
-
-      if (mapProvider.pickupLocation != null) {
-        debugPrint('Adding pickup location marker: ${mapProvider.pickupLocation}');
+      if (_pickupLocation != null) {
         markers.add(
-          Marker(
-            markerId: const MarkerId('Pickup'),
-            position: mapProvider.pickupLocation!,
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
-            infoWindow: const InfoWindow(title: 'Pickup Location'),
-            zIndex: 1,
+          createMarker(
+            id: 'Pickup',
+            position: _pickupLocation!,
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueViolet),
+            title: 'Pickup Location',
           ),
         );
       }
     });
-
-    debugPrint('Markers initialized: ${markers.length}');
   }
 
   Set<Marker> buildMarkers() {
@@ -510,20 +519,27 @@ class MapScreenState extends State<MapScreen> {
 
     // Pickup marker
     if (widget.initialLocation != null) {
-      markers.add(Marker(
-        markerId: const MarkerId('pickup'),
-        position: widget.initialLocation!,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-      ));
+      markers.add(
+        createMarker(
+          id: 'pickup',
+          position: widget.initialLocation!,
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          title: 'Pickup',
+        ),
+      );
     }
 
     // Dropoff marker
     if (widget.finalLocation != null) {
-      markers.add(Marker(
-        markerId: const MarkerId('dropoff'),
-        position: widget.finalLocation!,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-      ));
+      markers.add(
+        createMarker(
+          id: 'dropoff',
+          position: widget.finalLocation!,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          title: 'Dropoff',
+        ),
+      );
     }
     return markers;
   }
@@ -534,16 +550,6 @@ class MapScreenState extends State<MapScreen> {
     if (!_routeCoordinatesLoaded) {
       getRouteCoordinates();
     }
-
-    // // Check if pickup location is available and refresh markers if needed
-    // final mapProvider = Provider.of<MapProvider>(context);
-    // if (mapProvider.pickupLocation != null) {
-    //   debugPrint('Pickup Location in build: ${mapProvider.pickupLocation}');
-    //   // Refresh markers to include pickup location
-    //   _initializeMarkers();
-    // }
-    // getPickUpLocation();
-    // debugPrint('Pickup Location in build: ${mapProvider.pickupLocation}');
 
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
@@ -557,7 +563,8 @@ class MapScreenState extends State<MapScreen> {
                   child: CircularProgressIndicator(),
                 )
               : GoogleMap(
-                  onMapCreated: (controller) => _mapControllerCompleter.complete(controller),
+                  onMapCreated: (controller) =>
+                      _mapControllerCompleter.complete(controller),
                   initialCameraPosition: CameraPosition(
                     target: currentLocation!,
                     zoom: 15,
@@ -595,7 +602,8 @@ class MapScreenState extends State<MapScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15),
               ),
-              child: const Icon(Icons.my_location, color: Colors.black, size: 26),
+              child:
+                  const Icon(Icons.my_location, color: Colors.black, size: 26),
             ),
           ),
         ),
