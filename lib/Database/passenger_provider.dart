@@ -43,15 +43,22 @@ class PassengerProvider with ChangeNotifier {
   final SupabaseClient supabase = Supabase.instance.client;
 
   int _passengerCapacity = 0;
+  int _completedBooking = 0;
   List<String> _bookingIDs = [];
   List<BookingDetail> _bookingDetails = [];
 
   int get passengerCapacity => _passengerCapacity;
+  int get completedBooking => _completedBooking;
   List<String> get bookingIDs => _bookingIDs;
   List<BookingDetail> get bookingDetails => _bookingDetails;
 
   void setPassengerCapacity(int value) {
     _passengerCapacity = value;
+    notifyListeners();
+  }
+
+  void setCompletedBooking(int value) {
+    _completedBooking = value;
     notifyListeners();
   }
 
@@ -234,6 +241,31 @@ class PassengerProvider with ChangeNotifier {
     } on Exception catch (e, stackTrace) {
       debugPrint('Error finding nearest passenger: $e');
       debugPrint('Stack Trace in nearest passenger: $stackTrace');
+    }
+  }
+
+  Future<void> getCompletedBookings(BuildContext context) async {
+    try {
+      // Store the context in a local variable to avoid BuildContext across async gaps warning
+      final currentContext = context;
+
+      // Get driver ID and locations before async operation
+      final driverID = currentContext.read<DriverProvider>().driverID;
+
+      final response = await supabase
+          .from('bookings')
+          .select('booking_id')
+          .eq('driver_id', driverID)
+          .eq('ride_status', 'completed');
+
+      if (kDebugMode) {
+        debugPrint('Completed bookings: ${response.length}');
+      }
+
+      setCompletedBooking(response.length);
+    } catch (e, stackTrace) {
+      debugPrint('Error fetching completed bookings: $e');
+      debugPrint('Stack Trace: $stackTrace');
     }
   }
 }
