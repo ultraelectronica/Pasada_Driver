@@ -8,22 +8,26 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 // this class is used to store values just like a global variable
 class DriverProvider with ChangeNotifier {
+  // Driver identification
   String _driverID = '';
-  String _driverStatus = 'Online';
+  String _driverFirstName = 'firstName';
+  String _driverLastName = 'lastName';
+  String _driverNumber = '00000000000';
+
+  // Vehicle and route information
   String _vehicleID = 'N/A';
   int _routeID = 0;
   String _routeName = 'N/A';
 
+  // Driver status
+  String _driverStatus = 'Online';
   String? _lastDriverStatus;
   bool _isDriving = false;
 
+  // Passenger capacity
   int _passengerCapacity = 0;
   int _passengerStandingCapacity = 0;
   int _passengerSittingCapacity = 0;
-
-  String _driverFirstName = 'firstName';
-  String _driverLastName = 'lastName';
-  String _driverNumber = '00000000000';
 
   // LatLng? _currentLocation;
   // LatLng? _endingLocation;
@@ -32,28 +36,21 @@ class DriverProvider with ChangeNotifier {
 
   final SupabaseClient supabase = Supabase.instance.client;
 
+  // Getters
   String get driverID => _driverID;
   String get vehicleID => _vehicleID;
   int get routeID => _routeID;
   String get routeName => _routeName;
   String get driverStatus => _driverStatus;
   String? get lastDriverStatus => _lastDriverStatus;
-
   int get passengerCapacity => _passengerCapacity;
   int get passengerStandingCapacity => _passengerStandingCapacity;
   int get passengerSittingCapacity => _passengerSittingCapacity;
-
   bool get isDriving => _isDriving;
-
   String? get driverFirstName => _driverFirstName;
   String? get driverLastName => _driverLastName;
   String get driverNumber => _driverNumber;
-
-  // LatLng? get currentLocation => _currentLocation;
-  // LatLng? get endingLocation => _endingLocation;
-  // LatLng? get intermediateLoc1 => _intermediateLoc1;
-  // LatLng? get intermediateLoc2 => _intermediateLoc2;
-
+  // Setters
   void setDriverID(String value) {
     _driverID = value;
     notifyListeners();
@@ -121,41 +118,27 @@ class DriverProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // void setCurrentLocation(LatLng value) {
-  //   _currentLocation = value;
-  //   notifyListeners();
-  // }
-
-  // void setEndingLocation(LatLng value) {
-  //   _endingLocation = value;
-  //   notifyListeners();
-  // }
-
-  // void setIntermediateLoc1(LatLng value) {
-  //   _intermediateLoc1 = value;
-  //   notifyListeners();
-  // }
-
-  // void setIntermediateLoc2(LatLng value) {
-  //   _intermediateLoc2 = value;
-  //   notifyListeners();
-  // }
-
   Future<void> updateStatusToDB(String newStatus, BuildContext context) async {
-    final response = await supabase
-        .from('driverTable')
-        .update({'driving_status': newStatus})
-        .eq('driver_id', driverID)
-        .select()
-        .single();
+    try {
+      final response = await supabase
+          .from('driverTable')
+          .update({'driving_status': newStatus})
+          .eq('driver_id', driverID)
+          .select()
+          .single();
 
-    if (kDebugMode) {
-      print('Updated status: ${response['driving_status']}');
-      ShowMessage().showToast('Updated status: ${response['driving_status']}');
+      if (kDebugMode) {
+        print('Updated status: ${response['driving_status']}');
+        ShowMessage()
+            .showToast('Updated status: ${response['driving_status']}');
+      }
+
+      _lastDriverStatus = _driverStatus;
+      _driverStatus = newStatus;
+    } catch (e) {
+      debugPrint('Error updating status: $e');
+      ShowMessage().showToast('Error updating status: $e');
     }
-
-    _lastDriverStatus = _driverStatus;
-    _driverStatus = newStatus;
   }
 
   Future<void> getPassengerCapacity() async {
@@ -168,7 +151,8 @@ class DriverProvider with ChangeNotifier {
 
       if (kDebugMode) {
         print('Capacity: ${response['passenger_capacity'].toString()}');
-        ShowMessage().showToast('Capacity: ${response['passenger_capacity'].toString()}');
+        ShowMessage().showToast(
+            'Capacity: ${response['passenger_capacity'].toString()}');
       }
 
       // sets the capacity to the provider
@@ -236,10 +220,8 @@ class DriverProvider with ChangeNotifier {
       // Load other data needed
       await getDriverCreds();
       await updateLastOnline(context);
-      // await getPassengerCapacity();
       await PassengerCapacity().getPassengerCapacityToDB(context);
       await getDriverRoute();
-      await getRouteCoordinates();
 
       notifyListeners();
       return true;
@@ -290,45 +272,42 @@ class DriverProvider with ChangeNotifier {
 
   Future<void> getDriverRoute() async {
     try {
-      final response =
-          await supabase.from('vehicleTable').select('route_id').eq('vehicle_id', vehicleID).single();
+      // Validate vehicle ID before query
+      if (vehicleID.isEmpty || vehicleID == 'N/A') {
+        debugPrint('Invalid vehicle ID: $vehicleID');
+        return;
+      }
 
-      _routeID = response['route_id'];
-      // context.read<MapProvider>().setRouteID(response['route_id'] as int);
+      final response = await supabase
+          .from('vehicleTable')
+          .select('route_id')
+          .eq('vehicle_id', vehicleID)
+          .single();
 
-      debugPrint('Get driver route response: ${response['route_id'].toString()}');
-      ShowMessage().showToast('Driver route: ${response['route_id'].toString()}');
+      // Validate response and route_id
+      if (response == null || response['route_id'] == null) {
+        debugPrint('No route ID found for vehicle: $vehicleID');
+        return;
+      }
+
+      // Safely parse route_id
+      final routeId = response['route_id'];
+      if (routeId is int) {
+        _routeID = routeId;
+      } else if (routeId is String) {
+        _routeID = int.tryParse(routeId) ?? 0;
+      } else {
+        _routeID = 0;
+      }
+
+      debugPrint('Get driver route response: $_routeID');
+      if (_routeID > 0) {
+        ShowMessage().showToast('Driver route: $_routeID');
+      }
     } catch (e, stacktrace) {
       debugPrint('Error getting driver route: $e');
       debugPrint('Get Driver Route StackTrace: $stacktrace');
-    }
-  }
-
-  Future<void> getRouteCoordinates() async {
-    try {
-      final response = await supabase.from('driverRouteTable').select().eq('route_id', routeID).single();
-
-      _routeName = response['route'];
-      // _intermediateLoc1 = _parseLatLng(response['intermediate_location1']);
-      // _intermediateLoc2 = _parseLatLng(response['intermediate_location2']);
-      // _endingLocation = _parseLatLng(response['ending_location']);
-
-      if (kDebugMode) {
-        // print('''
-        //   Route ID: $routeID
-        //   Route Name: $routeName
-        // ''');
-        print('''
-          Route: $_routeName
-        ''');
-        // Intermediate 1: ${_intermediateLoc1?.latitude},${_intermediateLoc1?.longitude}
-        //   Intermediate 2: ${_intermediateLoc2?.latitude},${_intermediateLoc2?.longitude}
-        //   End: ${_endingLocation?.latitude},${_endingLocation?.longitude}
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error getting route coordinates: $e');
-      }
+      _routeID = 0; // Set to default value on error
     }
   }
 

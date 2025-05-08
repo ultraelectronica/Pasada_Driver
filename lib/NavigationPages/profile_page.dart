@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
+import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 // import 'package:pasada_driver_side/Database/global.dart';
 import 'package:provider/provider.dart';
@@ -63,12 +64,14 @@ class ProfilePageState extends State<ProfilePage> {
     // final double paddingValue = MediaQuery.of(context).size.width * 0.05; // Use specific padding values
     final double profilePictureSize = MediaQuery.of(context).size.width * 0.25;
     final driverProvider = context.watch<DriverProvider>();
+    final mapProvider = context.watch<MapProvider>();
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
     // Define colors based on the image
     const Color primaryColor = Color(0xff067837);
-    final Color statusColor = statusColors[driverProvider.driverStatus] ?? Colors.grey;
+    final Color statusColor =
+        statusColors[driverProvider.driverStatus] ?? Colors.grey;
 
     return Scaffold(
       backgroundColor: Styles.customWhite,
@@ -79,7 +82,8 @@ class ProfilePageState extends State<ProfilePage> {
             // Wrap the container with ClipPath
             clipper: ProfileBackgroundClipper(), // Apply the custom clipper
             child: Container(
-              height: screenHeight * 0.42, // Adjust height if needed for the curve
+              height:
+                  screenHeight * 0.42, // Adjust height if needed for the curve
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [primaryColor, primaryColor],
@@ -105,12 +109,7 @@ class ProfilePageState extends State<ProfilePage> {
                     const SizedBox(height: 12),
 
                     // --- Driver Name ---
-                    Text(
-                      '${driverProvider.driverFirstName} ${driverProvider.driverLastName}',
-                      style: Styles()
-                          .textStyle(22, Styles.w700Weight, Styles.customWhite), // White text on gradient
-                      textAlign: TextAlign.center,
-                    ),
+                    _buildDriverName(driverProvider),
                     const SizedBox(height: 8),
 
                     // --- Driver Status Button ---
@@ -118,7 +117,7 @@ class ProfilePageState extends State<ProfilePage> {
                     SizedBox(height: screenHeight * 0.09),
 
                     // --- Driver Info Card ---
-                    _buildInfoCard(driverProvider),
+                    _buildInfoCard(driverProvider, mapProvider),
                     SizedBox(height: screenHeight * 0.02),
 
                     // --- Actions Card ---
@@ -138,6 +137,14 @@ class ProfilePageState extends State<ProfilePage> {
   }
 
   // --- Helper Widgets ---
+
+  Widget _buildDriverName(DriverProvider driverProvider) {
+    return Text(
+      '${driverProvider.driverFirstName} ${driverProvider.driverLastName}',
+      style: Styles().textStyle(22, Styles.w700Weight, Styles.customWhite),
+      textAlign: TextAlign.center,
+    );
+  }
 
   Widget _buildStatusChip(DriverProvider driverProvider, Color statusColor) {
     return InkWell(
@@ -170,7 +177,8 @@ class ProfilePageState extends State<ProfilePage> {
             const SizedBox(width: 8),
             Text(
               driverProvider.driverStatus,
-              style: Styles().textStyle(14, Styles.w500Weight, Styles.customBlack // Dark text for status
+              style: Styles().textStyle(14, Styles.w500Weight,
+                  Styles.customBlack // Dark text for status
                   ),
             ),
           ],
@@ -179,7 +187,8 @@ class ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildInfoCard(DriverProvider driverProvider) {
+  Widget _buildInfoCard(
+      DriverProvider driverProvider, MapProvider mapProvider) {
     return Card(
       elevation: 4,
       shadowColor: Colors.black38,
@@ -204,7 +213,7 @@ class ProfilePageState extends State<ProfilePage> {
             _buildInfoRow(
               icon: Icons.route_outlined,
               text:
-                  'Route: ${driverProvider.routeName} (${driverProvider.routeID})', // Combine Route name and ID
+                  'Route: ${mapProvider.routeName} (${mapProvider.routeID})', // Combine Route name and ID
             ),
           ],
         ),
@@ -221,7 +230,8 @@ class ProfilePageState extends State<ProfilePage> {
           // Allow text to wrap if needed
           child: Text(
             text,
-            style: Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
+            style:
+                Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
           ),
         ),
       ],
@@ -235,7 +245,8 @@ class ProfilePageState extends State<ProfilePage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       color: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 0), // Padding around the list
+        padding:
+            const EdgeInsets.symmetric(vertical: 0), // Padding around the list
         child: Column(
           children: [
             _buildActionTile(
@@ -267,7 +278,10 @@ class ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildActionTile({required IconData icon, required String text, required VoidCallback onTap}) {
+  Widget _buildActionTile(
+      {required IconData icon,
+      required String text,
+      required VoidCallback onTap}) {
     return ListTile(
       minTileHeight: 50,
       leading: Icon(icon, color: const Color(0xff067837), size: 20),
@@ -282,7 +296,8 @@ class ProfilePageState extends State<ProfilePage> {
 
   Widget _buildDivider() {
     return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 15.0), // Indent divider slightly
+      padding:
+          EdgeInsets.symmetric(horizontal: 15.0), // Indent divider slightly
       child: Divider(height: 1, thickness: 0.5, color: Colors.grey),
     );
   }
@@ -320,13 +335,16 @@ class ProfilePageState extends State<ProfilePage> {
                 width: 40,
                 height: 5,
                 margin: const EdgeInsets.only(top: 16.0, bottom: 16.0),
-                decoration: BoxDecoration(color: Colors.grey[600], borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(
+                    color: Colors.grey[600],
+                    borderRadius: BorderRadius.circular(10)),
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 10.0),
                 child: Text(
                   'Change Status',
-                  style: Styles().textStyle(18, Styles.w600Weight, Styles.customBlack),
+                  style: Styles()
+                      .textStyle(18, Styles.w600Weight, Styles.customBlack),
                 ),
               ),
               statusOption('Online'),
@@ -358,7 +376,8 @@ class ProfilePageState extends State<ProfilePage> {
   ListTile statusOption(String status) {
     return ListTile(
       leading: Icon(Icons.circle, color: statusColors[status]),
-      title: Text(status, style: Styles().textStyle(16, Styles.w500Weight, Styles.customBlack)),
+      title: Text(status,
+          style: Styles().textStyle(16, Styles.w500Weight, Styles.customBlack)),
       onTap: () {
         setState(() {
           if (status != 'Driving') {
@@ -378,7 +397,8 @@ class ProfilePageState extends State<ProfilePage> {
   Widget _buildProfilePicture(double size) {
     // Add a Container with white background and padding for the circular border effect
     return Container(
-        padding: const EdgeInsets.all(4.0), // Padding creates the white border effect
+        padding: const EdgeInsets.all(
+            4.0), // Padding creates the white border effect
         decoration: const BoxDecoration(
           color: Colors.white, // White background circle
           shape: BoxShape.circle,
@@ -407,7 +427,8 @@ class ProfilePageState extends State<ProfilePage> {
                   color: Colors.grey[300],
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.person, size: size * 0.6, color: Colors.grey[600]),
+                child: Icon(Icons.person,
+                    size: size * 0.6, color: Colors.grey[600]),
               ),
             ),
           ),

@@ -149,7 +149,7 @@ class FloatingMessageButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      bottom: screenHeight * 0.025,
+      bottom: screenHeight * 0.04,
       left: screenWidth * 0.05,
       child: SizedBox(
         width: 50,

@@ -7,44 +7,72 @@ import 'package:pasada_driver_side/UI/message.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+enum RouteState { initial, loading, loaded, error }
+
 class MapProvider with ChangeNotifier {
+  // State management
+  RouteState _routeState = RouteState.initial;
+  String? _errorMessage;
+
+  // Location properties
   LatLng? _currentLocation;
   LatLng? _endingLocation;
   LatLng? _intermediateLoc1;
   LatLng? _intermediateLoc2;
   LatLng? _pickupLocation;
-  // int _routeID = 0;
+
+  // Route properties
   String? _routeName;
+  int? _routeID;
 
   final SupabaseClient supabase = Supabase.instance.client;
 
+  // Getters
+  RouteState get routeState => _routeState;
+  String? get errorMessage => _errorMessage;
   LatLng? get currentLocation => _currentLocation;
   LatLng? get endingLocation => _endingLocation;
   LatLng? get intermediateLoc1 => _intermediateLoc1;
   LatLng? get intermediateLoc2 => _intermediateLoc2;
   LatLng? get pickupLocation => _pickupLocation;
-
-  // int get routeID => _routeID;
   String? get routeName => _routeName;
+  int? get routeID => _routeID;
 
+  // Setters with error handling
   void setCurrentLocation(LatLng value) {
-    _currentLocation = value;
-    notifyListeners();
+    try {
+      _currentLocation = value;
+      notifyListeners();
+    } catch (e) {
+      _handleError('Error setting current location: $e');
+    }
   }
 
   void setEndingLocation(LatLng value) {
-    _endingLocation = value;
-    notifyListeners();
+    try {
+      _endingLocation = value;
+      notifyListeners();
+    } catch (e) {
+      _handleError('Error setting ending location: $e');
+    }
   }
 
   void setIntermediateLoc1(LatLng value) {
-    _intermediateLoc1 = value;
-    notifyListeners();
+    try {
+      _intermediateLoc1 = value;
+      notifyListeners();
+    } catch (e) {
+      _handleError('Error setting intermediate location 1: $e');
+    }
   }
 
   void setIntermediateLoc2(LatLng value) {
-    _intermediateLoc2 = value;
-    notifyListeners();
+    try {
+      _intermediateLoc2 = value;
+      notifyListeners();
+    } catch (e) {
+      _handleError('Error setting intermediate location 2: $e');
+    }
   }
 
   void setPickUpLocation(LatLng value) {
@@ -54,164 +82,181 @@ class MapProvider with ChangeNotifier {
       debugPrint('Pickup location set: $_pickupLocation');
       notifyListeners();
     } catch (e) {
-      debugPrint('Error setting pickup location: $e');
-      debugPrint('Pickup location not set: $_pickupLocation');
+      _handleError('Error setting pickup location: $e');
     }
   }
 
-  // void setRouteID(int value) {
-  //   _routeID = value;
-  //   notifyListeners();
-  // }
-
-  // Future<void> getDriverRoute(BuildContext context) async {
-  //   try {
-  //     String vehicleID = context.read<DriverProvider>().vehicleID;
-
-  //     final response = await supabase
-  //         .from('vehicleTable')
-  //         .select('route_id')
-  //         .eq('vehicle_id', vehicleID)
-  //         .single();
-
-  //     // _routeID = response['route_id'];
-  //     context.read<DriverProvider>().setRouteID(response['route_id'] as int);
-
-  //     if (kDebugMode) {
-  //       print('Get driver route response: ${response['route_id'].toString()}');
-  //       ShowMessage()
-  //           .showToast('Driver route: ${response['route_id'].toString()}');
-  //     }
-  //   } catch (e) {
-  //     if (kDebugMode) {
-  //       print('Error: $e');
-  //     }
-  //   }
-  // }
-
-  // TODO: This is still incomplete, need to work after finishing the features in the map
-  Future<void> getPassenger(int driverID) async {
+  void setRouteID(int value) {
     try {
-      final response = await supabase.from('bookings').select().eq('driver_id', driverID).single();
-
-      if (kDebugMode) {
-        print('Passenger: ${response['booking_id']}');
-        print('Get passenger response: $response');
-      }
+      _routeID = value;
+      notifyListeners();
     } catch (e) {
-      if (kDebugMode) {
-        print('Error getting passenger: $e');
-      }
+      _handleError('Error setting route ID: $e');
     }
   }
 
+  // Error handling
+  void _handleError(String message) {
+    _errorMessage = message;
+    _routeState = RouteState.error;
+    debugPrint(message);
+    notifyListeners();
+  }
+
+  // Route coordinate fetching with improved error handling
   Future<void> getRouteCoordinates(int routeID) async {
     try {
-      final response = await supabase.from('driverRouteTable').select().eq('route_id', routeID).single();
-
-      _routeName = response['route'];
-
-      // Parse location coordinates
-      final startingLocation = _parseLatLng(response['starting_location']);
-      final intermediateLoc1 = _parseLatLng(response['intermediate_location1']);
-      final intermediateLoc2 = _parseLatLng(response['intermediate_location2']);
-      final endingLocation = _parseLatLng(response['ending_location']);
-
-      // Update provider state
-      if (startingLocation != null) {
-        MapScreenState.StartingLocation = startingLocation;
-      }
-
-      if (intermediateLoc1 != null) {
-        _intermediateLoc1 = intermediateLoc1;
-        MapScreenState.IntermediateLocation1 = intermediateLoc1;
-      }
-
-      if (intermediateLoc2 != null) {
-        _intermediateLoc2 = intermediateLoc2;
-        MapScreenState.IntermediateLocation2 = intermediateLoc2;
-      }
-
-      if (endingLocation != null) {
-        _endingLocation = endingLocation;
-        MapScreenState.EndingLocation = endingLocation;
-      }
-
-      // Notify listeners to update UI
+      _routeState = RouteState.loading;
       notifyListeners();
 
-      if (kDebugMode) {
-        print('Route ID: $routeID');
-        print('''
-        Route: $_routeName
-        Starting: ${startingLocation?.latitude},${startingLocation?.longitude}
-        Intermediate 1: ${_intermediateLoc1?.latitude},${_intermediateLoc1?.longitude}
-        Intermediate 2: ${_intermediateLoc2?.latitude},${_intermediateLoc2?.longitude}
-        End: ${_endingLocation?.latitude},${_endingLocation?.longitude}
-      ''');
-      }
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('Error fetching route coordinates: $e');
-        debugPrintStack(stackTrace: stackTrace);
-      }
-    }
-  }
-
-  // Method to change the driver route
-  Future<void> changeRouteLocation(BuildContext context) async {
-    try {
-      int currentRouteID = context.read<DriverProvider>().routeID;
-
-      //Original route
-      if (currentRouteID == 1) {
-        // change route to Malinta to Novaliches
-        currentRouteID = 2;
-        context.read<DriverProvider>().setRouteID(currentRouteID);
-        getRouteCoordinates(currentRouteID);
-      } else if (currentRouteID == 2) {
-        // change route to Novaliches to Malinta
-        currentRouteID = 1;
-        context.read<DriverProvider>().setRouteID(currentRouteID);
-        getRouteCoordinates(currentRouteID);
+      // Enhanced validation for route ID
+      if (routeID <= 0) {
+        debugPrint('Invalid route ID in MapProvider: $routeID');
+        _routeState = RouteState.error;
+        _errorMessage = 'Invalid route ID: $routeID';
+        notifyListeners();
+        return;
       }
 
-      //Test route
-      if (currentRouteID == 3) {
-        // change route to Home to STI
-        currentRouteID = 4;
-        context.read<DriverProvider>().setRouteID(currentRouteID);
-        getRouteCoordinates(currentRouteID);
-      } else if (currentRouteID == 4) {
-        // change route to STI to Home
-        currentRouteID = 3;
-        context.read<DriverProvider>().setRouteID(currentRouteID);
-        getRouteCoordinates(currentRouteID);
-      }
+      debugPrint('Fetching route coordinates for route ID: $routeID');
 
       final response = await supabase
-          .from('vehicleTable')
-          .update({'route_id': currentRouteID})
-          .eq('vehicle_id', context.read<DriverProvider>().vehicleID)
-          .select();
+          .from('official_routes')
+          .select(
+              'officialroute_id, route_name, description, origin_lat, origin_lng, destination_lat, destination_lng, intermediate_coordinates, origin_name, destination_name')
+          .eq('officialroute_id', routeID)
+          .maybeSingle();
 
-      debugPrint('Change route response: $response');
-
-      if (kDebugMode) {
-        print("Reached destination! Triggering route change. Current Route: $currentRouteID");
-        ShowMessage().showToast('Reached destination! Triggering route change...');
+      if (response == null) {
+        debugPrint('No route found for ID: $routeID');
+        _routeState = RouteState.error;
+        _errorMessage = 'No route found for ID: $routeID';
+        notifyListeners();
+        return;
       }
-    } catch (e) {
-      debugPrint('Error changing route location: $e');
+
+      _processRouteResponse(response);
+      _routeState = RouteState.loaded;
+      notifyListeners();
+    } catch (e, stackTrace) {
+      debugPrint('Error in getRouteCoordinates: $e');
+      debugPrint('Stack trace: $stackTrace');
+      _handleError('Error fetching route coordinates: $e');
     }
   }
 
-  LatLng? _parseLatLng(String? coordString) {
-    if (coordString == null) return null;
-    final parts = coordString.split(',');
-    if (parts.length != 2) return null;
-    final lat = double.tryParse(parts[0]);
-    final lng = double.tryParse(parts[1]);
-    return (lat != null && lng != null) ? LatLng(lat, lng) : null;
+  // Process route response
+  void _processRouteResponse(Map<String, dynamic> response) {
+    _routeName = response['route_name'];
+    _routeID = response['officialroute_id'] as int;
+
+    _processCoordinates(response);
+    _processIntermediateCoordinates(response);
+  }
+
+  // Process main coordinates
+  void _processCoordinates(Map<String, dynamic> response) {
+    if (response['origin_lat'] != null && response['origin_lng'] != null) {
+      _currentLocation = _parseLatLng(
+        response['origin_lat'].toString(),
+        response['origin_lng'].toString(),
+      );
+    }
+
+    if (response['destination_lat'] != null &&
+        response['destination_lng'] != null) {
+      _endingLocation = _parseLatLng(
+        response['destination_lat'].toString(),
+        response['destination_lng'].toString(),
+      );
+    }
+  }
+
+  // Process intermediate coordinates
+  void _processIntermediateCoordinates(Map<String, dynamic> response) {
+    if (response['intermediate_coordinates'] != null) {
+      final intermediateCoords = response['intermediate_coordinates'] as List;
+
+      if (intermediateCoords.isNotEmpty) {
+        if (intermediateCoords.length > 0) {
+          _intermediateLoc1 = _parseLatLng(
+            intermediateCoords[0]['lat'].toString(),
+            intermediateCoords[0]['lng'].toString(),
+          );
+        }
+        if (intermediateCoords.length > 1) {
+          _intermediateLoc2 = _parseLatLng(
+            intermediateCoords[1]['lat'].toString(),
+            intermediateCoords[1]['lng'].toString(),
+          );
+        }
+      }
+    }
+  }
+
+  // Route change with improved error handling
+  Future<void> changeRouteLocation(BuildContext context) async {
+    try {
+      int? currentRouteID = context.read<DriverProvider>().routeID;
+
+      if (currentRouteID == null || currentRouteID <= 0) {
+        throw Exception('Invalid current route ID: $currentRouteID');
+      }
+
+      currentRouteID = _determineNewRouteID(currentRouteID);
+
+      await _updateRouteAndDatabase(context, currentRouteID);
+
+      if (kDebugMode) {
+        print("Route change completed. New Route: $currentRouteID");
+        ShowMessage().showToast('Route change completed successfully');
+      }
+    } catch (e) {
+      _handleError('Error changing route location: $e');
+      ShowMessage().showToast('Error changing route. Please try again.');
+    }
+  }
+
+  // Determine new route ID
+  int _determineNewRouteID(int currentRouteID) {
+    switch (currentRouteID) {
+      case 1:
+        return 2; // Malinta to Novaliches
+      case 2:
+        return 1; // Novaliches to Malinta
+      case 3:
+        return 4; // Home to STI
+      case 4:
+        return 3; // STI to Home
+      default:
+        throw Exception('Invalid route ID for change: $currentRouteID');
+    }
+  }
+
+  // Update route and database
+  Future<void> _updateRouteAndDatabase(
+      BuildContext context, int newRouteID) async {
+    context.read<DriverProvider>().setRouteID(newRouteID);
+    await getRouteCoordinates(newRouteID);
+
+    final response = await supabase
+        .from('vehicleTable')
+        .update({'route_id': newRouteID})
+        .eq('vehicle_id', context.read<DriverProvider>().vehicleID)
+        .select();
+
+    debugPrint('Change route response: $response');
+  }
+
+  // Parse LatLng with improved error handling
+  LatLng? _parseLatLng(String lat, String lng) {
+    try {
+      final latitude = double.parse(lat);
+      final longitude = double.parse(lng);
+      return LatLng(latitude, longitude);
+    } catch (e) {
+      _handleError('Error parsing coordinates: $e');
+      return null;
+    }
   }
 }
