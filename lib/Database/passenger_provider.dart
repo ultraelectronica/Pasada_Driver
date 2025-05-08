@@ -274,9 +274,7 @@ class PassengerProvider with ChangeNotifier {
           .eq('driver_id', driverID)
           .eq('ride_status', 'completed');
 
-      if (kDebugMode) {
-        debugPrint('Completed bookings: ${response.length}');
-      }
+      debugPrint('Completed bookings: ${response[0]['booking_id'].toString()}');
 
       setCompletedBooking(response.length);
     } catch (e, stackTrace) {

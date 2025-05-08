@@ -19,13 +19,16 @@ Future<void> main() async {
   try {
     await dotenv.load(fileName: ".env");
 
-    await Supabase.initialize(anonKey: dotenv.env['SUPABASE_ANON_KEY']!, url: dotenv.env['SUPABASE_URL']!);
+    await Supabase.initialize(
+        anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+        url: dotenv.env['SUPABASE_URL']!);
 
     final driverProvider = DriverProvider();
     final mapProvider = MapProvider();
     final passengerProvider = PassengerProvider();
 
-    CheckPermissions().checkPermissions(); //check permissions for location services
+    CheckPermissions()
+        .checkPermissions(); //check permissions for location services
 
     runApp(MultiProvider(
       providers: [
@@ -84,16 +87,24 @@ class _MyAppState extends State<MyApp> {
 
       // User is still logged in
       if (hasSession) {
-        await context.read<DriverProvider>().loadFromSecureStorage(context); //load data from secure storage
-
         await context
-            .read<PassengerProvider>()
-            .getBookingRequestsID(context); //check booking assigned to the driver
+            .read<DriverProvider>()
+            .loadFromSecureStorage(context); //load data from secure storage
+
+        // Move PassengerProvider interaction to post-frame callback
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            context.read<PassengerProvider>().getBookingRequestsID(
+                context); //check booking assigned to the driver
+          }
+        });
 
         debugPrint('Fetching route coordinates');
-        await context
-            .read<MapProvider>()
-            .getRouteCoordinates(context.read<DriverProvider>().routeID); //get route coordinates
+        // Move MapProvider interaction outside of build cycle
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.read<MapProvider>().getRouteCoordinates(
+              context.read<DriverProvider>().routeID); //get route coordinates
+        });
       }
     }
   }

@@ -16,7 +16,12 @@ class ActivityPageState extends State<ActivityPage> {
   @override
   void initState() {
     super.initState();
-    context.read<PassengerProvider>().getCompletedBookings(context);
+    // Use post-frame callback to avoid state updates during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<PassengerProvider>().getCompletedBookings(context);
+      }
+    });
   }
 
   @override
@@ -31,19 +36,23 @@ class ActivityPageState extends State<ActivityPage> {
 
     final bookingDetails = context.watch<PassengerProvider>().bookingDetails;
     final bookingCapacity = context.watch<DriverProvider>().passengerCapacity;
-    final completedBooking = context.watch<PassengerProvider>().completedBooking;
+    final completedBooking =
+        context.watch<PassengerProvider>().completedBooking;
 
     return Center(
       child: Padding(
-        padding:
-            EdgeInsets.only(top: screenWidth * 0.155, left: screenWidth * 0.04, right: screenWidth * 0.04),
+        padding: EdgeInsets.only(
+            top: screenWidth * 0.155,
+            left: screenWidth * 0.04,
+            right: screenWidth * 0.04),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             // TITLE
             Text(
               'Driver Activity',
-              style: Styles().textStyle(20, FontWeight.w600, Styles.customBlack),
+              style:
+                  Styles().textStyle(20, FontWeight.w600, Styles.customBlack),
             ),
 
             SizedBox(height: screenHeight * 0.03),
@@ -66,15 +75,18 @@ class ActivityPageState extends State<ActivityPage> {
                     children: [
                       Text(
                         'Completed',
-                        style: Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
+                        style: Styles()
+                            .textStyle(15, FontWeight.w600, Styles.customBlack),
                       ),
                       Text(
                         'Bookings',
-                        style: Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
+                        style: Styles()
+                            .textStyle(15, FontWeight.w600, Styles.customBlack),
                       ),
                       const SizedBox(height: 8),
                       Text(completedBooking.toString(),
-                          style: Styles().textStyle(30, FontWeight.w600, Styles.customBlack)),
+                          style: Styles().textStyle(
+                              30, FontWeight.w600, Styles.customBlack)),
                     ],
                   ),
                 ),
@@ -94,15 +106,18 @@ class ActivityPageState extends State<ActivityPage> {
                     children: [
                       Text(
                         'Ongoing',
-                        style: Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
+                        style: Styles()
+                            .textStyle(15, FontWeight.w600, Styles.customBlack),
                       ),
                       Text(
                         'Bookings',
-                        style: Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
+                        style: Styles()
+                            .textStyle(15, FontWeight.w600, Styles.customBlack),
                       ),
                       const SizedBox(height: 8),
                       Text(bookingCapacity.toString(),
-                          style: Styles().textStyle(30, FontWeight.w600, Styles.customBlack)),
+                          style: Styles().textStyle(
+                              30, FontWeight.w600, Styles.customBlack)),
                     ],
                   ),
                 ),
@@ -122,15 +137,18 @@ class ActivityPageState extends State<ActivityPage> {
                     children: [
                       Text(
                         'Requested',
-                        style: Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
+                        style: Styles()
+                            .textStyle(15, FontWeight.w600, Styles.customBlack),
                       ),
                       Text(
                         'Bookings',
-                        style: Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
+                        style: Styles()
+                            .textStyle(15, FontWeight.w600, Styles.customBlack),
                       ),
                       const SizedBox(height: 8),
                       Text(bookingDetails.length.toString(),
-                          style: Styles().textStyle(30, FontWeight.w600, Styles.customBlack)),
+                          style: Styles().textStyle(
+                              30, FontWeight.w600, Styles.customBlack)),
                     ],
                   ),
                 ),
@@ -141,12 +159,22 @@ class ActivityPageState extends State<ActivityPage> {
             // Refresh Button
             TextButton.icon(
               onPressed: () {
-                context.read<PassengerProvider>().getBookingRequestsID(context);
-                context.read<PassengerProvider>().getCompletedBookings(context);
+                // Use post-frame callbacks for state updates
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    context
+                        .read<PassengerProvider>()
+                        .getBookingRequestsID(context);
+                    context
+                        .read<PassengerProvider>()
+                        .getCompletedBookings(context);
+                  }
+                });
               },
               icon: const Icon(Icons.refresh),
               label: Text('Refresh Bookings',
-                  style: Styles().textStyle(14, FontWeight.w400, Styles.customBlack)),
+                  style: Styles()
+                      .textStyle(14, FontWeight.w400, Styles.customBlack)),
             ),
 
             SizedBox(height: screenHeight * 0.01),
@@ -195,7 +223,8 @@ class ActivityPageState extends State<ActivityPage> {
               children: [
                 Text(
                   'Booking ID: ${booking.bookingId}',
-                  style: Styles().textStyle(14, FontWeight.w500, Styles.customBlack),
+                  style: Styles()
+                      .textStyle(14, FontWeight.w500, Styles.customBlack),
                 ),
                 // const SizedBox(height: 2),
                 // Text(
@@ -205,16 +234,19 @@ class ActivityPageState extends State<ActivityPage> {
                 const SizedBox(height: 2),
                 Text(
                   'Status: ${booking.rideStatus}',
-                  style: Styles().textStyle(14, FontWeight.w400, Colors.grey[700]!),
+                  style: Styles()
+                      .textStyle(14, FontWeight.w400, Colors.grey[700]!),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Pickup: (${booking.pickupLat.toStringAsFixed(2)}, ${booking.pickupLng.toStringAsFixed(2)})',
-                  style: Styles().textStyle(12, FontWeight.w400, Colors.grey[700]!),
+                  style: Styles()
+                      .textStyle(12, FontWeight.w400, Colors.grey[700]!),
                 ),
                 Text(
                   'Dropoff: (${booking.dropoffLat.toStringAsFixed(2)}, ${booking.dropoffLng.toStringAsFixed(2)})',
-                  style: Styles().textStyle(12, FontWeight.w400, Colors.grey[700]!),
+                  style: Styles()
+                      .textStyle(12, FontWeight.w400, Colors.grey[700]!),
                 ),
               ],
             ),
