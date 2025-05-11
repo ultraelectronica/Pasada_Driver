@@ -34,7 +34,7 @@ class ActivityPageState extends State<ActivityPage> {
       vertical: 10,
     );
 
-    final bookingDetails = context.watch<PassengerProvider>().bookingDetails;
+    final bookings = context.watch<PassengerProvider>().bookings;
     final bookingCapacity = context.watch<DriverProvider>().passengerCapacity;
     final completedBooking =
         context.watch<PassengerProvider>().completedBooking;
@@ -146,7 +146,7 @@ class ActivityPageState extends State<ActivityPage> {
                             .textStyle(15, FontWeight.w600, Styles.customBlack),
                       ),
                       const SizedBox(height: 8),
-                      Text(bookingDetails.length.toString(),
+                      Text(bookings.length.toString(),
                           style: Styles().textStyle(
                               30, FontWeight.w600, Styles.customBlack)),
                     ],
@@ -180,16 +180,16 @@ class ActivityPageState extends State<ActivityPage> {
             SizedBox(height: screenHeight * 0.01),
 
             // Booking List
-            bookingList(bookingDetails),
+            bookingList(bookings),
           ],
         ),
       ),
     );
   }
 
-  Expanded bookingList(List<BookingDetail> bookingDetails) {
+  Expanded bookingList(List<Booking> bookings) {
     return Expanded(
-      child: bookingDetails.isEmpty
+      child: bookings.isEmpty
           ? Center(
               child: Text(
                 'No active bookings',
@@ -197,16 +197,16 @@ class ActivityPageState extends State<ActivityPage> {
               ),
             )
           : ListView.separated(
-              itemCount: bookingDetails.length,
+              itemCount: bookings.length,
               separatorBuilder: (context, index) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
-                return _buildBookingItem(bookingDetails[index]);
+                return _buildBookingItem(bookings[index]);
               },
             ),
     );
   }
 
-  Widget _buildBookingItem(BookingDetail booking) {
+  Widget _buildBookingItem(Booking booking) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -222,7 +222,7 @@ class ActivityPageState extends State<ActivityPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Booking ID: ${booking.bookingId}',
+                  'Booking ID: ${booking.id}',
                   style: Styles()
                       .textStyle(14, FontWeight.w500, Styles.customBlack),
                 ),
@@ -239,12 +239,12 @@ class ActivityPageState extends State<ActivityPage> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Pickup: (${booking.pickupLat.toStringAsFixed(2)}, ${booking.pickupLng.toStringAsFixed(2)})',
+                  'Pickup: (${booking.pickupLocation.latitude.toStringAsFixed(2)}, ${booking.pickupLocation.longitude.toStringAsFixed(2)})',
                   style: Styles()
                       .textStyle(12, FontWeight.w400, Colors.grey[700]!),
                 ),
                 Text(
-                  'Dropoff: (${booking.dropoffLat.toStringAsFixed(2)}, ${booking.dropoffLng.toStringAsFixed(2)})',
+                  'Dropoff: (${booking.dropoffLocation.latitude.toStringAsFixed(2)}, ${booking.dropoffLocation.longitude.toStringAsFixed(2)})',
                   style: Styles()
                       .textStyle(12, FontWeight.w400, Colors.grey[700]!),
                 ),

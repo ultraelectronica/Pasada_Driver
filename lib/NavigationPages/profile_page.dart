@@ -4,7 +4,6 @@ import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
-// import 'package:pasada_driver_side/Database/global.dart';
 import 'package:provider/provider.dart';
 
 // --- Custom Clipper for Background Shape ---
