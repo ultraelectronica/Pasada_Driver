@@ -157,14 +157,12 @@ class _MyHomePageState extends State<MyHomePage> {
     return const Scaffold(
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             //LOGO
             Logo(),
             //WELCOME MESSAGE
             WelcomeMessage(),
-            SizedBox(height: 8.0),
-            WelcomeAppMessage(),
 
             //LOG IN BUTTON
             _LogInButton(),
@@ -183,29 +181,12 @@ class Logo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(top: 130.0),
+      margin: EdgeInsets.only(top: Constants(context).screenHeight * 0.2),
       width: Constants(context).screenWidth * 0.4,
       height: Constants(context).screenWidth * 0.4,
-      child: Image.asset(
-        'assets/png/PasadaIcon.png',
-        color: Colors.black,
-      ),
-    );
-  }
-}
-
-class WelcomeAppMessage extends StatelessWidget {
-  const WelcomeAppMessage({
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 30.0),
-      child: Text(
-        'Welcome to Pasada Driver',
-        style: Styles().textStyle(14, FontWeight.w400, Styles.customBlack),
+      child: SvgPicture.asset(
+        'assets/svg/PasadaLogo.svg',
+        colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
       ),
     );
   }
@@ -219,10 +200,19 @@ class WelcomeMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(top: 70.0),
-      child: Text(
-        'Hi there!',
-        style: Styles().textStyle(40.0, FontWeight.w700, Colors.black),
+      margin: EdgeInsets.only(bottom: Constants(context).screenHeight * 0.15),
+      child: Column(
+        children: [
+          Text(
+            'Hi there!',
+            style: Styles().textStyle(40.0, FontWeight.w700, Colors.black),
+          ),
+          SizedBox(height: Constants(context).screenHeight * 0.009),
+          Text(
+            'Welcome to Pasada Driver',
+            style: Styles().textStyle(14, FontWeight.w400, Styles.customBlack),
+          ),
+        ],
       ),
     );
   }
@@ -233,14 +223,15 @@ class _LogInButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(top: 250.0),
+      margin: EdgeInsets.only(bottom: Constants(context).screenHeight * 0.1),
       child: ElevatedButton(
         onPressed: () {
           Navigator.pushReplacementNamed(context, '/login');
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-          minimumSize: const Size(240.0, 45.0),
+          minimumSize: Size(Constants(context).screenWidth * 0.75,
+              Constants(context).screenHeight * 0.05),
           shadowColor: Colors.black,
           elevation: 5.0,
           shape: RoundedRectangleBorder(

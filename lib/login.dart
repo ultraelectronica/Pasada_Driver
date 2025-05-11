@@ -446,9 +446,9 @@ class _LogInState extends State<LogIn> {
           alignment: Alignment.center,
           width: iconSize,
           height: iconSize,
-          child: Image.asset(
-            'assets/png/PasadaIcon.png',
-            color: Colors.black,
+          child: SvgPicture.asset(
+            'assets/svg/PasadaLogo.svg',
+            colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
           ),
         ),
         Container(
