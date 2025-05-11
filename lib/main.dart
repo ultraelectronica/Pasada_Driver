@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
@@ -123,7 +122,6 @@ class _MyAppState extends State<MyApp> {
       home: _buildHome(),
       routes: {
         '/login': (context) => const LogIn(),
-        '/home': (context) => const MyHomePage(),
       },
     );
   }
@@ -139,54 +137,217 @@ class _MyAppState extends State<MyApp> {
     if (_hasSession == true) {
       return const MainPage();
     } else {
-      return const MyHomePage();
+      return const AuthPagesView();
     }
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
+class AuthPagesView extends StatefulWidget {
+  const AuthPagesView({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<AuthPagesView> createState() => _AuthPagesViewState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _AuthPagesViewState extends State<AuthPagesView>
+    with SingleTickerProviderStateMixin {
+  late PageController _pageController;
+  final ValueNotifier<double> _pageNotifier = ValueNotifier<double>(0);
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(
+      initialPage: 0,
+      viewportFraction: 1.0,
+    );
+    _pageController.addListener(() {
+      _pageNotifier.value = _pageController.page ?? 0;
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Pre-cache image for smoother performance
+    precacheImage(const AssetImage('assets/png/PasadaLogo.png'), context);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _pageNotifier.dispose();
+    super.dispose();
+  }
+
+  void goToLoginPage() {
+    _pageController.animateToPage(1,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.fastOutSlowIn);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            //LOGO
-            Logo(),
-            //WELCOME MESSAGE
-            WelcomeMessage(),
+    return ValueListenableBuilder<double>(
+      valueListenable: _pageNotifier,
+      builder: (context, pageValue, _) {
+        // Calculate transition value (0 to 1)
+        final transitionValue = pageValue.clamp(0.0, 1.0);
 
-            //LOG IN BUTTON
-            _LogInButton(),
-          ],
-        ),
-      ),
+        return Scaffold(
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Background - use a simple color instead of animated container for better performance
+              Container(
+                color: const Color.fromRGBO(250, 250, 250, 1),
+              ),
+
+              // Logo with morphing animation - optimized
+              AnimatedBuilder(
+                animation: _pageNotifier,
+                builder: (context, child) {
+                  return OptimizedMorphingLogo(
+                      transitionValue: transitionValue);
+                },
+              ),
+
+              // Pages with hardware acceleration
+              RepaintBoundary(
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: 2,
+                  physics: const PageScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return OptimizedWelcomePage(
+                        onLoginPressed: goToLoginPage,
+                        transitionValue: transitionValue,
+                      );
+                    } else {
+                      return LogIn(pageController: _pageController);
+                    }
+                  },
+                ),
+              ),
+
+              // Page indicators
+              Positioned(
+                bottom: 20,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildPageIndicator(0, pageValue.round()),
+                    const SizedBox(width: 10),
+                    _buildPageIndicator(1, pageValue.round()),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPageIndicator(int pageIndex, int currentPage) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      width: currentPage == pageIndex ? 12 : 8,
+      height: currentPage == pageIndex ? 12 : 8,
+      decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: currentPage == pageIndex ? Colors.black : Colors.grey),
     );
   }
 }
 
-class Logo extends StatelessWidget {
-  const Logo({
+class OptimizedMorphingLogo extends StatelessWidget {
+  final double transitionValue;
+
+  const OptimizedMorphingLogo({super.key, required this.transitionValue});
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Welcome page logo position (center top)
+    final startPosX = screenWidth * 0.5 - (screenWidth * 0.2);
+    final startPosY = screenHeight * 0.2;
+    final startSize = screenWidth * 0.4;
+
+    // Login page logo position (top left)
+    final endPosX = screenWidth * 0.1;
+    final endPosY = screenHeight * 0.05;
+    final endSize = screenWidth * 0.15;
+
+    // Calculate current position and size
+    final currentPosX = lerpDouble(startPosX, endPosX, transitionValue);
+    final currentPosY = lerpDouble(startPosY, endPosY, transitionValue);
+    final currentSize = lerpDouble(startSize, endSize, transitionValue);
+
+    return Positioned(
+      left: currentPosX,
+      top: currentPosY,
+      width: currentSize,
+      height: currentSize,
+      child: RepaintBoundary(
+        child: Image.asset(
+          'assets/png/PasadaLogo.png',
+          color: Colors.black,
+        ),
+      ),
+    );
+  }
+
+  double lerpDouble(double a, double b, double t) {
+    return a + (b - a) * t;
+  }
+}
+
+class OptimizedWelcomePage extends StatelessWidget {
+  final VoidCallback onLoginPressed;
+  final double transitionValue;
+
+  const OptimizedWelcomePage({
     super.key,
+    required this.onLoginPressed,
+    required this.transitionValue,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(top: Constants(context).screenHeight * 0.2),
-      width: Constants(context).screenWidth * 0.4,
-      height: Constants(context).screenWidth * 0.4,
-      child: SvgPicture.asset(
-        'assets/svg/PasadaLogo.svg',
-        colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
+    // Calculate opacity to avoid layered transparency which causes performance issues
+    final opacity = (1 - transitionValue).clamp(0.0, 1.0);
+    if (opacity < 0.01) return const SizedBox.shrink();
+
+    // Use transforms instead of animations for better performance
+    return Transform.translate(
+      offset: Offset(0, transitionValue * 20),
+      child: Opacity(
+        opacity: opacity,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Empty container to take up the logo's space
+              SizedBox(height: Constants(context).screenWidth * 0.4),
+
+              // Welcome message
+              const WelcomeMessage(),
+
+              // Login button
+              Transform.translate(
+                offset: Offset(0, transitionValue * 20),
+                child: _LogInButton(onPressed: onLoginPressed),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -219,18 +380,22 @@ class WelcomeMessage extends StatelessWidget {
 }
 
 class _LogInButton extends StatelessWidget {
-  const _LogInButton();
+  final VoidCallback? onPressed;
+
+  const _LogInButton({this.onPressed});
+
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: EdgeInsets.only(bottom: Constants(context).screenHeight * 0.1),
       child: ElevatedButton(
-        onPressed: () {
-          Navigator.pushReplacementNamed(context, '/login');
-        },
+        onPressed: onPressed ??
+            () {
+              Navigator.pushReplacementNamed(context, '/login');
+            },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-          minimumSize: Size(Constants(context).screenWidth * 0.75,
+          minimumSize: Size(Constants(context).screenWidth * 0.1,
               Constants(context).screenHeight * 0.05),
           shadowColor: Colors.black,
           elevation: 5.0,
@@ -238,9 +403,10 @@ class _LogInButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(20.0),
           ),
         ),
-        child: Text(
-          'Log in',
-          style: Styles().textStyle(20.0, FontWeight.w600, Styles.customWhite),
+        child: const Icon(
+          Icons.arrow_forward_ios_rounded,
+          color: Colors.white,
+          size: 20.0,
         ),
       ),
     );

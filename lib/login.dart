@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/passenger_capacity.dart';
 import 'package:pasada_driver_side/Services/password_util.dart';
@@ -14,7 +13,9 @@ import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:pasada_driver_side/Database/passenger_provider.dart';
 
 class LogIn extends StatefulWidget {
-  const LogIn({super.key});
+  final PageController? pageController;
+
+  const LogIn({super.key, this.pageController});
 
   @override
   State<LogIn> createState() => _LogInState();
@@ -446,9 +447,9 @@ class _LogInState extends State<LogIn> {
           alignment: Alignment.center,
           width: iconSize,
           height: iconSize,
-          child: SvgPicture.asset(
-            'assets/svg/PasadaLogo.svg',
-            colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
+          child: Image.asset(
+            'assets/png/PasadaLogo.png',
+            color: Colors.black,
           ),
         ),
         Container(

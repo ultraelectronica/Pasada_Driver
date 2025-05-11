@@ -78,6 +78,8 @@ flutter:
   uses-material-design: true
   
   assets:
+    - assets/png/PasadaLogo.png
+
     - assets/svg/PasadaJeep.svg
     - assets/svg/PasadaLogo.svg
 
