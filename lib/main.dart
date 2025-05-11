@@ -13,6 +13,7 @@ import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/login.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:pasada_driver_side/UI/constants.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -183,9 +184,12 @@ class Logo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(top: 130.0),
-      width: 130.0,
-      height: 130.0,
-      child: SvgPicture.asset('assets/svg/Ellipse.svg'),
+      width: Constants(context).screenWidth * 0.4,
+      height: Constants(context).screenWidth * 0.4,
+      child: Image.asset(
+        'assets/png/PasadaIcon.png',
+        color: Colors.black,
+      ),
     );
   }
 }

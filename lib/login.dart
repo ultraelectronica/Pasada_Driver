@@ -236,7 +236,7 @@ class _LogInState extends State<LogIn> {
                       // Use screenHeight/Width directly for spacing and sizing
                       SizedBox(height: screenHeight * 0.05),
 
-                      _buildHeader(screenHeight * 0.1, screenHeight * 0.05),
+                      _buildHeader(screenHeight * 0.15, screenHeight * 0.02),
                       SizedBox(height: screenHeight * 0.05),
 
                       _buildDriverIDText(),
@@ -446,7 +446,10 @@ class _LogInState extends State<LogIn> {
           alignment: Alignment.center,
           width: iconSize,
           height: iconSize,
-          child: SvgPicture.asset('assets/svg/Ellipse.svg'),
+          child: Image.asset(
+            'assets/png/PasadaIcon.png',
+            color: Colors.black,
+          ),
         ),
         Container(
           margin: EdgeInsets.only(top: topMargin),
