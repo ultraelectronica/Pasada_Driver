@@ -78,10 +78,15 @@ class MapScreenState extends State<MapScreen> {
   }
 
   void getPickUpLocation() {
-    _pickupLocation = context.read<MapProvider>().pickupLocation;
-    debugPrint('Pickup Location: $_pickupLocation');
-    setState(() {});
-    _initializeMarkers();
+    // Don't call setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _pickupLocation = context.read<MapProvider>().pickupLocation;
+        debugPrint('Pickup Location: $_pickupLocation');
+        setState(() {});
+        _initializeMarkers();
+      }
+    });
   }
 
   Future<void> getRouteCoordinates() async {
@@ -157,14 +162,23 @@ class MapScreenState extends State<MapScreen> {
               LatLng(locationData.latitude!, locationData.longitude!);
         });
 
-        // Update MapProvider with current location
-        context.read<MapProvider>().setCurrentLocation(currentLocation!);
+        // Update MapProvider with current location - in post-frame callback
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && currentLocation != null) {
+            context.read<MapProvider>().setCurrentLocation(currentLocation!);
+          }
+        });
       }
 
       // Now load route coordinates with the current location available
       if (mounted) {
         debugPrint('Getting route coordinates');
-        await getRouteCoordinates();
+        // Use a post-frame callback to avoid build-time state updates
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (mounted) {
+            await getRouteCoordinates();
+          }
+        });
       }
 
       if (mounted) {
@@ -225,7 +239,12 @@ class MapScreenState extends State<MapScreen> {
             _lastPolylineUpdateLocation = newLatLng;
           }
 
-          getPickUpLocation();
+          // Use post-frame callback for any state updates
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              getPickUpLocation();
+            }
+          });
 
           // Move the camera to new location
           animateToLocation(newLatLng);
@@ -279,7 +298,12 @@ class MapScreenState extends State<MapScreen> {
 
     // If distance is less than 40 meters, consider it reached
     if (distanceInMeters < 40 && mounted) {
-      context.read<MapProvider>().changeRouteLocation(context);
+      // Use post-frame callback to avoid state updates during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.read<MapProvider>().changeRouteLocation(context);
+        }
+      });
     }
   }
 
@@ -546,9 +570,13 @@ class MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Ensure route coordinates are loaded
+    // Don't call getRouteCoordinates directly during build
     if (!_routeCoordinatesLoaded) {
-      getRouteCoordinates();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          getRouteCoordinates();
+        }
+      });
     }
 
     final screenHeight = MediaQuery.of(context).size.height;

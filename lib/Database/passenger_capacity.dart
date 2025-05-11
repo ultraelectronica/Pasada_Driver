@@ -18,12 +18,15 @@ class PassengerCapacity {
 
       final getOngoingPassenger = await supabase
           .from('bookings')
-          .select('booking_id')
+          .select('booking_id, seat_type')
           .eq('driver_id', driverID)
-          .eq('ride_status', 'ongoing')
-          .select();
+          .eq('ride_status', 'ongoing');
 
-      debugPrint('Ongoing Passenger: $getOngoingPassenger');
+      debugPrint('Number of ongoing bookings: ${getOngoingPassenger.length}');
+      for (var i = 0; i < getOngoingPassenger.length; i++) {
+        debugPrint(
+            'Ongoing booking ${i + 1}: ${getOngoingPassenger[i]['booking_id']}');
+      }
 
       int standingPassengers = 0;
       int sittingPassengers = 0;
@@ -43,10 +46,14 @@ class PassengerCapacity {
       }
 
       debugPrint('Standing Passengers: $standingPassengers');
-      context.read<DriverProvider>().setPassengerStandingCapacity(standingPassengers);
+      context
+          .read<DriverProvider>()
+          .setPassengerStandingCapacity(standingPassengers);
 
       debugPrint('Sitting Passengers: $sittingPassengers');
-      context.read<DriverProvider>().setPassengerSittingCapacity(sittingPassengers);
+      context
+          .read<DriverProvider>()
+          .setPassengerSittingCapacity(sittingPassengers);
 
       //updates how many passengers are ongoing in the vehicle table
       final response = await supabase
@@ -58,12 +65,16 @@ class PassengerCapacity {
       debugPrint('Passenger capacity updated to DB: $response');
 
       if (getOngoingPassenger.isNotEmpty) {
-        context.read<DriverProvider>().setPassengerCapacity(getOngoingPassenger.length);
+        context
+            .read<DriverProvider>()
+            .setPassengerCapacity(getOngoingPassenger.length);
 
         debugPrint(
             'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
       } else {
-        context.read<DriverProvider>().setPassengerCapacity(getOngoingPassenger.length);
+        context
+            .read<DriverProvider>()
+            .setPassengerCapacity(getOngoingPassenger.length);
         debugPrint(
             'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
       }
@@ -89,8 +100,10 @@ class PassengerCapacity {
     } catch (e, StackTrace) {
       debugPrint('Error fetching passenger capacity: $e');
       debugPrint('Passenger Capacity Stack Trace: $StackTrace');
-      debugPrint('Error: Driver ID in checking capacity: ${context.read<DriverProvider>().driverID}');
-      debugPrint('Error: Vehicle ID in checking capacity: ${context.read<DriverProvider>().vehicleID}');
+      debugPrint(
+          'Error: Driver ID in checking capacity: ${context.read<DriverProvider>().driverID}');
+      debugPrint(
+          'Error: Vehicle ID in checking capacity: ${context.read<DriverProvider>().vehicleID}');
     }
   }
 }
