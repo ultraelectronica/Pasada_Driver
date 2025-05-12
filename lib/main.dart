@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
@@ -13,6 +12,7 @@ import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/login.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:pasada_driver_side/UI/constants.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,8 +61,15 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-
     _checkSession();
+    _precacheAssets();
+  }
+
+  void _precacheAssets() {
+    // Pre-cache common assets at app startup
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      precacheImage(const AssetImage('assets/png/PasadaLogo.png'), context);
+    });
   }
 
   //check yung data locally
@@ -115,14 +122,13 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       title: 'Pasada Driver',
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color.fromRGBO(250, 250, 250, 20),
+        scaffoldBackgroundColor: Colors.white,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         useMaterial3: true,
       ),
       home: _buildHome(),
       routes: {
         '/login': (context) => const LogIn(),
-        '/home': (context) => const MyHomePage(),
       },
     );
   }
@@ -138,115 +144,270 @@ class _MyAppState extends State<MyApp> {
     if (_hasSession == true) {
       return const MainPage();
     } else {
-      return const MyHomePage();
+      return const AuthPagesView();
     }
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
+class AuthPagesView extends StatefulWidget {
+  const AuthPagesView({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<AuthPagesView> createState() => _AuthPagesViewState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _AuthPagesViewState extends State<AuthPagesView>
+    with SingleTickerProviderStateMixin {
+  late PageController _pageController;
+  final ValueNotifier<double> _pageNotifier = ValueNotifier<double>(0);
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(
+      initialPage: 0,
+      viewportFraction: 1.0,
+    );
+    _pageController.addListener(_onPageChanged);
+  }
+
+  void _onPageChanged() {
+    if (_pageController.page != null &&
+        _pageController.page != _pageNotifier.value) {
+      // Only update when necessary to reduce rebuilds
+      _pageNotifier.value = _pageController.page!;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.removeListener(_onPageChanged);
+    _pageController.dispose();
+    _pageNotifier.dispose();
+    super.dispose();
+  }
+
+  void goToLoginPage() {
+    _pageController.animateToPage(1,
+        duration: const Duration(milliseconds: 300), // Reduced animation time
+        curve: Curves.easeOut); // Simpler curve
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            //LOGO
-            Logo(),
-            //WELCOME MESSAGE
-            WelcomeMessage(),
-            SizedBox(height: 8.0),
-            WelcomeAppMessage(),
+    return Scaffold(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // White background - use const when possible
+          const ColoredBox(color: Colors.white),
 
-            //LOG IN BUTTON
-            _LogInButton(),
-          ],
-        ),
+          // Logo with morphing animation
+          ValueListenableBuilder<double>(
+            valueListenable: _pageNotifier,
+            builder: (context, pageValue, _) {
+              final transitionValue = pageValue.clamp(0.0, 1.0);
+              return OptimizedMorphingLogo(transitionValue: transitionValue);
+            },
+          ),
+
+          // Pages with hardware acceleration
+          PageView.builder(
+            controller: _pageController,
+            itemCount: 2,
+            physics: const ClampingScrollPhysics(), // Less resource intensive
+            itemBuilder: (context, index) {
+              return RepaintBoundary(
+                child: index == 0
+                    ? ValueListenableBuilder<double>(
+                        valueListenable: _pageNotifier,
+                        builder: (context, pageValue, _) {
+                          return OptimizedWelcomePage(
+                            onLoginPressed: goToLoginPage,
+                            transitionValue: pageValue.clamp(0.0, 1.0),
+                          );
+                        },
+                      )
+                    : LogIn(pageController: _pageController),
+              );
+            },
+          ),
+
+          // Page indicators
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: EdgeInsets.only(
+                  bottom: Constants(context).screenHeight * 0.05),
+              child: ValueListenableBuilder<double>(
+                valueListenable: _pageNotifier,
+                builder: (context, pageValue, _) {
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildPageIndicator(0, pageValue.round()),
+                      const SizedBox(width: 10),
+                      _buildPageIndicator(1, pageValue.round()),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
-}
 
-class Logo extends StatelessWidget {
-  const Logo({
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 130.0),
-      width: 130.0,
-      height: 130.0,
-      child: SvgPicture.asset('assets/svg/Ellipse.svg'),
+  Widget _buildPageIndicator(int pageIndex, int currentPage) {
+    final isActive = currentPage == pageIndex;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200), // Shorter animation
+      width: isActive ? 22 : 8,
+      height: isActive ? 12 : 8,
+      decoration: BoxDecoration(
+          shape: BoxShape.rectangle,
+          borderRadius: BorderRadius.circular(5),
+          color: isActive ? Colors.black : Colors.grey),
     );
   }
 }
 
-class WelcomeAppMessage extends StatelessWidget {
-  const WelcomeAppMessage({
+class OptimizedMorphingLogo extends StatelessWidget {
+  final double transitionValue;
+
+  const OptimizedMorphingLogo({super.key, required this.transitionValue});
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Welcome page logo position (center top)
+    final startPosX = screenWidth * 0.5 - (screenWidth * 0.2);
+    final startPosY = screenHeight * 0.2;
+    final startSize = screenWidth * 0.4;
+
+    // Login page logo position (top left)
+    final endPosX = screenWidth * 0.1;
+    final endPosY = screenHeight * 0.05;
+    final endSize = screenWidth * 0.15;
+
+    // Calculate current position and size
+    final currentPosX = _lerp(startPosX, endPosX, transitionValue);
+    final currentPosY = _lerp(startPosY, endPosY, transitionValue);
+    final currentSize = _lerp(startSize, endSize, transitionValue);
+
+    return Positioned(
+      left: currentPosX,
+      top: currentPosY,
+      width: currentSize,
+      height: currentSize,
+      child: Image.asset(
+        'assets/png/PasadaLogo.png',
+        color: Colors.black,
+        cacheWidth: startSize.ceil(), // Pre-resize image
+      ),
+    );
+  }
+
+  // Simple inline lerp function is faster than using lerpDouble
+  double _lerp(double a, double b, double t) => a + (b - a) * t;
+}
+
+class OptimizedWelcomePage extends StatelessWidget {
+  final VoidCallback onLoginPressed;
+  final double transitionValue;
+
+  const OptimizedWelcomePage({
     super.key,
+    required this.onLoginPressed,
+    required this.transitionValue,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 30.0),
-      child: Text(
-        'Welcome to Pasada Driver',
-        style: Styles().textStyle(14, FontWeight.w400, Styles.customBlack),
+    // Skip rendering when fully transitioned away (better than opacity)
+    if (transitionValue >= 0.99) return const SizedBox.shrink();
+
+    // Use transforms for better performance than animated positioning
+    return Transform.translate(
+      offset: Offset(0, transitionValue * 20),
+      child: Opacity(
+        opacity: 1.0 - transitionValue,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Empty container to take up the logo's space
+              SizedBox(height: Constants(context).screenWidth * 0.4),
+
+              // Welcome message - extract and make const where possible
+              const WelcomeMessage(),
+
+              // next button
+              Padding(
+                padding: EdgeInsets.only(
+                    bottom: Constants(context).screenHeight * 0.1),
+                child: _NextButton(onPressed: onLoginPressed),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
 class WelcomeMessage extends StatelessWidget {
-  const WelcomeMessage({
-    super.key,
-  });
+  const WelcomeMessage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 70.0),
-      child: Text(
-        'Hi there!',
-        style: Styles().textStyle(40.0, FontWeight.w700, Colors.black),
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min, // Reduces layout calculation
+      children: [
+        Text(
+          'Hi there!',
+          style: Styles().textStyle(40.0, FontWeight.w700, Colors.black),
+        ),
+        SizedBox(height: Constants(context).screenHeight * 0.009),
+        Text(
+          'Welcome to Pasada Driver',
+          style: Styles().textStyle(14, FontWeight.w400, Styles.customBlack),
+        ),
+      ],
     );
   }
 }
 
-class _LogInButton extends StatelessWidget {
-  const _LogInButton();
+class _NextButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+
+  const _NextButton({this.onPressed});
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 250.0),
-      child: ElevatedButton(
-        onPressed: () {
-          Navigator.pushReplacementNamed(context, '/login');
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-          minimumSize: const Size(240.0, 45.0),
-          shadowColor: Colors.black,
-          elevation: 5.0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.0),
-          ),
+    return ElevatedButton(
+      onPressed: onPressed ??
+          () {
+            Navigator.pushReplacementNamed(context, '/login');
+          },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+        minimumSize: Size(Constants(context).screenWidth * 0.1,
+            Constants(context).screenHeight * 0.05),
+        shadowColor: Colors.black,
+        elevation: 5.0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.0),
         ),
-        child: Text(
-          'Log in',
-          style: Styles().textStyle(20.0, FontWeight.w600, Styles.customWhite),
-        ),
+      ),
+      child: const Icon(
+        Icons.arrow_forward_ios_rounded,
+        color: Colors.white,
+        size: 20.0,
       ),
     );
   }

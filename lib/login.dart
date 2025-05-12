@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/Database/AuthService.dart';
 import 'package:pasada_driver_side/Database/passenger_capacity.dart';
 import 'package:pasada_driver_side/Services/password_util.dart';
@@ -14,7 +13,9 @@ import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:pasada_driver_side/Database/passenger_provider.dart';
 
 class LogIn extends StatefulWidget {
-  const LogIn({super.key});
+  final PageController? pageController;
+
+  const LogIn({super.key, this.pageController});
 
   @override
   State<LogIn> createState() => _LogInState();
@@ -214,6 +215,7 @@ class _LogInState extends State<LogIn> {
 
     return Scaffold(
       body: LayoutBuilder(
+        
         // Use LayoutBuilder to get constraints for centering
         builder: (context, constraints) {
           return SingleChildScrollView(
@@ -236,7 +238,7 @@ class _LogInState extends State<LogIn> {
                       // Use screenHeight/Width directly for spacing and sizing
                       SizedBox(height: screenHeight * 0.05),
 
-                      _buildHeader(screenHeight * 0.1, screenHeight * 0.05),
+                      _buildHeader(screenHeight * 0.15, screenHeight * 0.02),
                       SizedBox(height: screenHeight * 0.05),
 
                       _buildDriverIDText(),
@@ -446,7 +448,10 @@ class _LogInState extends State<LogIn> {
           alignment: Alignment.center,
           width: iconSize,
           height: iconSize,
-          child: SvgPicture.asset('assets/svg/Ellipse.svg'),
+          child: Image.asset(
+            'assets/png/PasadaLogo.png',
+            color: Colors.black,
+          ),
         ),
         Container(
           margin: EdgeInsets.only(top: topMargin),
