@@ -285,7 +285,7 @@ class DriverProvider with ChangeNotifier {
           .single();
 
       // Validate response and route_id
-      if (response == null || response['route_id'] == null) {
+      if (response['route_id'] == null) {
         debugPrint('No route ID found for vehicle: $vehicleID');
         return;
       }
