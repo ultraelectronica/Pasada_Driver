@@ -215,6 +215,7 @@ class _LogInState extends State<LogIn> {
 
     return Scaffold(
       body: LayoutBuilder(
+        
         // Use LayoutBuilder to get constraints for centering
         builder: (context, constraints) {
           return SingleChildScrollView(

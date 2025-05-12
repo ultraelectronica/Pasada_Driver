@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:provider/provider.dart';
@@ -10,8 +9,11 @@ class PassengerCapacity {
   ///Checks how many passengers are ongoing in the bookings table
   Future<void> getPassengerCapacityToDB(BuildContext context) async {
     try {
-      final String driverID = context.read<DriverProvider>().driverID;
-      final String vehicleID = context.read<DriverProvider>().vehicleID;
+      // Get all needed data from provider at the beginning
+      final driverProvider =
+          Provider.of<DriverProvider>(context, listen: false);
+      final String driverID = driverProvider.driverID;
+      final String vehicleID = driverProvider.vehicleID;
 
       debugPrint('Driver ID in getPassengerCapacityToDB: $driverID');
       debugPrint('Vehicle ID in getPassengerCapacityToDB: $vehicleID');
@@ -46,14 +48,10 @@ class PassengerCapacity {
       }
 
       debugPrint('Standing Passengers: $standingPassengers');
-      context
-          .read<DriverProvider>()
-          .setPassengerStandingCapacity(standingPassengers);
+      driverProvider.setPassengerStandingCapacity(standingPassengers);
 
       debugPrint('Sitting Passengers: $sittingPassengers');
-      context
-          .read<DriverProvider>()
-          .setPassengerSittingCapacity(sittingPassengers);
+      driverProvider.setPassengerSittingCapacity(sittingPassengers);
 
       //updates how many passengers are ongoing in the vehicle table
       final response = await supabase
@@ -64,46 +62,22 @@ class PassengerCapacity {
 
       debugPrint('Passenger capacity updated to DB: $response');
 
-      if (getOngoingPassenger.isNotEmpty) {
-        context
-            .read<DriverProvider>()
-            .setPassengerCapacity(getOngoingPassenger.length);
+      // Update passenger capacity in provider
+      driverProvider.setPassengerCapacity(getOngoingPassenger.length);
 
-        debugPrint(
-            'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
-      } else {
-        context
-            .read<DriverProvider>()
-            .setPassengerCapacity(getOngoingPassenger.length);
-        debugPrint(
-            'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
-      }
-
-      // final getPassengerCapacity = await supabase
-      //     .from('vehicleTable')
-      //     .select('passenger_capacity')
-      //     .eq('vehicle_id', vehicleID)
-      //     .single();
-
-      // if (kDebugMode) {
-      //   print('Vehicle ID: $getPassengerCapacity');
-      // }
-
-      // context
-      //     .read<DriverProvider>()
-      //     .setPassengerCapacity(getPassengerCapacity['passenger_capacity']);
-
-      // if (kDebugMode) {
-      //   print(
-      //       'provider vehicle capacity: ${context.read<DriverProvider>().passengerCapacity.toString()}');
-      // }
-    } catch (e, StackTrace) {
+      debugPrint(
+          'provider vehicle capacity: ${driverProvider.passengerCapacity.toString()}');
+    } catch (e, stackTrace) {
       debugPrint('Error fetching passenger capacity: $e');
-      debugPrint('Passenger Capacity Stack Trace: $StackTrace');
+      debugPrint('Passenger Capacity Stack Trace: $stackTrace');
+
+      // Get provider info for error logs even if main operation failed
+      final driverProvider =
+          Provider.of<DriverProvider>(context, listen: false);
       debugPrint(
-          'Error: Driver ID in checking capacity: ${context.read<DriverProvider>().driverID}');
+          'Error: Driver ID in checking capacity: ${driverProvider.driverID}');
       debugPrint(
-          'Error: Vehicle ID in checking capacity: ${context.read<DriverProvider>().vehicleID}');
+          'Error: Vehicle ID in checking capacity: ${driverProvider.vehicleID}');
     }
   }
 }
