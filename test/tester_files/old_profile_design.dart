@@ -262,7 +262,7 @@ class ProfilePageState extends State<ProfilePage> {
   Widget _buildDriverDetails(
       DriverProvider driverProvider, MapProvider mapProvider) {
     return Text(
-      '${driverProvider.driverFirstName} ${driverProvider.driverLastName}',
+      '${driverProvider.driverFullName}',
       style: Styles().textStyle(24, Styles.w700Weight, Styles.customBlack),
     );
   }

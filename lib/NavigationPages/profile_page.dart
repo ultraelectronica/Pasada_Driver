@@ -139,7 +139,7 @@ class ProfilePageState extends State<ProfilePage> {
 
   Widget _buildDriverName(DriverProvider driverProvider) {
     return Text(
-      '${driverProvider.driverFirstName} ${driverProvider.driverLastName}',
+      '${driverProvider.driverFullName}',
       style: Styles().textStyle(22, Styles.w700Weight, Styles.customWhite),
       textAlign: TextAlign.center,
     );

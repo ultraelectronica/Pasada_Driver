@@ -198,7 +198,7 @@ class MapProvider with ChangeNotifier {
     try {
       int? currentRouteID = context.read<DriverProvider>().routeID;
 
-      if (currentRouteID == null || currentRouteID <= 0) {
+      if (currentRouteID <= 0) {
         throw Exception('Invalid current route ID: $currentRouteID');
       }
 

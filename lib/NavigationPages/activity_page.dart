@@ -57,103 +57,9 @@ class ActivityPageState extends State<ActivityPage> {
 
             SizedBox(height: screenHeight * 0.03),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                // COMPLETED BOOKINGS
-                Container(
-                  padding: padding,
-                  width: bookingContainerWidth,
-                  decoration: BoxDecoration(
-                    color: Colors.green[50],
-                    border: Border.all(color: Constants.GREEN_COLOR, width: 2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Completed',
-                        style: Styles()
-                            .textStyle(15, FontWeight.w600, Styles.customBlack),
-                      ),
-                      Text(
-                        'Bookings',
-                        style: Styles()
-                            .textStyle(15, FontWeight.w600, Styles.customBlack),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(completedBooking.toString(),
-                          style: Styles().textStyle(
-                              30, FontWeight.w600, Styles.customBlack)),
-                    ],
-                  ),
-                ),
+            _buildBookingStats(padding, bookingContainerWidth, completedBooking,
+                bookingCapacity, bookings),
 
-                // ONGOING BOOKINGS
-                Container(
-                  padding: padding,
-                  width: bookingContainerWidth,
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    border: Border.all(color: Constants.GREEN_COLOR, width: 2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Ongoing',
-                        style: Styles()
-                            .textStyle(15, FontWeight.w600, Styles.customBlack),
-                      ),
-                      Text(
-                        'Bookings',
-                        style: Styles()
-                            .textStyle(15, FontWeight.w600, Styles.customBlack),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(bookingCapacity.toString(),
-                          style: Styles().textStyle(
-                              30, FontWeight.w600, Styles.customBlack)),
-                    ],
-                  ),
-                ),
-
-                // REQUESTED BOOKINGS
-                Container(
-                  padding: padding,
-                  width: bookingContainerWidth,
-                  decoration: BoxDecoration(
-                    color: Colors.orange[50],
-                    border: Border.all(color: Constants.GREEN_COLOR, width: 2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Requested',
-                        style: Styles()
-                            .textStyle(15, FontWeight.w600, Styles.customBlack),
-                      ),
-                      Text(
-                        'Bookings',
-                        style: Styles()
-                            .textStyle(15, FontWeight.w600, Styles.customBlack),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(bookings.length.toString(),
-                          style: Styles().textStyle(
-                              30, FontWeight.w600, Styles.customBlack)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
             SizedBox(height: screenHeight * 0.02),
 
             // Refresh Button
@@ -184,6 +90,107 @@ class ActivityPageState extends State<ActivityPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Row _buildBookingStats(EdgeInsets padding, double bookingContainerWidth,
+      int completedBooking, int bookingCapacity, List<Booking> bookings) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        // COMPLETED BOOKINGS
+        Container(
+          padding: padding,
+          width: bookingContainerWidth,
+          decoration: BoxDecoration(
+            color: Colors.green[50],
+            border: Border.all(color: Constants.GREEN_COLOR, width: 2),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Completed',
+                style:
+                    Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
+              ),
+              Text(
+                'Bookings',
+                style:
+                    Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
+              ),
+              const SizedBox(height: 8),
+              Text(completedBooking.toString(),
+                  style: Styles()
+                      .textStyle(30, FontWeight.w600, Styles.customBlack)),
+            ],
+          ),
+        ),
+
+        // ONGOING BOOKINGS
+        Container(
+          padding: padding,
+          width: bookingContainerWidth,
+          decoration: BoxDecoration(
+            color: Colors.blue[50],
+            border: Border.all(color: Constants.GREEN_COLOR, width: 2),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Ongoing',
+                style:
+                    Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
+              ),
+              Text(
+                'Bookings',
+                style:
+                    Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
+              ),
+              const SizedBox(height: 8),
+              Text(bookingCapacity.toString(),
+                  style: Styles()
+                      .textStyle(30, FontWeight.w600, Styles.customBlack)),
+            ],
+          ),
+        ),
+
+        // REQUESTED BOOKINGS
+        Container(
+          padding: padding,
+          width: bookingContainerWidth,
+          decoration: BoxDecoration(
+            color: Colors.orange[50],
+            border: Border.all(color: Constants.GREEN_COLOR, width: 2),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Requested',
+                style:
+                    Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
+              ),
+              Text(
+                'Bookings',
+                style:
+                    Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
+              ),
+              const SizedBox(height: 8),
+              Text(bookings.length.toString(),
+                  style: Styles()
+                      .textStyle(30, FontWeight.w600, Styles.customBlack)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

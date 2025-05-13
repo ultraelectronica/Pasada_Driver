@@ -50,7 +50,7 @@ class _LogInState extends State<LogIn> {
       //Query to get the driverID and password from the driverTable
       final response = await Supabase.instance.client
           .from('driverTable')
-          .select('first_name, driver_id, vehicle_id, driver_password')
+          .select('full_name, driver_id, vehicle_id, driver_password')
           .eq('driver_id', enteredDriverID)
           .single();
 
@@ -70,7 +70,7 @@ class _LogInState extends State<LogIn> {
 
         await saveSession(enteredDriverID, response);
 
-        ShowMessage().showToastTop('Welcome Manong ${response['first_name']}!');
+        ShowMessage().showToastTop('Welcome Manong ${response['full_name']}!');
 
         // move to the main page once the driver successfuly logs in
         if (mounted) {

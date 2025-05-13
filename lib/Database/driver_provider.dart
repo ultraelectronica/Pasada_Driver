@@ -10,8 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class DriverProvider with ChangeNotifier {
   // Driver identification
   String _driverID = '';
-  String _driverFirstName = 'firstName';
-  String _driverLastName = 'lastName';
+  String _driverFullName = 'firstName';
   String _driverNumber = '00000000000';
 
   // Vehicle and route information
@@ -47,8 +46,7 @@ class DriverProvider with ChangeNotifier {
   int get passengerStandingCapacity => _passengerStandingCapacity;
   int get passengerSittingCapacity => _passengerSittingCapacity;
   bool get isDriving => _isDriving;
-  String? get driverFirstName => _driverFirstName;
-  String? get driverLastName => _driverLastName;
+  String? get driverFullName => _driverFullName;
   String get driverNumber => _driverNumber;
   // Setters
   void setDriverID(String value) {
@@ -104,12 +102,7 @@ class DriverProvider with ChangeNotifier {
 
   // Driver Creds
   void setDriverFirstName(String value) {
-    _driverFirstName = value;
-    notifyListeners();
-  }
-
-  void setDriverLastName(String value) {
-    _driverLastName = value;
+    _driverFullName = value;
     notifyListeners();
   }
 
@@ -167,7 +160,7 @@ class DriverProvider with ChangeNotifier {
     try {
       final response = await supabase
           .from('driverTable')
-          .select('first_name, last_name, driver_number')
+          .select('full_name, driver_number')
           .eq('driver_id', _driverID)
           .single();
 
@@ -177,8 +170,7 @@ class DriverProvider with ChangeNotifier {
         print(response.toString());
       }
 
-      _driverFirstName = response['first_name'].toString();
-      _driverLastName = response['last_name'].toString();
+      _driverFullName = response['full_name'].toString();
       _driverNumber = response['driver_number'].toString();
     } catch (e) {
       ShowMessage().showToast('Error fetching driver creds: $e');
@@ -285,7 +277,7 @@ class DriverProvider with ChangeNotifier {
           .single();
 
       // Validate response and route_id
-      if (response == null || response['route_id'] == null) {
+      if (response['route_id'] == null) {
         debugPrint('No route ID found for vehicle: $vehicleID');
         return;
       }
