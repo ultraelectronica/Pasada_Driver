@@ -200,19 +200,19 @@ class ProfilePageState extends State<ProfilePage> {
             _buildInfoRow(
               icon: Icons.phone_android, // Use Material Icons
               text: driverProvider.driverNumber.isNotEmpty
-                  ? driverProvider.driverNumber
+                  ? 'Phone: \t\t\t\t${driverProvider.driverNumber}'
                   : 'No phone number', // Handle empty number
             ),
             const SizedBox(height: 15),
             _buildInfoRow(
               icon: Icons.directions_car, // Use Material Icons
-              text: 'Vehicle ID: ${driverProvider.vehicleID}',
+              text: 'Vehicle:\t\t\t${driverProvider.plateNumber} | ${driverProvider.vehicleID}',
             ),
             const SizedBox(height: 15),
             _buildInfoRow(
               icon: Icons.route_outlined,
               text:
-                  'Route: ${mapProvider.routeName} (${mapProvider.routeID})', // Combine Route name and ID
+                  'Route: \t\t\t\t\t${mapProvider.routeName} | ${mapProvider.routeID}', // Combine Route name and ID
             ),
           ],
         ),
@@ -248,11 +248,11 @@ class ProfilePageState extends State<ProfilePage> {
             const EdgeInsets.symmetric(vertical: 0), // Padding around the list
         child: Column(
           children: [
-            _buildActionTile(
-              icon: Icons.edit_note, // Material Icon
-              text: 'Update Information',
-              onTap: () {/* TODO: Implement navigation */},
-            ),
+            // _buildActionTile(
+            //   icon: Icons.edit_note, // Material Icon
+            //   text: 'Update Information',
+            //   onTap: () {/* TODO: Implement navigation */},
+            // ),
             _buildDivider(),
             _buildActionTile(
               icon: Icons.settings_outlined, // Material Icon

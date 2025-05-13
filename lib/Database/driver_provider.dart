@@ -15,6 +15,7 @@ class DriverProvider with ChangeNotifier {
 
   // Vehicle and route information
   String _vehicleID = 'N/A';
+  String _plateNumber = 'N/A';
   int _routeID = 0;
   String _routeName = 'N/A';
 
@@ -37,6 +38,7 @@ class DriverProvider with ChangeNotifier {
 
   // Getters
   String get driverID => _driverID;
+  String get plateNumber => _plateNumber;
   String get vehicleID => _vehicleID;
   int get routeID => _routeID;
   String get routeName => _routeName;
@@ -56,6 +58,11 @@ class DriverProvider with ChangeNotifier {
 
   void setVehicleID(String value) {
     _vehicleID = value;
+    notifyListeners();
+  }
+
+  void setPlateNumber(String value) {
+    _plateNumber = value;
     notifyListeners();
   }
 
@@ -138,7 +145,7 @@ class DriverProvider with ChangeNotifier {
     try {
       final response = await supabase
           .from('vehicleTable')
-          .select('passenger_capacity')
+          .select('passenger_capacity, plate_number')
           .eq('vehicle_id', _vehicleID)
           .single();
 
@@ -150,6 +157,7 @@ class DriverProvider with ChangeNotifier {
 
       // sets the capacity to the provider
       _passengerCapacity = response['passenger_capacity'];
+      _plateNumber = response['plate_number'];
     } catch (e) {
       debugPrint('Error getting passenger capacity: $e');
       ShowMessage().showToast('Error on passenger capacity: $e');
@@ -272,7 +280,7 @@ class DriverProvider with ChangeNotifier {
 
       final response = await supabase
           .from('vehicleTable')
-          .select('route_id')
+          .select('route_id, plate_number')
           .eq('vehicle_id', vehicleID)
           .single();
 
@@ -291,6 +299,8 @@ class DriverProvider with ChangeNotifier {
       } else {
         _routeID = 0;
       }
+
+      _plateNumber = response['plate_number'];
 
       debugPrint('Get driver route response: $_routeID');
       if (_routeID > 0) {
