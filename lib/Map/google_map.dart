@@ -342,7 +342,7 @@ class MapScreenState extends State<MapScreen> {
     controller.animateCamera(
       CameraUpdate.newCameraPosition(CameraPosition(
         target: target,
-        zoom: 16,
+        zoom: 17.5,
       )),
     );
   }
@@ -601,13 +601,25 @@ class MapScreenState extends State<MapScreen> {
                   markers: markers,
                   polylines: Set<Polyline>.of(polylines.values),
                   mapType: MapType.normal,
-                  buildingsEnabled: false,
+                  //buildings
+                  buildingsEnabled: true,
+
+                  //there will be a custom button
                   myLocationButtonEnabled: false,
+
                   indoorViewEnabled: false,
-                  zoomControlsEnabled: false,
                   mapToolbarEnabled: false,
+
+                  //traffic data
                   trafficEnabled: false,
+
+                  //gestures
                   rotateGesturesEnabled: true,
+                  tiltGesturesEnabled: true,
+                  scrollGesturesEnabled: true,
+                  zoomGesturesEnabled: true,
+                  zoomControlsEnabled: false,
+
                   myLocationEnabled: true,
                   padding: EdgeInsets.only(bottom: widget.bottomPadding),
                 ),
