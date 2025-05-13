@@ -46,7 +46,7 @@ class ActivityPageState extends State<ActivityPage> {
             left: screenWidth * 0.04,
             right: screenWidth * 0.04),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // TITLE
             Text(
@@ -62,33 +62,43 @@ class ActivityPageState extends State<ActivityPage> {
 
             SizedBox(height: screenHeight * 0.02),
 
-            // Refresh Button
-            TextButton.icon(
-              onPressed: () {
-                // Use post-frame callbacks for state updates
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    context
-                        .read<PassengerProvider>()
-                        .getBookingRequestsID(context);
-                    context
-                        .read<PassengerProvider>()
-                        .getCompletedBookings(context);
-                  }
-                });
-              },
-              icon: const Icon(Icons.refresh),
-              label: Text('Refresh Bookings',
-                  style: Styles()
-                      .textStyle(14, FontWeight.w400, Styles.customBlack)),
-            ),
+            _buildRefreshButton(screenWidth, screenHeight),
 
-            SizedBox(height: screenHeight * 0.01),
+            SizedBox(height: screenHeight * 0.022),
 
             // Booking List
-            bookingList(bookings),
+            Expanded(
+              child: Container(
+                child: bookingList(bookings),
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildRefreshButton(double screenWidth, double screenHeight) {
+    return Container(
+      width: screenWidth * 0.6,
+      height: screenHeight * 0.05,
+      decoration: BoxDecoration(
+        border: Border.all(color: Constants.GREEN_COLOR, width: 2),
+        borderRadius: BorderRadius.circular(50),
+      ),
+      child: TextButton.icon(
+        onPressed: () {
+          // Use post-frame callbacks for state updates
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              context.read<PassengerProvider>().getBookingRequestsID(context);
+              context.read<PassengerProvider>().getCompletedBookings(context);
+            }
+          });
+        },
+        icon: const Icon(Icons.refresh),
+        label: Text('Refresh Bookings',
+            style: Styles().textStyle(14, FontWeight.w400, Styles.customBlack)),
       ),
     );
   }
@@ -96,121 +106,128 @@ class ActivityPageState extends State<ActivityPage> {
   Row _buildBookingStats(EdgeInsets padding, double bookingContainerWidth,
       int completedBooking, int bookingCapacity, List<Booking> bookings) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         // COMPLETED BOOKINGS
-        Container(
-          padding: padding,
-          width: bookingContainerWidth,
-          decoration: BoxDecoration(
-            color: Colors.green[50],
-            border: Border.all(color: Constants.GREEN_COLOR, width: 2),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Completed',
-                style:
-                    Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
-              ),
-              Text(
-                'Bookings',
-                style:
-                    Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
-              ),
-              const SizedBox(height: 8),
-              Text(completedBooking.toString(),
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.only(right: 8),
+            padding: padding,
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              border: Border.all(color: Constants.GREEN_COLOR, width: 2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Completed',
                   style: Styles()
-                      .textStyle(30, FontWeight.w600, Styles.customBlack)),
-            ],
+                      .textStyle(15, FontWeight.w600, Styles.customBlack),
+                ),
+                Text(
+                  'Bookings',
+                  style: Styles()
+                      .textStyle(15, FontWeight.w600, Styles.customBlack),
+                ),
+                const SizedBox(height: 8),
+                Text(completedBooking.toString(),
+                    style: Styles()
+                        .textStyle(30, FontWeight.w600, Styles.customBlack)),
+              ],
+            ),
           ),
         ),
 
         // ONGOING BOOKINGS
-        Container(
-          padding: padding,
-          width: bookingContainerWidth,
-          decoration: BoxDecoration(
-            color: Colors.blue[50],
-            border: Border.all(color: Constants.GREEN_COLOR, width: 2),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Ongoing',
-                style:
-                    Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
-              ),
-              Text(
-                'Bookings',
-                style:
-                    Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
-              ),
-              const SizedBox(height: 8),
-              Text(bookingCapacity.toString(),
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            padding: padding,
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              border: Border.all(color: Constants.GREEN_COLOR, width: 2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Ongoing',
                   style: Styles()
-                      .textStyle(30, FontWeight.w600, Styles.customBlack)),
-            ],
+                      .textStyle(15, FontWeight.w600, Styles.customBlack),
+                ),
+                Text(
+                  'Bookings',
+                  style: Styles()
+                      .textStyle(15, FontWeight.w600, Styles.customBlack),
+                ),
+                const SizedBox(height: 8),
+                Text(bookingCapacity.toString(),
+                    style: Styles()
+                        .textStyle(30, FontWeight.w600, Styles.customBlack)),
+              ],
+            ),
           ),
         ),
 
         // REQUESTED BOOKINGS
-        Container(
-          padding: padding,
-          width: bookingContainerWidth,
-          decoration: BoxDecoration(
-            color: Colors.orange[50],
-            border: Border.all(color: Constants.GREEN_COLOR, width: 2),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Requested',
-                style:
-                    Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
-              ),
-              Text(
-                'Bookings',
-                style:
-                    Styles().textStyle(15, FontWeight.w600, Styles.customBlack),
-              ),
-              const SizedBox(height: 8),
-              Text(bookings.length.toString(),
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.only(left: 8),
+            padding: padding,
+            decoration: BoxDecoration(
+              color: Colors.orange[50],
+              border: Border.all(color: Constants.GREEN_COLOR, width: 2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Requested',
                   style: Styles()
-                      .textStyle(30, FontWeight.w600, Styles.customBlack)),
-            ],
+                      .textStyle(15, FontWeight.w600, Styles.customBlack),
+                ),
+                Text(
+                  'Bookings',
+                  style: Styles()
+                      .textStyle(15, FontWeight.w600, Styles.customBlack),
+                ),
+                const SizedBox(height: 8),
+                Text(bookings.length.toString(),
+                    style: Styles()
+                        .textStyle(30, FontWeight.w600, Styles.customBlack)),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
 
-  Expanded bookingList(List<Booking> bookings) {
-    return Expanded(
-      child: bookings.isEmpty
-          ? Center(
-              child: Text(
-                'No active bookings',
-                style: Styles().textStyle(16, FontWeight.w400, Colors.grey),
-              ),
-            )
-          : ListView.separated(
+  Widget bookingList(List<Booking> bookings) {
+    return bookings.isEmpty
+        ? Center(
+            child: Text(
+              'No active bookings',
+              style: Styles().textStyle(16, FontWeight.w400, Colors.grey),
+            ),
+          )
+        : ClipRRect(
+            child: ListView.separated(
+              padding: const EdgeInsets.all(0),
               itemCount: bookings.length,
               separatorBuilder: (context, index) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 return _buildBookingItem(bookings[index]);
               },
             ),
-    );
+          );
   }
 
   Widget _buildBookingItem(Booking booking) {
@@ -233,10 +250,11 @@ class ActivityPageState extends State<ActivityPage> {
                   style: Styles()
                       .textStyle(14, FontWeight.w500, Styles.customBlack),
                 ),
-                // const SizedBox(height: 2),
+                const SizedBox(height: 2),
                 // Text(
                 //   'Passenger ID: ${booking.passengerId}',
-                //   style: Styles().textStyle(14, FontWeight.w400, Colors.grey[700]!),
+                //   style: Styles()
+                //       .textStyle(14, FontWeight.w400, Colors.grey[700]!),
                 // ),
                 const SizedBox(height: 2),
                 Text(
