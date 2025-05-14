@@ -260,23 +260,23 @@ class ActivityPageState extends State<ActivityPage> {
                 Text(
                   'Status: ${booking.rideStatus}',
                   style: Styles()
-                      .textStyle(14, FontWeight.w400, Colors.grey[700]!),
+                      .textStyle(14, FontWeight.w500, Colors.grey[700]!),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Pickup: (${booking.pickupLocation.latitude.toStringAsFixed(2)}, ${booking.pickupLocation.longitude.toStringAsFixed(2)})',
+                  'Pickup: (${booking.pickupLocation.latitude.toStringAsFixed(4)}, ${booking.pickupLocation.longitude.toStringAsFixed(4)})',
                   style: Styles()
-                      .textStyle(12, FontWeight.w400, Colors.grey[700]!),
+                      .textStyle(12, FontWeight.w500, Colors.grey[700]!),
                 ),
                 Text(
-                  'Dropoff: (${booking.dropoffLocation.latitude.toStringAsFixed(2)}, ${booking.dropoffLocation.longitude.toStringAsFixed(2)})',
+                  'Dropoff: (${booking.dropoffLocation.latitude.toStringAsFixed(4)}, ${booking.dropoffLocation.longitude.toStringAsFixed(4)})',
                   style: Styles()
-                      .textStyle(12, FontWeight.w400, Colors.grey[700]!),
+                      .textStyle(12, FontWeight.w500, Colors.grey[700]!),
                 ),
               ],
             ),
           ),
-          Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+          Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[800]),
         ],
       ),
     );

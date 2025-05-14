@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart';
 import 'driver_provider.dart';
+import 'dart:math';
 
 // ==================== MODELS ====================
 
@@ -125,6 +126,24 @@ class BookingRepository {
     }
   }
 
+  /// Updates the status of a booking in the database
+  Future<bool> updateBookingStatus(String bookingId, String newStatus) async {
+    try {
+      await _supabase
+          .from('bookings')
+          .update({'ride_status': newStatus}).eq('booking_id', bookingId);
+
+      if (kDebugMode) {
+        debugPrint('Updated booking $bookingId status to $newStatus');
+      }
+      return true;
+    } catch (e, stackTrace) {
+      debugPrint('Error updating booking status: $e');
+      debugPrint('Stack trace: $stackTrace');
+      return false;
+    }
+  }
+
   /// Stream of active bookings for a driver for real-time updates
   Stream<List<Booking>> activeBookingsStream(String driverId) {
     return _supabase
@@ -156,6 +175,33 @@ class LocationService {
         point1.latitude, point1.longitude, point2.latitude, point2.longitude);
   }
 
+  /// Calculate bearing between two points in degrees
+  static double calculateBearing(LatLng start, LatLng end) {
+    final startLat = start.latitude * (pi / 180);
+    final startLng = start.longitude * (pi / 180);
+    final endLat = end.latitude * (pi / 180);
+    final endLng = end.longitude * (pi / 180);
+
+    final y = sin(endLng - startLng) * cos(endLat);
+    final x = cos(startLat) * sin(endLat) -
+        sin(startLat) * cos(endLat) * cos(endLng - startLng);
+
+    final bearing = atan2(y, x) * (180 / pi);
+    return (bearing + 360) % 360; // Normalize to 0-360
+  }
+
+  /// Determines if a point is ahead of another point given a reference direction
+  static bool isPointAhead(LatLng point, LatLng reference, double bearing) {
+    // Calculate bearing from reference to the point
+    final bearingToPoint = calculateBearing(reference, point);
+
+    // Calculate angular difference (ensures shortest path, handles 359° vs 1° case)
+    final diff = (((bearingToPoint - bearing + 180) % 360) - 180).abs();
+
+    // If the point is within ±60° of the direction of travel, consider it "ahead"
+    return diff <= 60;
+  }
+
   /// Determines if a pickup location is ahead of the driver by the required distance
   static bool isPickupAheadOfDriver({
     required LatLng pickupLocation,
@@ -163,21 +209,60 @@ class LocationService {
     required LatLng destinationLocation,
     required double minRequiredDistance,
   }) {
+    // Calculate direct distance between driver and pickup
+    final driverToPickupDistance =
+        calculateDistance(driverLocation, pickupLocation);
+
+    // Calculate driver's bearing toward destination
+    final driverBearing = calculateBearing(driverLocation, destinationLocation);
+
+    // Check if pickup is ahead based on bearing
+    final isAheadByBearing =
+        isPointAhead(pickupLocation, driverLocation, driverBearing);
+
     // Calculate distances to destination
     final driverDistanceToDestination =
         calculateDistance(driverLocation, destinationLocation);
-
     final pickupDistanceToDestination =
         calculateDistance(pickupLocation, destinationLocation);
 
-    // Passenger is ahead if their distance to destination is less than driver's
-    if (pickupDistanceToDestination < driverDistanceToDestination) {
-      final double metersAhead =
-          driverDistanceToDestination - pickupDistanceToDestination;
-      return metersAhead > minRequiredDistance;
+    // Traditional method (legacy approach) - useful as secondary check
+    final metersAhead =
+        driverDistanceToDestination - pickupDistanceToDestination;
+
+    if (kDebugMode) {
+      debugPrint('VALIDATION CHECK:');
+      debugPrint(
+          'Driver to destination: ${driverDistanceToDestination.toStringAsFixed(2)}m');
+      debugPrint(
+          'Pickup to destination: ${pickupDistanceToDestination.toStringAsFixed(2)}m');
+      debugPrint(
+          'Direct driver to pickup: ${driverToPickupDistance.toStringAsFixed(2)}m');
+      debugPrint(
+          'Driver bearing to destination: ${driverBearing.toStringAsFixed(2)}°');
+      debugPrint('Is pickup ahead by bearing: $isAheadByBearing');
+      debugPrint('Distance difference: ${metersAhead.toStringAsFixed(2)}m');
     }
 
-    return false;
+    // PRIMARY CHECK: Is pickup ahead by bearing AND reasonably close?
+    final isPrimaryValid = isAheadByBearing && driverToPickupDistance < 3000;
+
+    // SECONDARY CHECK: Is pickup significantly ahead by distance?
+    // This helps in straight-line cases and provides backwards compatibility
+    final isSecondaryValid =
+        metersAhead > minRequiredDistance && driverToPickupDistance < 5000;
+
+    // Final decision combines both checks
+    final isValid = isPrimaryValid || isSecondaryValid;
+
+    if (kDebugMode) {
+      debugPrint('Is ahead by bearing and close enough: $isPrimaryValid');
+      debugPrint(
+          'Is significantly ahead by distance: $isSecondaryValid (min: ${minRequiredDistance}m)');
+      debugPrint('Final validation result: $isValid');
+    }
+
+    return isValid;
   }
 }
 
@@ -201,22 +286,49 @@ class BookingFilterService {
 
     final List<Booking> validBookings = [];
 
+    if (kDebugMode) {
+      debugPrint(
+          'Driver location: ${driverLocation.latitude}, ${driverLocation.longitude}');
+      debugPrint(
+          'Destination: ${destinationLocation.latitude}, ${destinationLocation.longitude}');
+    }
+
     for (final booking in requestedBookings) {
+      if (kDebugMode) {
+        debugPrint('===== ANALYZING BOOKING ${booking.id} =====');
+        debugPrint(
+            'Pickup: ${booking.pickupLocation.latitude}, ${booking.pickupLocation.longitude}');
+        debugPrint(
+            'Dropoff: ${booking.dropoffLocation.latitude}, ${booking.dropoffLocation.longitude}');
+      }
+
       // Check if passenger is ahead of driver by required distance
-      if (LocationService.isPickupAheadOfDriver(
+      bool isValid = LocationService.isPickupAheadOfDriver(
         pickupLocation: booking.pickupLocation,
         driverLocation: driverLocation,
         destinationLocation: destinationLocation,
         minRequiredDistance: minPassengerAheadDistance,
-      )) {
+      );
+
+      if (isValid) {
         // Calculate distance to driver
         final distanceToDriver = LocationService.calculateDistance(
           driverLocation,
           booking.pickupLocation,
         );
 
+        if (kDebugMode) {
+          debugPrint(
+              'Booking ${booking.id} is VALID - Distance to driver: ${distanceToDriver.toStringAsFixed(2)}m');
+        }
+
         // Add to valid bookings with distance calculated
         validBookings.add(booking.copyWith(distanceToDriver: distanceToDriver));
+      } else {
+        if (kDebugMode) {
+          debugPrint(
+              'Booking ${booking.id} is INVALID - Failed validation checks');
+        }
       }
     }
 
@@ -282,6 +394,18 @@ class PassengerProvider with ChangeNotifier {
   }
 
   /// Method to get all booking details from the DB and update state
+  /// TODO: fetch all bookings from the DB
+  /// TODO: filter the bookings based on the status
+  /// TODO: check if the requested bookings are valid
+  /// TODO: if valid, set the booking request to 'accepted'
+  /// TODO: if not valid, set the booking request to 'cancelled'
+  /// TODO: once the booking request is accepted, get the nearest booking from the filtered bookings
+  /// TODO: set the nearest booking as the pickup location
+  /// TODO: update the state with the all relevant bookings
+  ///
+  /// TODO: once the booking request is accepted, check the location of the driver and pick up location
+  /// TODO: if the driver is closer to the pick up location, set the booking status to 'ongoing'
+  /// TODO: if the driver is not closer to the pick up location, do nothing
   Future<void> getBookingRequestsID(BuildContext context) async {
     try {
       // Store the context in a local variable
@@ -290,8 +414,32 @@ class PassengerProvider with ChangeNotifier {
       // Get driver ID and locations
       final driverID = currentContext.read<DriverProvider>().driverID;
       debugPrint('Driver ID from provider: $driverID');
-      final LatLng? currentLocation =
-          currentContext.read<MapProvider>().currentLocation;
+
+      // Get real GPS location directly instead of using potentially stale data from MapProvider
+      LatLng? currentLocation;
+      try {
+        // Get current GPS position directly
+        final Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+        currentLocation = LatLng(position.latitude, position.longitude);
+        debugPrint(
+            'Got real GPS location: ${position.latitude}, ${position.longitude}');
+
+        // Also update the MapProvider for consistency
+        if (currentContext.mounted) {
+          currentContext
+              .read<MapProvider>()
+              .setCurrentLocation(currentLocation);
+        }
+      } catch (e) {
+        debugPrint('Error getting real GPS location: $e');
+        // Fall back to MapProvider location if GPS fails
+        currentLocation = currentContext.read<MapProvider>().currentLocation;
+        debugPrint(
+            'Using fallback location from MapProvider: $currentLocation');
+      }
+
       final LatLng? endingLocation =
           currentContext.read<MapProvider>().endingLocation;
 
@@ -311,7 +459,7 @@ class PassengerProvider with ChangeNotifier {
         return;
       }
 
-      // Fetch bookings
+      // Fetch all bookings from the DB
       final List<Booking> activeBookings =
           await _repository.fetchActiveBookings(driverID);
 
@@ -321,7 +469,7 @@ class PassengerProvider with ChangeNotifier {
         return;
       }
 
-      // Categorize bookings by status
+      // Filter the bookings based on the status
       final requestedBookings = activeBookings
           .where((b) => b.rideStatus == BookingRepository.statusRequested)
           .toList();
@@ -336,7 +484,7 @@ class PassengerProvider with ChangeNotifier {
             'Requested: ${requestedBookings.length}, Accepted/Ongoing: ${acceptedOngoingBookings.length}');
       }
 
-      // Filter valid requested bookings
+      // Check if the requested bookings are valid
       final validRequestedBookings =
           BookingFilterService.filterValidRequestedBookings(
         bookings: requestedBookings,
@@ -344,11 +492,40 @@ class PassengerProvider with ChangeNotifier {
         destinationLocation: endingLocation,
       );
 
-      // Find nearest booking and set pickup location
+      if (kDebugMode) {
+        debugPrint(
+            'Found ${validRequestedBookings.length} valid bookings out of ${requestedBookings.length} requested');
+        for (final booking in requestedBookings) {
+          final isValid =
+              validRequestedBookings.any((valid) => valid.id == booking.id);
+          debugPrint('Booking ${booking.id}: ${isValid ? 'VALID' : 'INVALID'} - ' +
+              'pickup at: ${booking.pickupLocation.latitude}, ${booking.pickupLocation.longitude}');
+        }
+      }
+
+      // Process requested bookings - update status based on validity
+      for (final booking in requestedBookings) {
+        // Check if this is a valid booking (passenger ahead on route)
+        final isValid =
+            validRequestedBookings.any((valid) => valid.id == booking.id);
+
+        if (isValid) {
+          // If valid, set the booking request to 'accepted'
+          await _repository.updateBookingStatus(
+              booking.id, BookingRepository.statusAccepted);
+        } else {
+          // If not valid, set the booking request to 'cancelled'
+          await _repository.updateBookingStatus(
+              booking.id, BookingRepository.statusCancelled);
+        }
+      }
+
+      // Get the nearest booking from the filtered bookings
       if (validRequestedBookings.isNotEmpty) {
         final nearestBooking =
             BookingFilterService.findNearestBooking(validRequestedBookings);
         if (nearestBooking != null) {
+          // Set the nearest booking as the pickup location
           currentContext
               .read<MapProvider>()
               .setPickUpLocation(nearestBooking.pickupLocation);
@@ -361,11 +538,11 @@ class PassengerProvider with ChangeNotifier {
       }
 
       // Update state with all relevant bookings
-      final allRelevantBookings = [
-        ...validRequestedBookings,
-        ...acceptedOngoingBookings
-      ];
-      setBookings(allRelevantBookings);
+      // This includes newly accepted bookings and ongoing ones
+      // Refresh bookings after status updates
+      final updatedActiveBookings =
+          await _repository.fetchActiveBookings(driverID);
+      setBookings(updatedActiveBookings);
     } catch (e, stackTrace) {
       if (kDebugMode) {
         print('Error fetching booking details: $e');
