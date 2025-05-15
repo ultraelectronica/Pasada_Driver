@@ -189,8 +189,8 @@ class _AuthPagesViewState extends State<AuthPagesView>
 
   void goToLoginPage() {
     _pageController.animateToPage(1,
-        duration: const Duration(milliseconds: 300), // Reduced animation time
-        curve: Curves.easeOut); // Simpler curve
+        duration: const Duration(milliseconds: 400), // Reduced animation time
+        curve: Curves.easeInOutExpo); // Simpler curve
   }
 
   @override
@@ -202,15 +202,6 @@ class _AuthPagesViewState extends State<AuthPagesView>
           // White background - use const when possible
           const ColoredBox(color: Colors.white),
 
-          // Logo with morphing animation
-          ValueListenableBuilder<double>(
-            valueListenable: _pageNotifier,
-            builder: (context, pageValue, _) {
-              final transitionValue = pageValue.clamp(0.0, 1.0);
-              return OptimizedMorphingLogo(transitionValue: transitionValue);
-            },
-          ),
-
           // Pages with hardware acceleration
           PageView.builder(
             controller: _pageController,
@@ -219,14 +210,8 @@ class _AuthPagesViewState extends State<AuthPagesView>
             itemBuilder: (context, index) {
               return RepaintBoundary(
                 child: index == 0
-                    ? ValueListenableBuilder<double>(
-                        valueListenable: _pageNotifier,
-                        builder: (context, pageValue, _) {
-                          return OptimizedWelcomePage(
-                            onLoginPressed: goToLoginPage,
-                            transitionValue: pageValue.clamp(0.0, 1.0),
-                          );
-                        },
+                    ? OptimizedWelcomePage(
+                        onLoginPressed: goToLoginPage,
                       )
                     : LogIn(pageController: _pageController),
               );
@@ -274,88 +259,45 @@ class _AuthPagesViewState extends State<AuthPagesView>
   }
 }
 
-class OptimizedMorphingLogo extends StatelessWidget {
-  final double transitionValue;
-
-  const OptimizedMorphingLogo({super.key, required this.transitionValue});
-
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    // Welcome page logo position (center top)
-    final startPosX = screenWidth * 0.5 - (screenWidth * 0.2);
-    final startPosY = screenHeight * 0.2;
-    final startSize = screenWidth * 0.4;
-
-    // Login page logo position (top left)
-    final endPosX = screenWidth * 0.1;
-    final endPosY = screenHeight * 0.05;
-    final endSize = screenWidth * 0.15;
-
-    // Calculate current position and size
-    final currentPosX = _lerp(startPosX, endPosX, transitionValue);
-    final currentPosY = _lerp(startPosY, endPosY, transitionValue);
-    final currentSize = _lerp(startSize, endSize, transitionValue);
-
-    return Positioned(
-      left: currentPosX,
-      top: currentPosY,
-      width: currentSize,
-      height: currentSize,
-      child: Image.asset(
-        'assets/png/PasadaLogo.png',
-        color: Colors.black,
-        cacheWidth: startSize.ceil(), // Pre-resize image
-      ),
-    );
-  }
-
-  // Simple inline lerp function is faster than using lerpDouble
-  double _lerp(double a, double b, double t) => a + (b - a) * t;
-}
-
 class OptimizedWelcomePage extends StatelessWidget {
   final VoidCallback onLoginPressed;
-  final double transitionValue;
 
   const OptimizedWelcomePage({
     super.key,
     required this.onLoginPressed,
-    required this.transitionValue,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Skip rendering when fully transitioned away (better than opacity)
-    if (transitionValue >= 0.99) return const SizedBox.shrink();
-
-    // Use transforms for better performance than animated positioning
-    return Transform.translate(
-      offset: Offset(0, transitionValue * 20),
-      child: Opacity(
-        opacity: 1.0 - transitionValue,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Empty container to take up the logo's space
-              SizedBox(height: Constants(context).screenWidth * 0.4),
-
-              // Welcome message - extract and make const where possible
-              const WelcomeMessage(),
-
-              // next button
-              Padding(
-                padding: EdgeInsets.only(
-                    bottom: Constants(context).screenHeight * 0.1),
-                child: _NextButton(onPressed: onLoginPressed),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Static positioned logo
+        Padding(
+          padding: EdgeInsets.only(top: Constants(context).screenHeight * 0.15),
+          child: Center(
+            child: SizedBox(
+              width: Constants(context).screenWidth * 0.4,
+              height: Constants(context).screenWidth * 0.4,
+              child: Image.asset(
+                'assets/png/PasadaLogo.png',
+                color: Colors.black,
               ),
-            ],
+            ),
           ),
         ),
-      ),
+
+        // Welcome message
+        const WelcomeMessage(),
+
+        // next button
+        Padding(
+          padding: EdgeInsets.only(
+              bottom: Constants(context).screenHeight * 0.1,
+              top: Constants(context).screenHeight * 0.1),
+          child: _NextButton(onPressed: onLoginPressed),
+        ),
+      ],
     );
   }
 }
@@ -372,10 +314,9 @@ class WelcomeMessage extends StatelessWidget {
           'Hi there!',
           style: Styles().textStyle(40.0, FontWeight.w700, Colors.black),
         ),
-        SizedBox(height: Constants(context).screenHeight * 0.009),
         Text(
           'Welcome to Pasada Driver',
-          style: Styles().textStyle(14, FontWeight.w400, Styles.customBlack),
+          style: Styles().textStyle(15, FontWeight.w500, Styles.customBlack),
         ),
       ],
     );
