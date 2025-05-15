@@ -215,7 +215,6 @@ class _LogInState extends State<LogIn> {
 
     return Scaffold(
       body: LayoutBuilder(
-        
         // Use LayoutBuilder to get constraints for centering
         builder: (context, constraints) {
           return SingleChildScrollView(
@@ -231,32 +230,31 @@ class _LogInState extends State<LogIn> {
                     horizontal: horizontalPadding,
                   ),
                   child: Column(
-                    mainAxisAlignment:
-                        MainAxisAlignment.center, // Center column content
+                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Use screenHeight/Width directly for spacing and sizing
-                      SizedBox(height: screenHeight * 0.05),
+                      SizedBox(height: screenHeight * 0.15),
 
-                      _buildHeader(screenHeight * 0.15, screenHeight * 0.02),
-                      SizedBox(height: screenHeight * 0.05),
+                      _buildHeader(screenHeight * 0.15, screenHeight * 0.0),
+                      SizedBox(height: screenHeight * 0.1),
 
                       _buildDriverIDText(),
                       SizedBox(height: screenHeight * 0.01),
 
                       _buildDriverIDInput(screenHeight * 0.06),
-                      SizedBox(height: screenHeight * 0.03),
+                      SizedBox(height: screenHeight * 0.02),
 
                       _buildPasswordText(),
                       SizedBox(height: screenHeight * 0.01),
 
                       _buildPasswordInput(screenHeight * 0.06),
 
-                      _buildForgotPasswordButton(),
-                      SizedBox(height: screenHeight * 0.08),
+                      // _buildForgotPasswordButton(),
+                      SizedBox(height: screenHeight * 0.15),
 
                       _buildLogInButton(screenHeight * 0.06),
-                      SizedBox(height: screenHeight * 0.05),
+                      SizedBox(height: screenHeight * 0.1),
                     ],
                   ),
                 ),
