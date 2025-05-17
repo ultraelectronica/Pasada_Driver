@@ -396,12 +396,12 @@ class PassengerProvider with ChangeNotifier {
   /// Method to get all booking details from the DB and update state
   /// TODO: fetch all bookings from the DB == DONE
   /// TODO: filter the bookings based on the status == DONE
-  /// 
+  ///
   /// VALIDATION CHECKS:
   /// TODO: check if the requested bookings are valid == DONE
   /// TODO: if valid, set the booking request to 'accepted' == DONE
   /// TODO: if not valid, set the booking request to 'cancelled' == DONE
-  /// 
+  ///
   /// NEAREST BOOKING:
   /// TODO: once the booking request is accepted, get the nearest booking from the filtered bookings
   /// TODO: set the nearest booking as the pickup location
@@ -420,47 +420,24 @@ class PassengerProvider with ChangeNotifier {
       final driverID = currentContext.read<DriverProvider>().driverID;
       debugPrint('Driver ID from provider: $driverID');
 
-      // Get real GPS location directly instead of using potentially stale data from MapProvider
-      LatLng? currentLocation;
-      try {
-        // Get current GPS position directly
-        final Position position = await Geolocator.getCurrentPosition(
-          locationSettings:
-              const LocationSettings(accuracy: LocationAccuracy.high),
-        );
-        currentLocation = LatLng(position.latitude, position.longitude);
-        debugPrint(
-            'Got real GPS location: ${position.latitude}, ${position.longitude}');
+      LatLng? currentLocation = await _getCurrentLocation(currentContext);
 
-        // Also update the MapProvider for consistency
-        if (currentContext.mounted) {
-          currentContext
-              .read<MapProvider>()
-              .setCurrentLocation(currentLocation);
-        }
-      } catch (e) {
-        debugPrint('Error getting real GPS location: $e');
-        // Fall back to MapProvider location if GPS fails
-        currentLocation = currentContext.read<MapProvider>().currentLocation;
-        debugPrint(
-            'Using fallback location from MapProvider: $currentLocation');
-      }
-
+      // Get the ending location from the MapProvider
       final LatLng? endingLocation =
           currentContext.read<MapProvider>().endingLocation;
 
       // Validate locations
       if (!currentContext.mounted) {
-        debugPrint('Context no longer mounted, aborting operation');
+        debugPrint('Error: Context no longer mounted, aborting operation');
         return;
       }
 
-      // if there is no current location or ending location, clear the booking data
+      // Clear booking data if there is no current location or ending location
       if (currentLocation == null || endingLocation == null) {
         _clearBookingData();
         if (kDebugMode) {
           debugPrint(
-              'Missing location data: currentLocation=$currentLocation, endingLocation=$endingLocation');
+              'Error: Missing location data: currentLocation=$currentLocation, endingLocation=$endingLocation');
         }
         return;
       }
@@ -487,10 +464,10 @@ class PassengerProvider with ChangeNotifier {
 
       if (kDebugMode) {
         debugPrint(
-            'Requested: ${requestedBookings.length}, Accepted/Ongoing: ${acceptedOngoingBookings.length}');
+            'BOOKINGS:Requested: ${requestedBookings.length}, Accepted/Ongoing: ${acceptedOngoingBookings.length}');
       }
 
-      // Check if the requested bookings are valid
+      // BOOKING VALIDATION CHECK:Check if the requested bookings are valid
       final validRequestedBookings =
           BookingFilterService.filterValidRequestedBookings(
         bookings: requestedBookings,
@@ -498,18 +475,12 @@ class PassengerProvider with ChangeNotifier {
         destinationLocation: endingLocation,
       );
 
+      // Debug section: Logs validation results for all requested bookings
       if (kDebugMode) {
-        debugPrint(
-            'Found ${validRequestedBookings.length} valid bookings out of ${requestedBookings.length} requested');
-        for (final booking in requestedBookings) {
-          final isValid =
-              validRequestedBookings.any((valid) => valid.id == booking.id);
-          debugPrint('Booking ${booking.id}: ${isValid ? 'VALID' : 'INVALID'} - ' +
-              'pickup at: ${booking.pickupLocation.latitude}, ${booking.pickupLocation.longitude}');
-        }
+        _logValidationResults(validRequestedBookings, requestedBookings);
       }
 
-      // Process requested bookings - update status based on validity
+      // PROCESS BOOKINGS: Process requested bookings - update status based on validity
       for (final booking in requestedBookings) {
         // Check if this is a valid booking (passenger ahead on route)
         final isValid =
@@ -576,6 +547,42 @@ class PassengerProvider with ChangeNotifier {
       debugPrint('Error fetching completed bookings: $e');
       debugPrint('Stack Trace: $stackTrace');
       setCompletedBooking(0);
+    }
+  }
+
+  /// Gets the current GPS location and updates the MapProvider
+  Future<LatLng?> _getCurrentLocation(BuildContext context) async {
+    LatLng? location;
+    try {
+      // Get current GPS position
+      final Position position = await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      location = LatLng(position.latitude, position.longitude);
+      debugPrint(
+          'Got GPS location: ${position.latitude}, ${position.longitude}');
+
+      // Also update the MapProvider for consistency
+      if (context.mounted) {
+        context.read<MapProvider>().setCurrentLocation(location);
+      }
+    } catch (e) {
+      debugPrint('Error getting GPS location: $e');
+      // Fall back to MapProvider location if GPS fails
+      location = context.read<MapProvider>().currentLocation;
+      debugPrint('Using fallback location from MapProvider: $location');
+    }
+    return location;
+  }
+
+  /// Logs the validation results for all requested bookings
+  void _logValidationResults(List<Booking> validRequestedBookings, List<Booking> requestedBookings) {
+    debugPrint('BOOKINGS: Found ${validRequestedBookings.length} valid bookings out of ${requestedBookings.length} requested');
+    for (final booking in requestedBookings) {
+      final isValid = validRequestedBookings.any((valid) => valid.id == booking.id);
+      debugPrint('Booking ID: ${booking.id} - ${isValid ? 'VALID' : 'INVALID'} - ' +
+          'pickup at: ${booking.pickupLocation.latitude}, ${booking.pickupLocation.longitude}');
     }
   }
 
