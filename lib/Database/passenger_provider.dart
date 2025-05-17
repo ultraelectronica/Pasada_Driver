@@ -394,15 +394,20 @@ class PassengerProvider with ChangeNotifier {
   }
 
   /// Method to get all booking details from the DB and update state
-  /// TODO: fetch all bookings from the DB
-  /// TODO: filter the bookings based on the status
-  /// TODO: check if the requested bookings are valid
-  /// TODO: if valid, set the booking request to 'accepted'
-  /// TODO: if not valid, set the booking request to 'cancelled'
+  /// TODO: fetch all bookings from the DB == DONE
+  /// TODO: filter the bookings based on the status == DONE
+  /// 
+  /// VALIDATION CHECKS:
+  /// TODO: check if the requested bookings are valid == DONE
+  /// TODO: if valid, set the booking request to 'accepted' == DONE
+  /// TODO: if not valid, set the booking request to 'cancelled' == DONE
+  /// 
+  /// NEAREST BOOKING:
   /// TODO: once the booking request is accepted, get the nearest booking from the filtered bookings
   /// TODO: set the nearest booking as the pickup location
   /// TODO: update the state with the all relevant bookings
   ///
+  /// DRIVER LOCATION CHECK:
   /// TODO: once the booking request is accepted, check the location of the driver and pick up location
   /// TODO: if the driver is closer to the pick up location, set the booking status to 'ongoing'
   /// TODO: if the driver is not closer to the pick up location, do nothing
@@ -420,7 +425,8 @@ class PassengerProvider with ChangeNotifier {
       try {
         // Get current GPS position directly
         final Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
+          locationSettings:
+              const LocationSettings(accuracy: LocationAccuracy.high),
         );
         currentLocation = LatLng(position.latitude, position.longitude);
         debugPrint(
