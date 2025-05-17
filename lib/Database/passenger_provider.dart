@@ -8,6 +8,259 @@ import 'package:flutter/foundation.dart';
 import 'driver_provider.dart';
 import 'dart:math';
 
+// ==================== PROVIDER ====================
+
+/// Provider to manage passenger booking state
+class PassengerProvider with ChangeNotifier {
+  final BookingRepository _repository;
+
+  // State
+  int _passengerCapacity = 0;
+  int _completedBooking = 0;
+  List<Booking> _bookings = [];
+
+  // Getters
+  int get passengerCapacity => _passengerCapacity;
+  int get completedBooking => _completedBooking;
+  List<Booking> get bookings => _bookings;
+  List<String> get bookingIDs => _bookings.map((b) => b.id).toList();
+
+  // Constructor
+  PassengerProvider({BookingRepository? repository})
+      : _repository = repository ?? BookingRepository();
+
+  // Setters
+  void setPassengerCapacity(int value) {
+    _passengerCapacity = value;
+    notifyListeners();
+  }
+
+  void setCompletedBooking(int value) {
+    _completedBooking = value;
+    notifyListeners();
+  }
+
+  void setBookings(List<Booking> bookings) {
+    _bookings = bookings;
+    notifyListeners();
+  }
+
+  /// Method to get all booking details from the DB and update state
+  /// TODO: fetch all bookings from the DB == DONE
+  /// TODO: filter the bookings based on the status == DONE
+  ///
+  /// VALIDATION CHECKS:
+  /// TODO: check if the requested bookings are valid == DONE
+  /// TODO: if valid, set the booking request to 'accepted' == DONE
+  /// TODO: if not valid, set the booking request to 'cancelled' == DONE
+  ///
+  /// NEAREST BOOKING:
+  /// TODO: once the booking request is accepted, get the nearest booking from the filtered bookings
+  /// TODO: set the nearest booking as the pickup location
+  /// TODO: update the state with the all relevant bookings
+  ///
+  /// DRIVER LOCATION CHECK:
+  /// TODO: once the booking request is accepted, check the location of the driver and pick up location
+  /// TODO: if the driver is closer to the pick up location, set the booking status to 'ongoing'
+  /// TODO: if the driver is not closer to the pick up location, do nothing
+  Future<void> getBookingRequestsID(BuildContext context) async {
+    try {
+      // Store the context in a local variable
+      final currentContext = context;
+
+      // Get driver ID and locations
+      final driverID = currentContext.read<DriverProvider>().driverID;
+      debugPrint('Driver ID from provider: $driverID');
+
+      LatLng? currentLocation = await _getCurrentLocation(currentContext);
+
+      // Get the ending location from the MapProvider
+      final LatLng? endingLocation =
+          currentContext.read<MapProvider>().endingLocation;
+
+      // Validate locations
+      if (!currentContext.mounted) {
+        debugPrint('Error: Context no longer mounted, aborting operation');
+        return;
+      }
+
+      // Clear booking data if there is no current location or ending location
+      if (currentLocation == null || endingLocation == null) {
+        _clearBookingData();
+        if (kDebugMode) {
+          debugPrint(
+              'Error: Missing location data: currentLocation=$currentLocation, endingLocation=$endingLocation');
+        }
+        return;
+      }
+
+      // Fetch all bookings from the DB
+      final List<Booking> activeBookings =
+          await _repository.fetchActiveBookings(driverID);
+
+      // if there are no active bookings, clear the booking data
+      if (activeBookings.isEmpty) {
+        _clearBookingData();
+        return;
+      }
+
+      // Filter the bookings based on the status
+      final requestedBookings = activeBookings
+          .where((b) => b.rideStatus == BookingRepository.statusRequested)
+          .toList();
+      final acceptedOngoingBookings = activeBookings
+          .where((b) =>
+              b.rideStatus == BookingRepository.statusAccepted ||
+              b.rideStatus == BookingRepository.statusOngoing)
+          .toList();
+
+      if (kDebugMode) {
+        debugPrint(
+            'BOOKINGS:Requested: ${requestedBookings.length}, Accepted/Ongoing: ${acceptedOngoingBookings.length}');
+      }
+
+      // BOOKING VALIDATION CHECK:Check if the requested bookings are valid
+      final validRequestedBookings =
+          BookingFilterService.filterValidRequestedBookings(
+        bookings: requestedBookings,
+        driverLocation: currentLocation,
+        destinationLocation: endingLocation,
+      );
+
+      // Debug section: Logs validation results for all requested bookings
+      if (kDebugMode) {
+        _logValidationResults(validRequestedBookings, requestedBookings);
+      }
+
+      // PROCESS BOOKINGS: Process requested bookings - update status based on validity
+      for (final booking in requestedBookings) {
+        // Check if this is a valid booking (passenger ahead on route)
+        final isValid =
+            validRequestedBookings.any((valid) => valid.id == booking.id);
+
+        if (isValid) {
+          // If valid, set the booking request to 'accepted'
+          await _repository.updateBookingStatus(
+              booking.id, BookingRepository.statusAccepted);
+        } else {
+          // If not valid, set the booking request to 'cancelled'
+          await _repository.updateBookingStatus(
+              booking.id, BookingRepository.statusCancelled);
+        }
+      }
+
+      // Get the nearest booking from the filtered bookings
+      if (validRequestedBookings.isNotEmpty) {
+        final nearestBooking =
+            BookingFilterService.findNearestBooking(validRequestedBookings);
+        if (nearestBooking != null) {
+          // Set the nearest booking as the pickup location
+          currentContext
+              .read<MapProvider>()
+              .setPickUpLocation(nearestBooking.pickupLocation);
+
+          if (kDebugMode) {
+            debugPrint('Set nearest passenger: ID: ${nearestBooking.id}, '
+                'Distance: ${(nearestBooking.distanceToDriver ?? 0).toStringAsFixed(2)} meters');
+          }
+        }
+      }
+
+      // Update state with all relevant bookings
+      // This includes newly accepted bookings and ongoing ones
+      // Refresh bookings after status updates
+      final updatedActiveBookings =
+          await _repository.fetchActiveBookings(driverID);
+      setBookings(updatedActiveBookings);
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        print('Error fetching booking details: $e');
+        print('Stack Trace: $stackTrace');
+      }
+      _clearBookingData();
+    }
+  }
+
+  /// Fetch completed bookings count
+  Future<void> getCompletedBookings(BuildContext context) async {
+    try {
+      final driverID = context.read<DriverProvider>().driverID;
+
+      if (driverID.isEmpty || driverID == 'N/A') {
+        debugPrint('Invalid driver ID: $driverID');
+        setCompletedBooking(0);
+        return;
+      }
+
+      final count = await _repository.fetchCompletedBookingsCount(driverID);
+      notifyListeners();
+      setCompletedBooking(count);
+    } catch (e, stackTrace) {
+      debugPrint('Error fetching completed bookings: $e');
+      debugPrint('Stack Trace: $stackTrace');
+      setCompletedBooking(0);
+    }
+  }
+
+  /// Gets the current GPS location and updates the MapProvider
+  Future<LatLng?> _getCurrentLocation(BuildContext context) async {
+    LatLng? location;
+    try {
+      // Get current GPS position
+      final Position position = await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      location = LatLng(position.latitude, position.longitude);
+      debugPrint(
+          'Got GPS location: ${position.latitude}, ${position.longitude}');
+
+      // Also update the MapProvider for consistency
+      if (context.mounted) {
+        context.read<MapProvider>().setCurrentLocation(location);
+      }
+    } catch (e) {
+      debugPrint('Error getting GPS location: $e');
+      // Fall back to MapProvider location if GPS fails
+      location = context.read<MapProvider>().currentLocation;
+      debugPrint('Using fallback location from MapProvider: $location');
+    }
+    return location;
+  }
+
+  /// Logs the validation results for all requested bookings
+  void _logValidationResults(
+      List<Booking> validRequestedBookings, List<Booking> requestedBookings) {
+    debugPrint(
+        'BOOKINGS: Found ${validRequestedBookings.length} valid bookings out of ${requestedBookings.length} requested');
+    for (final booking in requestedBookings) {
+      final isValid =
+          validRequestedBookings.any((valid) => valid.id == booking.id);
+      debugPrint('Booking ID: ${booking.id} - ${isValid ? 'VALID' : 'INVALID'} - '
+          'pickup at: ${booking.pickupLocation.latitude}, ${booking.pickupLocation.longitude}');
+    }
+  }
+
+  /// Clears all booking data
+  void _clearBookingData() {
+    setBookings([]);
+    if (kDebugMode) {
+      debugPrint('No valid or active bookings to store');
+    }
+  }
+
+  /// Test method to verify the booking filter logic
+  Future<void> testBookingFilters(BuildContext context) async {
+    try {
+      debugPrint('========== TESTING BOOKING FILTERS ==========');
+      await getBookingRequestsID(context);
+      debugPrint('========== TEST COMPLETED ==========');
+    } catch (e) {
+      debugPrint('Test error: $e');
+    }
+  }
+}
+
 // ==================== MODELS ====================
 
 /// Model representing a booking with all necessary details
@@ -175,19 +428,35 @@ class LocationService {
         point1.latitude, point1.longitude, point2.latitude, point2.longitude);
   }
 
-  /// Calculate bearing between two points in degrees
+  /// Calculate bearing (direction/heading in degrees) between two geographic points
+  /// Returns a value between 0-360 degrees, where:
+  /// - 0° = North
+  /// - 90° = East
+  /// - 180° = South
+  /// - 270° = West
   static double calculateBearing(LatLng start, LatLng end) {
-    final startLat = start.latitude * (pi / 180);
+    // Convert latitude/longitude from degrees to radians
+    // This is necessary because the math functions expect radians
+    final startLat = start.latitude * (pi / 180); // Convert degrees to radians
     final startLng = start.longitude * (pi / 180);
     final endLat = end.latitude * (pi / 180);
     final endLng = end.longitude * (pi / 180);
 
+    // Calculate the y component using the spherical law of cosines formula
+    // This represents the east-west component of the bearing
     final y = sin(endLng - startLng) * cos(endLat);
+
+    // Calculate the x component
+    // This represents the north-south component of the bearing
     final x = cos(startLat) * sin(endLat) -
         sin(startLat) * cos(endLat) * cos(endLng - startLng);
 
+    // Calculate the angle using arctangent of y/x (atan2 handles quadrant correctly)
+    // and convert back from radians to degrees
     final bearing = atan2(y, x) * (180 / pi);
-    return (bearing + 360) % 360; // Normalize to 0-360
+
+    // Normalize to 0-360 degrees (atan2 returns -180 to +180)
+    return (bearing + 360) % 360;
   }
 
   /// Determines if a point is ahead of another point given a reference direction
@@ -353,255 +622,5 @@ class BookingFilterService {
     });
 
     return sortedBookings.first;
-  }
-}
-
-// ==================== PROVIDER ====================
-
-/// Provider to manage passenger booking state
-class PassengerProvider with ChangeNotifier {
-  final BookingRepository _repository;
-
-  // State
-  int _passengerCapacity = 0;
-  int _completedBooking = 0;
-  List<Booking> _bookings = [];
-
-  // Getters
-  int get passengerCapacity => _passengerCapacity;
-  int get completedBooking => _completedBooking;
-  List<Booking> get bookings => _bookings;
-  List<String> get bookingIDs => _bookings.map((b) => b.id).toList();
-
-  // Constructor
-  PassengerProvider({BookingRepository? repository})
-      : _repository = repository ?? BookingRepository();
-
-  // Setters
-  void setPassengerCapacity(int value) {
-    _passengerCapacity = value;
-    notifyListeners();
-  }
-
-  void setCompletedBooking(int value) {
-    _completedBooking = value;
-    notifyListeners();
-  }
-
-  void setBookings(List<Booking> bookings) {
-    _bookings = bookings;
-    notifyListeners();
-  }
-
-  /// Method to get all booking details from the DB and update state
-  /// TODO: fetch all bookings from the DB == DONE
-  /// TODO: filter the bookings based on the status == DONE
-  ///
-  /// VALIDATION CHECKS:
-  /// TODO: check if the requested bookings are valid == DONE
-  /// TODO: if valid, set the booking request to 'accepted' == DONE
-  /// TODO: if not valid, set the booking request to 'cancelled' == DONE
-  ///
-  /// NEAREST BOOKING:
-  /// TODO: once the booking request is accepted, get the nearest booking from the filtered bookings
-  /// TODO: set the nearest booking as the pickup location
-  /// TODO: update the state with the all relevant bookings
-  ///
-  /// DRIVER LOCATION CHECK:
-  /// TODO: once the booking request is accepted, check the location of the driver and pick up location
-  /// TODO: if the driver is closer to the pick up location, set the booking status to 'ongoing'
-  /// TODO: if the driver is not closer to the pick up location, do nothing
-  Future<void> getBookingRequestsID(BuildContext context) async {
-    try {
-      // Store the context in a local variable
-      final currentContext = context;
-
-      // Get driver ID and locations
-      final driverID = currentContext.read<DriverProvider>().driverID;
-      debugPrint('Driver ID from provider: $driverID');
-
-      LatLng? currentLocation = await _getCurrentLocation(currentContext);
-
-      // Get the ending location from the MapProvider
-      final LatLng? endingLocation =
-          currentContext.read<MapProvider>().endingLocation;
-
-      // Validate locations
-      if (!currentContext.mounted) {
-        debugPrint('Error: Context no longer mounted, aborting operation');
-        return;
-      }
-
-      // Clear booking data if there is no current location or ending location
-      if (currentLocation == null || endingLocation == null) {
-        _clearBookingData();
-        if (kDebugMode) {
-          debugPrint(
-              'Error: Missing location data: currentLocation=$currentLocation, endingLocation=$endingLocation');
-        }
-        return;
-      }
-
-      // Fetch all bookings from the DB
-      final List<Booking> activeBookings =
-          await _repository.fetchActiveBookings(driverID);
-
-      // if there are no active bookings, clear the booking data
-      if (activeBookings.isEmpty) {
-        _clearBookingData();
-        return;
-      }
-
-      // Filter the bookings based on the status
-      final requestedBookings = activeBookings
-          .where((b) => b.rideStatus == BookingRepository.statusRequested)
-          .toList();
-      final acceptedOngoingBookings = activeBookings
-          .where((b) =>
-              b.rideStatus == BookingRepository.statusAccepted ||
-              b.rideStatus == BookingRepository.statusOngoing)
-          .toList();
-
-      if (kDebugMode) {
-        debugPrint(
-            'BOOKINGS:Requested: ${requestedBookings.length}, Accepted/Ongoing: ${acceptedOngoingBookings.length}');
-      }
-
-      // BOOKING VALIDATION CHECK:Check if the requested bookings are valid
-      final validRequestedBookings =
-          BookingFilterService.filterValidRequestedBookings(
-        bookings: requestedBookings,
-        driverLocation: currentLocation,
-        destinationLocation: endingLocation,
-      );
-
-      // Debug section: Logs validation results for all requested bookings
-      if (kDebugMode) {
-        _logValidationResults(validRequestedBookings, requestedBookings);
-      }
-
-      // PROCESS BOOKINGS: Process requested bookings - update status based on validity
-      for (final booking in requestedBookings) {
-        // Check if this is a valid booking (passenger ahead on route)
-        final isValid =
-            validRequestedBookings.any((valid) => valid.id == booking.id);
-
-        if (isValid) {
-          // If valid, set the booking request to 'accepted'
-          await _repository.updateBookingStatus(
-              booking.id, BookingRepository.statusAccepted);
-        } else {
-          // If not valid, set the booking request to 'cancelled'
-          await _repository.updateBookingStatus(
-              booking.id, BookingRepository.statusCancelled);
-        }
-      }
-
-      // Get the nearest booking from the filtered bookings
-      if (validRequestedBookings.isNotEmpty) {
-        final nearestBooking =
-            BookingFilterService.findNearestBooking(validRequestedBookings);
-        if (nearestBooking != null) {
-          // Set the nearest booking as the pickup location
-          currentContext
-              .read<MapProvider>()
-              .setPickUpLocation(nearestBooking.pickupLocation);
-
-          if (kDebugMode) {
-            debugPrint('Set nearest passenger: ID: ${nearestBooking.id}, ' +
-                'Distance: ${(nearestBooking.distanceToDriver ?? 0).toStringAsFixed(2)} meters');
-          }
-        }
-      }
-
-      // Update state with all relevant bookings
-      // This includes newly accepted bookings and ongoing ones
-      // Refresh bookings after status updates
-      final updatedActiveBookings =
-          await _repository.fetchActiveBookings(driverID);
-      setBookings(updatedActiveBookings);
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        print('Error fetching booking details: $e');
-        print('Stack Trace: $stackTrace');
-      }
-      _clearBookingData();
-    }
-  }
-
-  /// Fetch completed bookings count
-  Future<void> getCompletedBookings(BuildContext context) async {
-    try {
-      final driverID = context.read<DriverProvider>().driverID;
-
-      if (driverID.isEmpty || driverID == 'N/A') {
-        debugPrint('Invalid driver ID: $driverID');
-        setCompletedBooking(0);
-        return;
-      }
-
-      final count = await _repository.fetchCompletedBookingsCount(driverID);
-      notifyListeners();
-      setCompletedBooking(count);
-    } catch (e, stackTrace) {
-      debugPrint('Error fetching completed bookings: $e');
-      debugPrint('Stack Trace: $stackTrace');
-      setCompletedBooking(0);
-    }
-  }
-
-  /// Gets the current GPS location and updates the MapProvider
-  Future<LatLng?> _getCurrentLocation(BuildContext context) async {
-    LatLng? location;
-    try {
-      // Get current GPS position
-      final Position position = await Geolocator.getCurrentPosition(
-        locationSettings:
-            const LocationSettings(accuracy: LocationAccuracy.high),
-      );
-      location = LatLng(position.latitude, position.longitude);
-      debugPrint(
-          'Got GPS location: ${position.latitude}, ${position.longitude}');
-
-      // Also update the MapProvider for consistency
-      if (context.mounted) {
-        context.read<MapProvider>().setCurrentLocation(location);
-      }
-    } catch (e) {
-      debugPrint('Error getting GPS location: $e');
-      // Fall back to MapProvider location if GPS fails
-      location = context.read<MapProvider>().currentLocation;
-      debugPrint('Using fallback location from MapProvider: $location');
-    }
-    return location;
-  }
-
-  /// Logs the validation results for all requested bookings
-  void _logValidationResults(List<Booking> validRequestedBookings, List<Booking> requestedBookings) {
-    debugPrint('BOOKINGS: Found ${validRequestedBookings.length} valid bookings out of ${requestedBookings.length} requested');
-    for (final booking in requestedBookings) {
-      final isValid = validRequestedBookings.any((valid) => valid.id == booking.id);
-      debugPrint('Booking ID: ${booking.id} - ${isValid ? 'VALID' : 'INVALID'} - ' +
-          'pickup at: ${booking.pickupLocation.latitude}, ${booking.pickupLocation.longitude}');
-    }
-  }
-
-  /// Clears all booking data
-  void _clearBookingData() {
-    setBookings([]);
-    if (kDebugMode) {
-      debugPrint('No valid or active bookings to store');
-    }
-  }
-
-  /// Test method to verify the booking filter logic
-  Future<void> testBookingFilters(BuildContext context) async {
-    try {
-      debugPrint('========== TESTING BOOKING FILTERS ==========');
-      await getBookingRequestsID(context);
-      debugPrint('========== TEST COMPLETED ==========');
-    } catch (e) {
-      debugPrint('Test error: $e');
-    }
   }
 }

@@ -30,14 +30,14 @@ class PassengerCounterState extends State<PassengerCounter> {
                 vertical: screenHeight * 0.03,
                 horizontal: screenWidth * 0.06,
               ),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.all(Radius.circular(15)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Color.fromRGBO(0, 0, 0, 0.1),
                     blurRadius: 10,
-                    offset: const Offset(0, 2),
+                    offset: Offset(0, 2),
                   ),
                 ],
               ),
@@ -45,16 +45,19 @@ class PassengerCounterState extends State<PassengerCounter> {
                 children: [
                   Text(
                     'Passenger Counter',
-                    style: Styles().textStyle(24, FontWeight.w600, Styles.customBlack),
+                    style: Styles()
+                        .textStyle(24, FontWeight.w600, Styles.customBlack),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     '${driverProvider.passengerCapacity}',
-                    style: Styles().textStyle(48, FontWeight.w700, Styles.customBlack),
+                    style: Styles()
+                        .textStyle(48, FontWeight.w700, Styles.customBlack),
                   ),
                   Text(
                     'Current Passengers',
-                    style: Styles().textStyle(16, FontWeight.w400, Colors.grey[600]!),
+                    style: Styles()
+                        .textStyle(16, FontWeight.w400, Colors.grey[600]!),
                   ),
                 ],
               ),
@@ -67,7 +70,8 @@ class PassengerCounterState extends State<PassengerCounter> {
               children: [
                 _CounterButton(
                   onPressed: () {
-                    driverProvider.setPassengerCapacity(driverProvider.passengerCapacity + 1);
+                    driverProvider.setPassengerCapacity(
+                        driverProvider.passengerCapacity + 1);
                   },
                   icon: Icons.add_circle_outline,
                   label: 'Add Passenger',
@@ -79,7 +83,8 @@ class PassengerCounterState extends State<PassengerCounter> {
                 _CounterButton(
                   onPressed: () {
                     if (driverProvider.passengerCapacity > 0) {
-                      driverProvider.setPassengerCapacity(driverProvider.passengerCapacity - 1);
+                      driverProvider.setPassengerCapacity(
+                          driverProvider.passengerCapacity - 1);
                     }
                   },
                   icon: Icons.remove_circle_outline,
@@ -121,8 +126,12 @@ class _CounterButton extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
-        color: color.withOpacity(0.1),
-        border: Border.all(color: color.withOpacity(0.5), width: 2),
+        color: Color.fromRGBO(
+            color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.1),
+        border: Border.all(
+            color: Color.fromRGBO(
+                color.r.toInt(), color.g.toInt(), color.b.toInt(), 0.5),
+            width: 2),
       ),
       child: Material(
         color: Colors.transparent,

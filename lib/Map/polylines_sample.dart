@@ -10,14 +10,15 @@ class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
   @override
-  _MapScreenState createState() => _MapScreenState();
+  MapScreenState createState() => MapScreenState();
 }
 
-class _MapScreenState extends State<MapScreen> {
+class MapScreenState extends State<MapScreen> {
   late GoogleMapController mapController;
   LocationData? _currentLocation;
   late Location _location;
-  final LatLng _endPosition = const LatLng(37.42796133580664, -122.085749655962);
+  final LatLng _endPosition =
+      const LatLng(37.42796133580664, -122.085749655962);
   final Set<Marker> _markers = {};
   final Set<Polyline> _polylines = {};
   PolylinePoints polylinePoints = PolylinePoints();
@@ -34,7 +35,7 @@ class _MapScreenState extends State<MapScreen> {
     if (!serviceEnabled) {
       serviceEnabled = await _location.requestService();
       if (!serviceEnabled) {
-        print('Location service disabled by user');
+        debugPrint('Location service disabled by user');
         return;
       }
     }
@@ -43,7 +44,7 @@ class _MapScreenState extends State<MapScreen> {
     if (permission == PermissionStatus.denied) {
       permission = await _location.requestPermission();
       if (permission != PermissionStatus.granted) {
-        print('Location permission denied');
+        debugPrint('Location permission denied');
         return;
       }
     }
@@ -62,7 +63,7 @@ class _MapScreenState extends State<MapScreen> {
         });
       });
     } catch (e) {
-      print('Error getting location: $e');
+      debugPrint('Error getting location: $e');
     }
   }
 
@@ -99,7 +100,8 @@ class _MapScreenState extends State<MapScreen> {
     if (_currentLocation == null) return;
 
     const String apiKey = 'AIzaSyAPCBttjYmWAWgsVJlCdC6EBf2y0XpOHPo';
-    const String url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+    const String url =
+        'https://routes.googleapis.com/directions/v2:computeRoutes';
 
     try {
       final response = await http.post(
@@ -134,7 +136,8 @@ class _MapScreenState extends State<MapScreen> {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         if (data['routes'] != null && data['routes'].isNotEmpty) {
-          final String encodedPolyline = data['routes'][0]['polyline']['encodedPolyline'];
+          final String encodedPolyline =
+              data['routes'][0]['polyline']['encodedPolyline'];
           List<LatLng> polylineCoordinates = polylinePoints
               .decodePolyline(encodedPolyline)
               .map((point) => LatLng(point.latitude, point.longitude))
@@ -150,10 +153,10 @@ class _MapScreenState extends State<MapScreen> {
           });
         }
       } else {
-        print('API Error: ${response.statusCode} - ${response.body}');
+        debugPrint('API Error: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      print('Polyline Error: $e');
+      debugPrint('Polyline Error: $e');
     }
   }
 
@@ -169,7 +172,8 @@ class _MapScreenState extends State<MapScreen> {
               onMapCreated: (controller) => mapController = controller,
               initialCameraPosition: CameraPosition(
                 target: _currentLocation != null
-                    ? LatLng(_currentLocation!.latitude!, _currentLocation!.longitude!)
+                    ? LatLng(_currentLocation!.latitude!,
+                        _currentLocation!.longitude!)
                     : fallbackPosition,
                 zoom: 14,
               ),
