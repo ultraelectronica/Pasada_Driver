@@ -291,18 +291,18 @@ class _LogInState extends State<LogIn> {
     );
   }
 
-  Container _buildForgotPasswordButton() {
-    return Container(
-      alignment: Alignment.centerRight,
-      child: TextButton(
-        onPressed: () {},
-        child: Text(
-          'Forgot Password?',
-          style: Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
-        ),
-      ),
-    );
-  }
+  // Container _buildForgotPasswordButton() {
+  //   return Container(
+  //     alignment: Alignment.centerRight,
+  //     child: TextButton(
+  //       onPressed: () {},
+  //       child: Text(
+  //         'Forgot Password?',
+  //         style: Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Container _buildPasswordInput(double inputFieldHeight) {
     return Container(
