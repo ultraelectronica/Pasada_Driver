@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:pasada_driver_side/Database/AuthService.dart';
+import 'package:pasada_driver_side/Database/auth_service.dart';
 import 'package:pasada_driver_side/Database/passenger_capacity.dart';
 import 'package:pasada_driver_side/Services/password_util.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
@@ -291,148 +291,138 @@ class _LogInState extends State<LogIn> {
     );
   }
 
-  Container _buildForgotPasswordButton() {
-    return Container(
-      alignment: Alignment.centerRight,
-      child: TextButton(
-        onPressed: () {},
-        child: Text(
-          'Forgot Password?',
+  // Container _buildForgotPasswordButton() {
+  //   return Container(
+  //     alignment: Alignment.centerRight,
+  //     child: TextButton(
+  //       onPressed: () {},
+  //       child: Text(
+  //         'Forgot Password?',
+  //         style: Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
+  //       ),
+  //     ),
+  //   );
+  // }
+
+  SizedBox _buildPasswordInput(double inputFieldHeight) {
+    return SizedBox(
+      width: double.infinity,
+      height: inputFieldHeight,
+      child: TextField(
+        controller: inputPasswordController,
+        obscureText: !isPasswordVisible,
+        decoration: InputDecoration(
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.0),
+            borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.0),
+            borderSide: const BorderSide(color: Colors.black, width: 2.0),
+          ),
+          errorText: errorMessage.isNotEmpty ? errorMessage : null,
+          suffixIcon: IconButton(
+            color: Colors.black54,
+            onPressed: () {
+              setState(() {
+                isPasswordVisible = !isPasswordVisible;
+              });
+            },
+            icon: Icon(
+              isPasswordVisible
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+            ),
+          ),
+          hintText: 'Enter your Password here',
+          hintStyle: TextStyle(
+            fontSize: 14,
+            color: Colors.grey.shade600,
+            fontWeight: FontWeight.w400,
+          ),
+          filled: true,
+          fillColor: Colors.grey.shade50,
+          prefixIcon: const Icon(
+            Icons.lock_outline,
+            color: Colors.black54,
+          ),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+        ),
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Row _buildPasswordText() {
+    return Row(
+      children: [
+        Text(
+          'Enter your ',
+          style:
+              Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
+        ),
+        Text(
+          'Password',
           style: Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
         ),
-      ),
+      ],
     );
   }
 
-  Container _buildPasswordInput(double inputFieldHeight) {
-    return Container(
-      child: SizedBox(
-        width: double.infinity,
-        height: inputFieldHeight,
-        child: TextField(
-          controller: inputPasswordController,
-          obscureText: !isPasswordVisible,
-          decoration: InputDecoration(
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10.0),
-              borderSide: const BorderSide(color: Colors.grey, width: 1.0),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10.0),
-              borderSide: const BorderSide(color: Colors.black, width: 2.0),
-            ),
-            errorText: errorMessage.isNotEmpty ? errorMessage : null,
-            suffixIcon: IconButton(
-              color: Colors.black54,
-              onPressed: () {
-                setState(() {
-                  isPasswordVisible = !isPasswordVisible;
-                });
-              },
-              icon: Icon(
-                isPasswordVisible
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-              ),
-            ),
-            hintText: 'Enter your Password here',
-            hintStyle: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w400,
-            ),
-            filled: true,
-            fillColor: Colors.grey.shade50,
-            prefixIcon: const Icon(
-              Icons.lock_outline,
-              color: Colors.black54,
-            ),
-            contentPadding:
-                const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
-          ),
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+  Row _buildDriverIDText() {
+    return Row(
+      children: [
+        Text(
+          'Enter your ',
+          style:
+              Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
         ),
-      ),
+        Text(
+          'Driver ID',
+          style: Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
+        ),
+      ],
     );
   }
 
-  Container _buildPasswordText() {
-    return Container(
-      child: Row(
-        children: [
-          Text(
-            'Enter your ',
-            style:
-                Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
+  SizedBox _buildDriverIDInput(double inputFieldHeight) {
+    return SizedBox(
+      width: double.infinity,
+      height: inputFieldHeight,
+      child: TextField(
+        controller: inputDriverIDController,
+        decoration: InputDecoration(
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.0),
+            borderSide: const BorderSide(color: Colors.grey, width: 1.0),
           ),
-          Text(
-            'Password',
-            style:
-                Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.0),
+            borderSide: const BorderSide(color: Colors.black, width: 2.0),
           ),
-        ],
-      ),
-    );
-  }
-
-  Container _buildDriverIDText() {
-    return Container(
-      child: Row(
-        children: [
-          Text(
-            'Enter your ',
-            style:
-                Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
+          hintText: 'Enter your Driver ID here',
+          hintStyle: TextStyle(
+            fontSize: 14,
+            color: Colors.grey.shade600,
+            fontWeight: FontWeight.w400,
           ),
-          Text(
-            'Driver ID',
-            style:
-                Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
+          errorText: errorMessage.isNotEmpty ? errorMessage : null,
+          filled: true,
+          fillColor: Colors.grey.shade50,
+          prefixIcon: const Icon(
+            Icons.person_outline,
+            color: Colors.black54,
           ),
-        ],
-      ),
-    );
-  }
-
-  Container _buildDriverIDInput(double inputFieldHeight) {
-    return Container(
-      child: SizedBox(
-        width: double.infinity,
-        height: inputFieldHeight,
-        child: TextField(
-          controller: inputDriverIDController,
-          decoration: InputDecoration(
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10.0),
-              borderSide: const BorderSide(color: Colors.grey, width: 1.0),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10.0),
-              borderSide: const BorderSide(color: Colors.black, width: 2.0),
-            ),
-            hintText: 'Enter your Driver ID here',
-            hintStyle: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w400,
-            ),
-            errorText: errorMessage.isNotEmpty ? errorMessage : null,
-            filled: true,
-            fillColor: Colors.grey.shade50,
-            prefixIcon: const Icon(
-              Icons.person_outline,
-              color: Colors.black54,
-            ),
-            contentPadding:
-                const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
-          ),
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+        ),
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );

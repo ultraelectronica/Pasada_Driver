@@ -177,12 +177,13 @@ class MapProvider with ChangeNotifier {
       final intermediateCoords = response['intermediate_coordinates'] as List;
 
       if (intermediateCoords.isNotEmpty) {
-        if (intermediateCoords.length > 0) {
-          _intermediateLoc1 = _parseLatLng(
-            intermediateCoords[0]['lat'].toString(),
-            intermediateCoords[0]['lng'].toString(),
-          );
-        }
+        // Set first intermediate location
+        _intermediateLoc1 = _parseLatLng(
+          intermediateCoords[0]['lat'].toString(),
+          intermediateCoords[0]['lng'].toString(),
+        );
+
+        // Set second intermediate location if available
         if (intermediateCoords.length > 1) {
           _intermediateLoc2 = _parseLatLng(
             intermediateCoords[1]['lat'].toString(),

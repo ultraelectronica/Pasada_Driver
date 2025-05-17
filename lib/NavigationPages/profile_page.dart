@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:pasada_driver_side/Database/AuthService.dart';
+import 'package:pasada_driver_side/Database/auth_service.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
@@ -206,7 +206,8 @@ class ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 15),
             _buildInfoRow(
               icon: Icons.directions_car, // Use Material Icons
-              text: 'Vehicle:\t\t\t${driverProvider.plateNumber} | ${driverProvider.vehicleID}',
+              text:
+                  'Vehicle:\t\t\t${driverProvider.plateNumber} | ${driverProvider.vehicleID}',
             ),
             const SizedBox(height: 15),
             _buildInfoRow(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:pasada_driver_side/Database/AuthService.dart';
+import 'package:pasada_driver_side/Database/auth_service.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
@@ -118,11 +118,11 @@ class ProfilePageState extends State<ProfilePage> {
                 items: [
                   _buildProfileListItem(
                       paddingValue: paddingValue,
-                      button_name: 'Edit profile',
+                      buttonName: 'Edit profile',
                       onPressed: () {}),
                   _buildProfileListItem(
                       paddingValue: paddingValue,
-                      button_name: 'Log out',
+                      buttonName: 'Log out',
                       highlightColor: Colors.red,
                       onPressed: () {
                         AuthService.deleteSession();
@@ -138,13 +138,13 @@ class ProfilePageState extends State<ProfilePage> {
                 items: [
                   _buildProfileListItem(
                       paddingValue: paddingValue,
-                      button_name: 'Preferences',
+                      buttonName: 'Preferences',
                       onPressed: () {
                         // TODO: Navigate to preferences page
                       }),
                   _buildProfileListItem(
                       paddingValue: paddingValue,
-                      button_name: 'Contact Support',
+                      buttonName: 'Contact Support',
                       onPressed: () {
                         // TODO: Navigate to contact support page
                       }),
@@ -308,7 +308,7 @@ class ProfilePageState extends State<ProfilePage> {
 
   Widget _buildProfileListItem({
     required double paddingValue,
-    required String button_name,
+    required String buttonName,
     required VoidCallback onPressed,
     Color? highlightColor,
   }) {
@@ -320,7 +320,7 @@ class ProfilePageState extends State<ProfilePage> {
           contentPadding:
               EdgeInsets.symmetric(horizontal: itemHorizontalPadding),
           title: Text(
-            button_name,
+            buttonName,
             style: Styles().textStyle(
               16,
               Styles.normalWeight,
