@@ -34,7 +34,23 @@ class MapScreen extends StatefulWidget {
   MapScreenState createState() => MapScreenState();
 }
 
+// Enum to track the initialization state
+enum MapInitState {
+  uninitialized,
+  loadingLocation,
+  locationLoaded,
+  loadingRouteData,
+  routeDataLoaded,
+  loadingPickupData,
+  initialized,
+  error
+}
+
 class MapScreenState extends State<MapScreen> {
+  // State tracking
+  MapInitState _initState = MapInitState.uninitialized;
+  String? _errorMessage;
+
   LatLng? currentLocation;
   LocationData? locationData;
   final Location location = Location();
@@ -47,7 +63,7 @@ class MapScreenState extends State<MapScreen> {
   // <<-- MARKERS -->>
   Set<Marker> markers = {};
 
-  // Remove static default locations
+  // Route locations
   LatLng? _startingLocation;
   LatLng? _intermediateLocation1;
   LatLng? _intermediateLocation2;
@@ -73,25 +89,340 @@ class MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
-    // Reset the route coordinates loaded flag when initializing
-    _routeCoordinatesLoaded = false;
-    getLocationUpdates();
+    if (kDebugMode) {
+      debugPrint('MapScreen: Starting initialization sequence');
+    }
 
-    // Add a small delay before checking for pickup location
-    // Increase delay to ensure route data is loaded first
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        getRouteCoordinates().then((_) {
-          // Get booking requests and pickup location directly
-          if (mounted) {
-            context
-                .read<PassengerProvider>()
-                .getBookingRequestsID(context)
-                .then((_) {
-              _fetchPickupLocation();
-            });
-          }
+    // Start the initialization sequence
+    _initializeMap();
+  }
+
+  // Single controlled initialization flow
+  Future<void> _initializeMap() async {
+    try {
+      // Step 1: Get current location
+      _updateInitState(MapInitState.loadingLocation);
+      await _getCurrentLocation();
+
+      // Step 2: Load route data
+      _updateInitState(MapInitState.loadingRouteData);
+      await _loadRouteData();
+
+      // Step 3: Initialize markers
+      await _initializeMarkers();
+
+      // Step 4: Generate initial polyline
+      await _generateInitialPolyline();
+
+      // Step 5: Load pickup data
+      _updateInitState(MapInitState.loadingPickupData);
+      await _loadPickupData();
+
+      // Step 6: Start location tracking
+      _startLocationTracking();
+
+      // Initialization complete
+      _updateInitState(MapInitState.initialized);
+
+      if (kDebugMode) {
+        debugPrint('MapScreen: Initialization sequence completed successfully');
+      }
+    } catch (e) {
+      _updateInitState(MapInitState.error, errorMessage: e.toString());
+      ShowMessage().showToast('Error initializing map: ${e.toString()}');
+    }
+  }
+
+  // Update initialization state with logging
+  void _updateInitState(MapInitState newState, {String? errorMessage}) {
+    if (!mounted) return;
+
+    setState(() {
+      _initState = newState;
+      _errorMessage = errorMessage;
+    });
+
+    if (kDebugMode) {
+      debugPrint('MapScreen: State changed to ${newState.toString()}');
+      if (errorMessage != null) {
+        debugPrint('MapScreen ERROR: $errorMessage');
+      }
+    }
+  }
+
+  // Step 1: Get current location once
+  Future<void> _getCurrentLocation() async {
+    try {
+      if (kDebugMode) {
+        debugPrint('MapScreen: Getting current location');
+      }
+
+      LocationData locationData = await location.getLocation();
+
+      if (!mounted) return;
+
+      setState(() {
+        currentLocation =
+            LatLng(locationData.latitude!, locationData.longitude!);
+      });
+
+      // Update MapProvider with current location
+      if (mounted && currentLocation != null) {
+        context.read<MapProvider>().setCurrentLocation(currentLocation!);
+      }
+
+      _updateInitState(MapInitState.locationLoaded);
+
+      if (kDebugMode) {
+        debugPrint('MapScreen: Current location loaded: $currentLocation');
+      }
+    } catch (e) {
+      throw Exception('Error: Failed to get current location: $e');
+    }
+  }
+
+  // Step 2: Load route data once
+  Future<void> _loadRouteData() async {
+    try {
+      if (kDebugMode) {
+        debugPrint('MapScreen: Loading route data');
+      }
+
+      final mapProvider = context.read<MapProvider>();
+      final driverProvider = context.read<DriverProvider>();
+
+      // Make sure we have a valid route ID
+      // if (driverProvider.routeID <= 0) {
+      //   await driverProvider.getDriverRoute();
+
+      //   if (driverProvider.routeID <= 0) {
+      //     if (kDebugMode) {
+      //       debugPrint('No valid route ID available, using default fallback');
+      //     }
+      //     driverProvider.setRouteID(1);
+      //   }
+      // }
+
+      // Load route data ONCE - this is crucial
+      await mapProvider.getRouteCoordinates(driverProvider.routeID);
+
+      // Store route data locally
+      _startingLocation = mapProvider.originLocation;
+      _intermediateLocation1 = mapProvider.intermediateLoc1;
+      _intermediateLocation2 = mapProvider.intermediateLoc2;
+      _endingLocation = mapProvider.endingLocation;
+
+      // Log the loaded route data
+      if (kDebugMode) {
+        debugPrint('MapScreen: Route data loaded');
+        debugPrint('  Starting location: $_startingLocation');
+        debugPrint('  Ending location: $_endingLocation');
+        debugPrint('  RouteID: ${driverProvider.routeID}');
+      }
+
+      _routeCoordinatesLoaded = true;
+    } catch (e) {
+      throw Exception('Failed to load route data: $e');
+    }
+  }
+
+  // Step 3: Initialize markers once with complete data
+  Future<void> _initializeMarkers() async {
+    if (!mounted || currentLocation == null) return;
+
+    if (kDebugMode) {
+      debugPrint('MapScreen: Initializing markers');
+    }
+
+    setState(() {
+      // Clear existing markers
+      markers.clear();
+
+      // Add current location marker
+      markers.add(createMarker(
+        id: 'CurrentLocation',
+        position: currentLocation!,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
+        title: 'Current Location',
+        zIndex: 2.0,
+      ));
+
+      // Add starting location marker
+      if (_startingLocation != null) {
+        markers.add(createMarker(
+          id: 'StartingLocation',
+          position: _startingLocation!,
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          title: 'Starting Point (Route Origin)',
+        ));
+      }
+
+      // Add ending location marker
+      if (_endingLocation != null) {
+        markers.add(createMarker(
+          id: 'EndingLocation',
+          position: _endingLocation!,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          title: 'Destination',
+        ));
+      }
+
+      // Add intermediate markers if available
+      if (_intermediateLocation1 != null) {
+        markers.add(createMarker(
+          id: 'Intermediate1',
+          position: _intermediateLocation1!,
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
+          title: 'Waypoint 1',
+        ));
+      }
+
+      if (_intermediateLocation2 != null) {
+        markers.add(createMarker(
+          id: 'Intermediate2',
+          position: _intermediateLocation2!,
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
+          title: 'Waypoint 2',
+        ));
+      }
+    });
+
+    if (kDebugMode) {
+      debugPrint('MapScreen: ${markers.length} markers initialized');
+    }
+  }
+
+  // Step 4: Generate initial polyline
+  Future<void> _generateInitialPolyline() async {
+    if (_startingLocation != null && _endingLocation != null) {
+      if (kDebugMode) {
+        debugPrint('MapScreen: Generating initial polyline');
+      }
+
+      List<LatLng> waypoints = [];
+
+      if (_intermediateLocation1 != null) {
+        waypoints.add(_intermediateLocation1!);
+      }
+
+      if (_intermediateLocation2 != null) {
+        waypoints.add(_intermediateLocation2!);
+      }
+
+      await generatePolyline(_startingLocation!, _endingLocation!,
+          waypoints: waypoints.isNotEmpty ? waypoints : null);
+
+      _lastPolylineUpdateLocation = currentLocation;
+    }
+  }
+
+  // Step 5: Load pickup data
+  Future<void> _loadPickupData() async {
+    try {
+      if (kDebugMode) {
+        debugPrint('MapScreen: Loading pickup location data');
+      }
+
+      if (!mounted) return;
+
+      await context.read<PassengerProvider>().getBookingRequestsID(context);
+
+      final mapProvider = context.read<MapProvider>();
+      _pickupLocation = mapProvider.pickupLocation;
+
+      if (_pickupLocation != null) {
+        if (kDebugMode) {
+          debugPrint('MapScreen: Pickup location loaded: $_pickupLocation');
+        }
+
+        setState(() {
+          markers.add(createMarker(
+            id: 'Pickup',
+            position: _pickupLocation!,
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+                BitmapDescriptor.hueViolet),
+            title: 'Pickup Location',
+            zIndex: 3.0,
+          ));
         });
+      } else {
+        if (kDebugMode) {
+          debugPrint('MapScreen: No pickup location available');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('MapScreen: Error loading pickup data: $e');
+      }
+      // Continue initialization even if pickup data fails
+    }
+  }
+
+  // Step 6: Start continuous location tracking
+  void _startLocationTracking() {
+    if (kDebugMode) {
+      debugPrint('MapScreen: Starting location tracking');
+    }
+
+    location.onLocationChanged.listen((LocationData newLocation) {
+      if (!mounted) return;
+      if (newLocation.latitude == null || newLocation.longitude == null) return;
+
+      final newLatLng = LatLng(newLocation.latitude!, newLocation.longitude!);
+
+      // Update driver location in database
+      final String driverId = context.read<DriverProvider>().driverID;
+      _updateDriverLocationToDB(driverId, newLocation);
+
+      // Update UI if moved significantly
+      if (_shouldUpdateUI(newLatLng)) {
+        setState(() {
+          currentLocation = newLatLng;
+
+          // Update current location marker
+          markers.removeWhere(
+              (marker) => marker.markerId == const MarkerId('CurrentLocation'));
+          markers.add(createMarker(
+            id: 'CurrentLocation',
+            position: newLatLng,
+            icon:
+                BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
+            title: 'Current Location',
+            zIndex: 2.0,
+          ));
+        });
+      }
+
+      // Only update polyline if moved significantly AND we're initialized
+      if (_shouldUpdatePolyline(newLatLng) &&
+          _initState == MapInitState.initialized &&
+          _startingLocation != null &&
+          _endingLocation != null) {
+        List<LatLng> waypoints = [];
+        if (_intermediateLocation1 != null)
+          waypoints.add(_intermediateLocation1!);
+        if (_intermediateLocation2 != null)
+          waypoints.add(_intermediateLocation2!);
+
+        // IMPORTANT: Always use original start/end for route consistency
+        generatePolyline(_startingLocation!, _endingLocation!,
+            currentLocation: newLatLng,
+            waypoints: waypoints.isNotEmpty ? waypoints : null);
+
+        _lastPolylineUpdateLocation = newLatLng;
+      }
+
+      // Move camera if not manually positioned
+      if (!isAnimatingLocation) {
+        animateToLocation(newLatLng);
+      }
+
+      // Check if near destination
+      if (_endingLocation != null) {
+        _checkDestinationReached(newLatLng);
       }
     });
   }
@@ -164,6 +495,12 @@ class MapScreenState extends State<MapScreen> {
       final existingPickupLocation =
           _pickupLocation ?? mapProvider.pickupLocation;
 
+      // Store original route information to detect changes
+      final int originalRouteID = driverProvider.routeID;
+      if (kDebugMode) {
+        debugPrint('ROUTE INIT: Starting with route ID: $originalRouteID');
+      }
+
       // Make sure we have a valid route ID
       if (driverProvider.routeID <= 0) {
         // Try to get the driver's route first
@@ -196,16 +533,52 @@ class MapScreenState extends State<MapScreen> {
         }
       }
 
-      // IMPORTANT: Always use current location as starting point if available
-      _startingLocation = currentLocation ??
-          mapProvider.originLocation ??
-          mapProvider.currentLocation;
+      // Always prioritize route origin location and never mix with current location
+      // This is critical to prevent pin swapping issues
+      _startingLocation = mapProvider.originLocation;
+
+      // Only use current location as fallback if absolutely no origin location
+      if (_startingLocation == null && mapProvider.originLocation == null) {
+        if (kDebugMode) {
+          debugPrint(
+              'WARNING: No origin location found, using current location as fallback');
+        }
+        _startingLocation = currentLocation;
+      }
+
       _intermediateLocation1 = mapProvider.intermediateLoc1;
       _intermediateLocation2 = mapProvider.intermediateLoc2;
       _endingLocation = mapProvider.endingLocation;
 
+      // IMPORTANT: Verify we have all required locations before proceeding
+      if (_startingLocation == null || _endingLocation == null) {
+        if (kDebugMode) {
+          debugPrint(
+              'ERROR: Missing critical location data - Start: $_startingLocation, End: $_endingLocation');
+        }
+
+        // Force a reload if we're missing critical data
+        if (mapProvider.originLocation != null &&
+            mapProvider.endingLocation != null) {
+          _startingLocation = mapProvider.originLocation;
+          _endingLocation = mapProvider.endingLocation;
+          if (kDebugMode) {
+            debugPrint(
+                'RECOVERED: Using provider locations - Start: $_startingLocation, End: $_endingLocation');
+          }
+        }
+      }
+
       // Restore pickup location or get new one
       _pickupLocation = mapProvider.pickupLocation ?? existingPickupLocation;
+
+      // Debug logging to verify pin locations
+      if (kDebugMode) {
+        debugPrint('PIN LOCATIONS - Loading Complete:');
+        debugPrint('  Starting location: $_startingLocation');
+        debugPrint('  Current location: $currentLocation');
+        debugPrint('  Ending location: $_endingLocation');
+      }
 
       // Initialize markers with all locations
       _initializeMarkers();
@@ -223,11 +596,19 @@ class MapScreenState extends State<MapScreen> {
           waypoints.add(_intermediateLocation2!);
         }
 
-        // Use consolidated polyline generator
+        // Use consolidated polyline generator - always from start to end (not current location)
+        // This ensures route direction is consistent
         await generatePolyline(_startingLocation!, _endingLocation!,
             waypoints: waypoints.isNotEmpty ? waypoints : null);
 
         _lastPolylineUpdateLocation = currentLocation;
+
+        // Log the final route details for debugging
+        if (kDebugMode) {
+          debugPrint(
+              'ROUTE SETUP COMPLETE: ${_startingLocation!.latitude},${_startingLocation!.longitude} to ${_endingLocation!.latitude},${_endingLocation!.longitude}');
+          debugPrint('Route ID: ${driverProvider.routeID}');
+        }
       } else {
         if (kDebugMode) {
           debugPrint('Missing start/end coordinates for polyline generation');
@@ -240,106 +621,6 @@ class MapScreenState extends State<MapScreen> {
         debugPrint('Error loading route coordinates: $e');
       }
       _routeCoordinatesLoaded = false;
-    }
-  }
-
-  // Optimize the location update logic to be more efficient
-  Future<void> getLocationUpdates() async {
-    try {
-      // Get current location first
-      LocationData locationData = await location.getLocation();
-
-      if (mounted) {
-        setState(() {
-          currentLocation =
-              LatLng(locationData.latitude!, locationData.longitude!);
-        });
-
-        // Update MapProvider with current location
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && currentLocation != null) {
-            context.read<MapProvider>().setCurrentLocation(currentLocation!);
-          }
-        });
-      }
-
-      // Load route coordinates
-      if (mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          if (mounted) {
-            await getRouteCoordinates();
-            // After getting route coordinates, also try to get the pickup location
-            _fetchPickupLocation();
-          }
-        });
-      }
-
-      // Listen to location updates
-      location.onLocationChanged.listen((LocationData newLocation) {
-        if (!mounted) return;
-        if (newLocation.latitude != null && newLocation.longitude != null) {
-          // Convert LocationData to LatLng
-          final newLatLng =
-              LatLng(newLocation.latitude!, newLocation.longitude!);
-
-          // Update driver location in database - send every update for real-time tracking
-          final String driverId = context.read<DriverProvider>().driverID;
-          _updateDriverLocationToDB(driverId, newLocation);
-
-          // Only update UI if location changed significantly
-          if (_shouldUpdateUI(newLatLng)) {
-            setState(() {
-              currentLocation = newLatLng;
-
-              // Update current location marker
-              markers.removeWhere((marker) =>
-                  marker.markerId == const MarkerId('CurrentLocation'));
-              markers.add(
-                Marker(
-                  markerId: const MarkerId('CurrentLocation'),
-                  position: newLatLng,
-                  icon: BitmapDescriptor.defaultMarkerWithHue(
-                      BitmapDescriptor.hueCyan),
-                  infoWindow: const InfoWindow(title: 'Current Location'),
-                  zIndex: 2,
-                ),
-              );
-            });
-          }
-
-          // Check if polyline needs updating
-          if (_shouldUpdatePolyline(newLatLng) &&
-              _startingLocation != null &&
-              _endingLocation != null) {
-            // Create list of available waypoints
-            List<LatLng> waypoints = [];
-            if (_intermediateLocation1 != null)
-              waypoints.add(_intermediateLocation1!);
-            if (_intermediateLocation2 != null)
-              waypoints.add(_intermediateLocation2!);
-
-            // Update polyline using current location as start
-            generatePolyline(newLatLng, _endingLocation!,
-                waypoints: waypoints.isNotEmpty ? waypoints : null);
-            _lastPolylineUpdateLocation = newLatLng;
-          }
-
-          // Move the camera to new location if not manually panned
-          if (!isAnimatingLocation) {
-            animateToLocation(newLatLng);
-          }
-
-          // Check if near destination
-          if (_endingLocation != null) {
-            _checkDestinationReached(newLatLng);
-          }
-        }
-      });
-    } catch (e) {
-      ShowMessage().showToast('Location service error');
-      if (kDebugMode) {
-        debugPrint('Error getting location: $e');
-      }
     }
   }
 
@@ -428,13 +709,17 @@ class MapScreenState extends State<MapScreen> {
 
   // Consolidated polyline generation method that handles any number of waypoints
   Future<void> generatePolyline(LatLng start, LatLng end,
-      {List<LatLng>? waypoints}) async {
+      {List<LatLng>? waypoints, LatLng? currentLocation}) async {
     try {
       if (kDebugMode) {
         debugPrint(
             'Generating polyline from ${start.latitude},${start.longitude} to ${end.latitude},${end.longitude}');
         if (waypoints != null && waypoints.isNotEmpty) {
           debugPrint('With ${waypoints.length} waypoints');
+        }
+        if (currentLocation != null) {
+          debugPrint(
+              'Current location: ${currentLocation.latitude},${currentLocation.longitude}');
         }
       }
 
@@ -480,17 +765,38 @@ class MapScreenState extends State<MapScreen> {
       };
 
       // Add waypoints if provided
+      List<Map<String, dynamic>> intermediates = [];
+
+      // First add the current location as a via point if provided
+      if (currentLocation != null) {
+        intermediates.add({
+          'location': {
+            'latLng': {
+              'latitude': currentLocation.latitude,
+              'longitude': currentLocation.longitude,
+            }
+          },
+          'routeModifiers': {'avoidTurnsByHighwayClass': true}
+        });
+      }
+
+      // Then add the route waypoints
       if (waypoints != null && waypoints.isNotEmpty) {
-        requestBody['intermediates'] = waypoints
-            .map((point) => {
-                  'location': {
-                    'latLng': {
-                      'latitude': point.latitude,
-                      'longitude': point.longitude,
-                    }
-                  }
-                })
-            .toList();
+        for (var point in waypoints) {
+          intermediates.add({
+            'location': {
+              'latLng': {
+                'latitude': point.latitude,
+                'longitude': point.longitude,
+              }
+            }
+          });
+        }
+      }
+
+      // Only add intermediates if we have any
+      if (intermediates.isNotEmpty) {
+        requestBody['intermediates'] = intermediates;
       }
 
       final response = await NetworkUtility.postUrl(uri,
@@ -580,120 +886,11 @@ class MapScreenState extends State<MapScreen> {
     super.dispose();
   }
 
-  // Initialize markers with the route points
-  void _initializeMarkers() {
-    if (!mounted) return;
-
-    if (kDebugMode) {
-      debugPrint('Initializing markers');
-    }
-
-    // Get pickup location from provider first
-    final mapProvider = context.read<MapProvider>();
-    final providerPickupLocation = mapProvider.pickupLocation;
-
-    if (providerPickupLocation != null && _pickupLocation == null) {
-      if (kDebugMode) {
-        debugPrint(
-            'INIT: Found pickup location in provider: $providerPickupLocation');
-      }
-      _pickupLocation = providerPickupLocation;
-    }
-
-    setState(() {
-      // Clear existing markers first
-      markers.clear();
-
-      // Add current location marker if available
-      if (currentLocation != null) {
-        markers.add(
-          createMarker(
-            id: 'CurrentLocation',
-            position: currentLocation!,
-            icon:
-                BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
-            title: 'Current Location',
-            zIndex: 2.0, // Higher z-index to stay on top
-          ),
-        );
-      }
-
-      // Add starting location marker if available
-      if (_startingLocation != null) {
-        markers.add(
-          createMarker(
-            id: 'StartingLocation',
-            position: _startingLocation!,
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen),
-            title: 'Starting Point',
-          ),
-        );
-      }
-
-      // Add ending location marker if available
-      if (_endingLocation != null) {
-        markers.add(
-          createMarker(
-            id: 'EndingLocation',
-            position: _endingLocation!,
-            icon:
-                BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-            title: 'Destination',
-          ),
-        );
-      }
-
-      // Add pickup location marker if available (with highest z-index)
-      if (_pickupLocation != null) {
-        markers.add(
-          createMarker(
-            id: 'Pickup',
-            position: _pickupLocation!,
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueViolet),
-            title: 'Pickup Location',
-            zIndex: 3.0, // Highest z-index to ensure visibility
-          ),
-        );
-      } else {
-        // Try to fetch pickup location from provider one more time
-        if (kDebugMode) {
-          debugPrint(
-              'No pickup location in local state, checking provider again...');
-        }
-        // If no pickup location in this class but available in provider, get it immediately
-        final providerPickupLocation = mapProvider.pickupLocation;
-        if (providerPickupLocation != null) {
-          _pickupLocation = providerPickupLocation;
-          if (kDebugMode) {
-            debugPrint(
-                'INIT (Retry): Got pickup from provider: $_pickupLocation');
-          }
-
-          // Add the pickup marker
-          markers.add(
-            createMarker(
-              id: 'Pickup',
-              position: providerPickupLocation,
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueViolet),
-              title: 'Pickup Location',
-              zIndex: 3.0,
-            ),
-          );
-        } else if (kDebugMode) {
-          debugPrint('INIT: No pickup location available in provider');
-        }
-      }
-    });
-
-    // Force a marker refresh after a short delay
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        _fetchPickupLocation();
-      }
-    });
+  // Helper method to check if two locations are approximately equal
+  bool _areLocationsEqual(LatLng loc1, LatLng loc2,
+      {double threshold = 0.0001}) {
+    return (loc1.latitude - loc2.latitude).abs() < threshold &&
+        (loc1.longitude - loc2.longitude).abs() < threshold;
   }
 
   Set<Marker> buildMarkers() {
@@ -728,140 +925,147 @@ class MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Don't call getRouteCoordinates directly during build
-    if (!_routeCoordinatesLoaded) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          getRouteCoordinates();
-        }
-      });
-    }
-
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
         body: Stack(
       children: [
-        RepaintBoundary(
-          child: currentLocation == null
-              ? const Center(
-                  child: CircularProgressIndicator(),
+        // Show loading indicator if location not yet available
+        if (currentLocation == null)
+          const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text("Loading map...",
+                    style: TextStyle(fontWeight: FontWeight.bold))
+              ],
+            ),
+          )
+        // Show error message if initialization failed
+        else if (_initState == MapInitState.error)
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, color: Colors.red, size: 48),
+                SizedBox(height: 16),
+                Text("Error loading map: $_errorMessage",
+                    style: TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center),
+                SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _initializeMap,
+                  child: Text("Retry"),
                 )
-              : GoogleMap(
-                  onMapCreated: (controller) {
-                    _mapControllerCompleter.complete(controller);
-                    // Initialize markers when map is created
-                    _initializeMarkers();
-                  },
-                  initialCameraPosition: CameraPosition(
-                    target: currentLocation!,
-                    zoom: 15,
-                    tilt: 45.0,
-                  ),
-                  markers: markers,
-                  polylines: Set<Polyline>.of(polylines.values),
-                  mapType: MapType.normal,
-                  //buildings
-                  buildingsEnabled: true,
+              ],
+            ),
+          )
+        // Show map when location is available
+        else
+          RepaintBoundary(
+            child: GoogleMap(
+              onMapCreated: (controller) {
+                _mapControllerCompleter.complete(controller);
 
-                  //there will be a custom button
-                  myLocationButtonEnabled: false,
-
-                  indoorViewEnabled: false,
-                  mapToolbarEnabled: false,
-
-                  //traffic data
-                  trafficEnabled: false,
-
-                  //gestures
-                  rotateGesturesEnabled: true,
-                  tiltGesturesEnabled: true,
-                  scrollGesturesEnabled: true,
-                  zoomGesturesEnabled: true,
-                  zoomControlsEnabled: false,
-
-                  myLocationEnabled: true,
-                  padding: EdgeInsets.only(bottom: widget.bottomPadding),
-                ),
-        ),
-
-        // CUSTOM MY LOCATION BUTTON
-        Positioned(
-          bottom: screenHeight * 0.025,
-          right: screenWidth * 0.05,
-          child: SizedBox(
-            width: 50,
-            height: 50,
-            child: FloatingActionButton(
-              onPressed: () {
-                if (currentLocation != null) {
-                  animateToLocation(currentLocation!);
+                if (kDebugMode) {
+                  debugPrint('MapScreen: Google Map created');
                 }
               },
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
+              initialCameraPosition: CameraPosition(
+                target: currentLocation!,
+                zoom: 15,
+                tilt: 45.0,
               ),
-              child:
-                  const Icon(Icons.my_location, color: Colors.black, size: 26),
+              markers: markers,
+              polylines: Set<Polyline>.of(polylines.values),
+              mapType: MapType.normal,
+              //buildings
+              buildingsEnabled: true,
+
+              //there will be a custom button
+              myLocationButtonEnabled: false,
+
+              indoorViewEnabled: false,
+              mapToolbarEnabled: false,
+
+              //traffic data
+              trafficEnabled: false,
+
+              //gestures
+              rotateGesturesEnabled: true,
+              tiltGesturesEnabled: true,
+              scrollGesturesEnabled: true,
+              zoomGesturesEnabled: true,
+              zoomControlsEnabled: false,
+
+              myLocationEnabled: true,
+              padding: EdgeInsets.only(bottom: widget.bottomPadding),
             ),
           ),
-        ),
+
+        // CUSTOM MY LOCATION BUTTON - always show this on top of map
+        if (currentLocation != null)
+          Positioned(
+            bottom: screenHeight * 0.025,
+            right: screenWidth * 0.05,
+            child: SizedBox(
+              width: 50,
+              height: 50,
+              child: FloatingActionButton(
+                onPressed: () {
+                  if (currentLocation != null) {
+                    animateToLocation(currentLocation!);
+                  }
+                },
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Icon(Icons.my_location,
+                    color: Colors.black, size: 26),
+              ),
+            ),
+          ),
+
+        // Optional status indicator during initialization
+        if (_initState != MapInitState.initialized &&
+            _initState != MapInitState.error)
+          Positioned(
+            top: 60,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  _getStatusMessage(),
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
+          ),
       ],
     ));
   }
 
-  // Helper method to fetch pickup location
-  void _fetchPickupLocation() {
-    if (mounted) {
-      final mapProvider = context.read<MapProvider>();
-      // Check if pickup location is available in the provider
-      final pickupLocation = mapProvider.pickupLocation;
-
-      if (kDebugMode) {
-        debugPrint(
-            '_fetchPickupLocation called, MapProvider pickup location: $pickupLocation');
-      }
-
-      if (pickupLocation != null) {
-        if (kDebugMode) {
-          debugPrint(
-              'FOUND PICKUP: Got pickup location from MapProvider: $pickupLocation');
-        }
-
-        setState(() {
-          _pickupLocation = pickupLocation;
-
-          // Remove existing pickup markers
-          markers.removeWhere((m) => m.markerId == const MarkerId('Pickup'));
-
-          // Create pickup marker with distinctive appearance
-          final pickupMarker = createMarker(
-            id: 'Pickup',
-            position: pickupLocation,
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueViolet),
-            title: 'Pickup Location',
-            zIndex: 3.0, // Higher z-index to ensure visibility
-          );
-
-          markers.add(pickupMarker);
-        });
-      } else {
-        if (kDebugMode) {
-          debugPrint('No pickup location available from MapProvider');
-        }
-        // If we have a local pickup location but MapProvider doesn't, synchronize back
-        if (_pickupLocation != null) {
-          if (kDebugMode) {
-            debugPrint('Synchronizing local pickup location to MapProvider');
-          }
-          mapProvider.setPickUpLocation(_pickupLocation!);
-        }
-      }
-    } else if (kDebugMode) {
-      debugPrint('ERROR: _fetchPickupLocation called when widget not mounted');
+  // Helper to get user-friendly status message
+  String _getStatusMessage() {
+    switch (_initState) {
+      case MapInitState.loadingLocation:
+        return "Getting your location...";
+      case MapInitState.loadingRouteData:
+        return "Loading route...";
+      case MapInitState.loadingPickupData:
+        return "Checking for passengers...";
+      default:
+        return "Loading...";
     }
   }
 
