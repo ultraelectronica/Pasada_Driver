@@ -889,11 +889,11 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // Helper method to check if two locations are approximately equal
-  bool _areLocationsEqual(LatLng loc1, LatLng loc2,
-      {double threshold = 0.0001}) {
-    return (loc1.latitude - loc2.latitude).abs() < threshold &&
-        (loc1.longitude - loc2.longitude).abs() < threshold;
-  }
+  // bool _areLocationsEqual(LatLng loc1, LatLng loc2,
+  //     {double threshold = 0.0001}) {
+  //   return (loc1.latitude - loc2.latitude).abs() < threshold &&
+  //       (loc1.longitude - loc2.longitude).abs() < threshold;
+  // }
 
   Set<Marker> buildMarkers() {
     final markers = <Marker>{};
@@ -952,15 +952,15 @@ class MapScreenState extends State<MapScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.error_outline, color: Colors.red, size: 48),
-                SizedBox(height: 16),
+                const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                const SizedBox(height: 16),
                 Text("Error loading map: $_errorMessage",
-                    style: TextStyle(color: Colors.red),
+                    style: const TextStyle(color: Colors.red),
                     textAlign: TextAlign.center),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _initializeMap,
-                  child: Text("Retry"),
+                  child: const Text("Retry"),
                 )
               ],
             ),
@@ -1041,14 +1041,15 @@ class MapScreenState extends State<MapScreen> {
             right: 0,
             child: Center(
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
+                  color: Colors.black.withAlpha(179),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   _getStatusMessage(),
-                  style: TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
             ),
