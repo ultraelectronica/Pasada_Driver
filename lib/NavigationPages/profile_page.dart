@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:pasada_driver_side/Database/auth_service.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
@@ -337,8 +338,59 @@ class ProfilePageState extends State<ProfilePage> {
         padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
       ),
       onPressed: () {
-        AuthService.deleteSession(); // Keep existing logout logic
-        // Consider adding navigation back to login screen after logout
+        _showLogoutConfirmationDialog();
+      },
+    );
+  }
+
+  void _showLogoutConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'Confirm Log out',
+            style:
+                Styles().textStyle(20, Styles.w600Weight, Styles.customBlack),
+          ),
+          content: Text(
+            'Are you sure you want to log out?',
+            style:
+                Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+              },
+              child: Text(
+                'Cancel',
+                style: Styles()
+                    .textStyle(16, Styles.w500Weight, Colors.grey[700]!),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                AuthService.deleteSession();
+                // Close the application
+                Navigator.of(context).pop(); // Close dialog
+                // Exit the app
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  SystemNavigator.pop(); // Close the app
+                  // If you prefer navigation to login screen instead of closing:
+                  // Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                });
+              },
+              child: Text(
+                'Confirm',
+                style: Styles().textStyle(16, Styles.w500Weight, Colors.red),
+              ),
+            ),
+          ],
+        );
       },
     );
   }
