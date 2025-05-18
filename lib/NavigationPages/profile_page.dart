@@ -212,13 +212,34 @@ class ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 15),
             _buildInfoRow(
               icon: Icons.route_outlined,
-              text:
-                  'Route: \t\t\t\t\t${mapProvider.routeName} | ${mapProvider.routeID}', // Combine Route name and ID
+              text: _getRouteDisplayText(driverProvider, mapProvider),
             ),
           ],
         ),
       ),
     );
+  }
+
+  // Helper method to get route display text with proper handling for null values
+  String _getRouteDisplayText(
+      DriverProvider driverProvider, MapProvider mapProvider) {
+    // If route name is available in MapProvider, use it
+    if (mapProvider.routeName != null && mapProvider.routeName!.isNotEmpty) {
+      return 'Route: \t\t\t\t\t${mapProvider.routeName} | ${mapProvider.routeID}';
+    }
+
+    // If route name is available in DriverProvider, use it
+    if (driverProvider.routeName != 'N/A' && driverProvider.routeID > 0) {
+      return 'Route: \t\t\t\t\t${driverProvider.routeName} | ${driverProvider.routeID}';
+    }
+
+    // If route ID is available but no name
+    if (driverProvider.routeID > 0) {
+      return 'Route: \t\t\t\t\tRoute #${driverProvider.routeID}';
+    }
+
+    // Fallback for when no route data is available
+    return 'Route: \t\t\t\t\tNot assigned';
   }
 
   Widget _buildInfoRow({required IconData icon, required String text}) {

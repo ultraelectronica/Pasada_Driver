@@ -94,23 +94,34 @@ class _MyAppState extends State<MyApp> {
 
       // User is still logged in
       if (hasSession) {
-        await context
-            .read<DriverProvider>()
-            .loadFromSecureStorage(context); //load data from secure storage
+        // Load driver data from secure storage
+        await context.read<DriverProvider>().loadFromSecureStorage(context);
 
-        // Move PassengerProvider interaction to post-frame callback
-        WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Move processing to post-frame callback
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
           if (mounted) {
-            context.read<PassengerProvider>().getBookingRequestsID(
-                context); //check booking assigned to the driver
-          }
-        });
+            final driverProvider = context.read<DriverProvider>();
+            final mapProvider = context.read<MapProvider>();
+            final passengerProvider = context.read<PassengerProvider>();
 
-        debugPrint('Fetching route coordinates');
-        // Move MapProvider interaction outside of build cycle
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.read<MapProvider>().getRouteCoordinates(
-              context.read<DriverProvider>().routeID); //get route coordinates
+            // Ensure route data is loaded, first check if route ID is valid
+            if (driverProvider.routeID > 0) {
+              debugPrint(
+                  'Fetching route coordinates for route: ${driverProvider.routeID}');
+
+              // Fetch route data from the database and coordinates
+              await mapProvider.getRouteCoordinates(driverProvider.routeID);
+
+              // Set route ID in MapProvider to match
+              mapProvider.setRouteID(driverProvider.routeID);
+
+              // Now fetch passenger pickup locations AFTER route data is loaded
+              // This is important because the passenger validation requires route data
+              await passengerProvider.getBookingRequestsID(context);
+            } else {
+              debugPrint('No valid route ID found: ${driverProvider.routeID}');
+            }
+          }
         });
       }
     }

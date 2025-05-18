@@ -119,7 +119,7 @@ class PassengerProvider with ChangeNotifier {
             'BOOKINGS:Requested: ${requestedBookings.length}, Accepted/Ongoing: ${acceptedOngoingBookings.length}');
       }
 
-      // BOOKING VALIDATION CHECK:Check if the requested bookings are valid
+      // BOOKING VALIDATION CHECK for REQUESTED bookings:
       final validRequestedBookings =
           BookingFilterService.filterValidRequestedBookings(
         bookings: requestedBookings,
@@ -149,28 +149,66 @@ class PassengerProvider with ChangeNotifier {
         }
       }
 
-      // Get the nearest booking from the filtered bookings
-      if (validRequestedBookings.isNotEmpty) {
-        final nearestBooking =
-            BookingFilterService.findNearestBooking(validRequestedBookings);
-        if (nearestBooking != null) {
-          // Set the nearest booking as the pickup location
-          currentContext
-              .read<MapProvider>()
-              .setPickUpLocation(nearestBooking.pickupLocation);
+      // Refresh bookings after status updates to get newly accepted bookings
+      final updatedActiveBookings =
+          await _repository.fetchActiveBookings(driverID);
 
-          if (kDebugMode) {
-            debugPrint('Set nearest passenger: ID: ${nearestBooking.id}, '
-                'Distance: ${(nearestBooking.distanceToDriver ?? 0).toStringAsFixed(2)} meters');
-          }
+      // Get ALL accepted bookings (newly accepted + previously accepted)
+      final allAcceptedBookings = updatedActiveBookings
+          .where((b) =>
+              b.rideStatus == BookingRepository.statusAccepted ||
+              b.rideStatus == BookingRepository.statusOngoing)
+          .toList();
+
+      if (kDebugMode) {
+        debugPrint(
+            'After processing: Found ${allAcceptedBookings.length} accepted/ongoing bookings');
+      }
+
+      // Calculate distance to driver for all accepted bookings to find nearest
+      final acceptedBookingsWithDistance = allAcceptedBookings.map((booking) {
+        final distanceToDriver = LocationService.calculateDistance(
+            currentLocation, booking.pickupLocation);
+        return booking.copyWith(distanceToDriver: distanceToDriver);
+      }).toList();
+
+      // Find nearest booking from ALL accepted bookings
+      if (acceptedBookingsWithDistance.isNotEmpty) {
+        // Sort by distance to driver
+        acceptedBookingsWithDistance.sort((a, b) =>
+            (a.distanceToDriver ?? double.infinity)
+                .compareTo(b.distanceToDriver ?? double.infinity));
+
+        final nearestBooking = acceptedBookingsWithDistance.first;
+
+        // Set the nearest booking as the pickup location
+        final pickupLocation = nearestBooking.pickupLocation;
+        debugPrint(
+            'Setting pickup location in MapProvider for nearest ACCEPTED booking: $pickupLocation');
+
+        if (currentContext.mounted) {
+          currentContext.read<MapProvider>().setPickUpLocation(pickupLocation);
+
+          // Immediately verify if the pickup location was set correctly
+          final verifiedPickupLocation =
+              currentContext.read<MapProvider>().pickupLocation;
+          debugPrint(
+              'Verified pickup location in MapProvider: $verifiedPickupLocation');
+        } else {
+          debugPrint(
+              'ERROR: Context is no longer mounted when trying to set pickup location');
         }
+
+        if (kDebugMode) {
+          debugPrint('Set nearest passenger: ID: ${nearestBooking.id}, '
+              'Status: ${nearestBooking.rideStatus}, '
+              'Distance: ${(nearestBooking.distanceToDriver ?? 0).toStringAsFixed(2)} meters');
+        }
+      } else {
+        debugPrint('No accepted bookings found to set as pickup location');
       }
 
       // Update state with all relevant bookings
-      // This includes newly accepted bookings and ongoing ones
-      // Refresh bookings after status updates
-      final updatedActiveBookings =
-          await _repository.fetchActiveBookings(driverID);
       setBookings(updatedActiveBookings);
     } catch (e, stackTrace) {
       if (kDebugMode) {
@@ -236,7 +274,8 @@ class PassengerProvider with ChangeNotifier {
     for (final booking in requestedBookings) {
       final isValid =
           validRequestedBookings.any((valid) => valid.id == booking.id);
-      debugPrint('Booking ID: ${booking.id} - ${isValid ? 'VALID' : 'INVALID'} - '
+      debugPrint(
+          'Booking ID: ${booking.id} - ${isValid ? 'VALID' : 'INVALID'} - '
           'pickup at: ${booking.pickupLocation.latitude}, ${booking.pickupLocation.longitude}');
     }
   }

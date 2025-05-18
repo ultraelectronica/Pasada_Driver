@@ -29,10 +29,11 @@ class MapProvider with ChangeNotifier {
   // Getters
   RouteState get routeState => _routeState;
   String? get errorMessage => _errorMessage;
+  LatLng? get originLocation => _currentLocation;
   LatLng? get currentLocation => _currentLocation;
-  LatLng? get endingLocation => _endingLocation;
   LatLng? get intermediateLoc1 => _intermediateLoc1;
   LatLng? get intermediateLoc2 => _intermediateLoc2;
+  LatLng? get endingLocation => _endingLocation;
   LatLng? get pickupLocation => _pickupLocation;
   String? get routeName => _routeName;
   int? get routeID => _routeID;
@@ -76,11 +77,34 @@ class MapProvider with ChangeNotifier {
 
   void setPickUpLocation(LatLng value) {
     try {
-      debugPrint('Setting pickup location: $value');
+      // First check if the value is valid
+      if (value.latitude == 0 && value.longitude == 0) {
+        debugPrint(
+            'MapProvider WARNING: Attempted to set invalid pickup location (0,0)');
+        return;
+      }
+
+      debugPrint('MapProvider: Setting pickup location: $value');
+
+      // Store the previous value for comparison
+      final LatLng? previous = _pickupLocation;
       _pickupLocation = value;
-      debugPrint('Pickup location set: $_pickupLocation');
+
+      // Log success and compare with previous value
+      if (previous != null) {
+        final bool changed = previous.latitude != value.latitude ||
+            previous.longitude != value.longitude;
+        debugPrint(
+            'MapProvider: Pickup location ${changed ? "changed" : "unchanged"}: $_pickupLocation');
+      } else {
+        debugPrint(
+            'MapProvider: Pickup location set for first time: $_pickupLocation');
+      }
+
+      // Force a notification to subscribers
       notifyListeners();
     } catch (e) {
+      debugPrint('MapProvider ERROR: Failed to set pickup location: $e');
       _handleError('Error setting pickup location: $e');
     }
   }
@@ -105,92 +129,71 @@ class MapProvider with ChangeNotifier {
   // Route coordinate fetching with improved error handling
   Future<void> getRouteCoordinates(int routeID) async {
     try {
+      // Set loading state
       _routeState = RouteState.loading;
       notifyListeners();
 
-      // Enhanced validation for route ID
-      if (routeID <= 0) {
-        debugPrint('Invalid route ID in MapProvider: $routeID');
-        _routeState = RouteState.error;
-        _errorMessage = 'Invalid route ID: $routeID';
-        notifyListeners();
-        return;
-      }
-
-      debugPrint('Fetching route coordinates for route ID: $routeID');
-
-      final response = await supabase
+      final response = await Supabase.instance.client
           .from('official_routes')
           .select(
-              'officialroute_id, route_name, description, origin_lat, origin_lng, destination_lat, destination_lng, intermediate_coordinates, origin_name, destination_name')
+              'origin_lat, origin_lng, destination_lat, destination_lng, intermediate_coordinates, route_name')
           .eq('officialroute_id', routeID)
-          .maybeSingle();
+          .single();
 
-      if (response == null) {
-        debugPrint('No route found for ID: $routeID');
-        _routeState = RouteState.error;
-        _errorMessage = 'No route found for ID: $routeID';
-        notifyListeners();
-        return;
-      }
-
-      _processRouteResponse(response);
-      _routeState = RouteState.loaded;
-      notifyListeners();
-    } catch (e, stackTrace) {
-      debugPrint('Error in getRouteCoordinates: $e');
-      debugPrint('Stack trace: $stackTrace');
-      _handleError('Error fetching route coordinates: $e');
-    }
-  }
-
-  // Process route response
-  void _processRouteResponse(Map<String, dynamic> response) {
-    _routeName = response['route_name'];
-    _routeID = response['officialroute_id'] as int;
-
-    _processCoordinates(response);
-    _processIntermediateCoordinates(response);
-  }
-
-  // Process main coordinates
-  void _processCoordinates(Map<String, dynamic> response) {
-    if (response['origin_lat'] != null && response['origin_lng'] != null) {
-      _currentLocation = _parseLatLng(
-        response['origin_lat'].toString(),
-        response['origin_lng'].toString(),
-      );
-    }
-
-    if (response['destination_lat'] != null &&
-        response['destination_lng'] != null) {
-      _endingLocation = _parseLatLng(
-        response['destination_lat'].toString(),
-        response['destination_lng'].toString(),
-      );
-    }
-  }
-
-  // Process intermediate coordinates
-  void _processIntermediateCoordinates(Map<String, dynamic> response) {
-    if (response['intermediate_coordinates'] != null) {
-      final intermediateCoords = response['intermediate_coordinates'] as List;
-
-      if (intermediateCoords.isNotEmpty) {
-        // Set first intermediate location
-        _intermediateLoc1 = _parseLatLng(
-          intermediateCoords[0]['lat'].toString(),
-          intermediateCoords[0]['lng'].toString(),
+      if (response != null) {
+        // Parse origin
+        _currentLocation = LatLng(
+          double.parse(response['origin_lat']),
+          double.parse(response['origin_lng']),
         );
 
-        // Set second intermediate location if available
-        if (intermediateCoords.length > 1) {
-          _intermediateLoc2 = _parseLatLng(
-            intermediateCoords[1]['lat'].toString(),
-            intermediateCoords[1]['lng'].toString(),
-          );
+        // Parse destination
+        _endingLocation = LatLng(
+          double.parse(response['destination_lat']),
+          double.parse(response['destination_lng']),
+        );
+
+        // Set route name
+        _routeName = response['route_name'];
+        _routeID = routeID;
+
+        // Reset intermediate points
+        _intermediateLoc1 = null;
+        _intermediateLoc2 = null;
+
+        // Parse intermediate points
+        if (response['intermediate_coordinates'] != null) {
+          final intermediatePoints = response['intermediate_coordinates'];
+          // No need to call json.decode - Supabase already returns parsed JSONB
+
+          if (intermediatePoints is List) {
+            // Set first intermediate point if available
+            if (intermediatePoints.isNotEmpty) {
+              _intermediateLoc1 = LatLng(
+                double.parse(intermediatePoints[0]['lat']),
+                double.parse(intermediatePoints[0]['lng']),
+              );
+            }
+
+            // Set second intermediate point if available
+            if (intermediatePoints.length >= 2) {
+              _intermediateLoc2 = LatLng(
+                double.parse(intermediatePoints[1]['lat']),
+                double.parse(intermediatePoints[1]['lng']),
+              );
+            }
+          }
         }
+
+        // Update state
+        _routeState = RouteState.loaded;
+        notifyListeners();
       }
+    } catch (e) {
+      debugPrint('Error getting route coordinates: $e');
+      _routeState = RouteState.error;
+      _errorMessage = 'Failed to load route data';
+      notifyListeners();
     }
   }
 
