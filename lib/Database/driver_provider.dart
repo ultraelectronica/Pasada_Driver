@@ -29,11 +29,6 @@ class DriverProvider with ChangeNotifier {
   int _passengerStandingCapacity = 0;
   int _passengerSittingCapacity = 0;
 
-  // LatLng? _currentLocation;
-  // LatLng? _endingLocation;
-  // LatLng? _intermediateLoc1;
-  // LatLng? _intermediateLoc2;
-
   final SupabaseClient supabase = Supabase.instance.client;
 
   // Getters
@@ -311,7 +306,7 @@ class DriverProvider with ChangeNotifier {
               .eq('officialroute_id', _routeID)
               .single();
 
-          if (routeResponse != null && routeResponse['route_name'] != null) {
+          if (routeResponse['route_name'] != null) {
             _routeName = routeResponse['route_name'];
             debugPrint('Route name loaded: $_routeName');
           }
