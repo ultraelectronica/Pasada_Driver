@@ -297,13 +297,16 @@ class MapScreenState extends State<MapScreen> {
 
   // Step 4: Generate initial polyline
   Future<void> _generateInitialPolyline() async {
-    if (_startingLocation != null && _endingLocation != null) {
+    if (_startingLocation != null &&
+        _endingLocation != null &&
+        currentLocation != null) {
       if (kDebugMode) {
         debugPrint('MapScreen: Generating initial polyline');
       }
 
       List<LatLng> waypoints = [];
 
+      // Add original route waypoints
       if (_intermediateLocation1 != null) {
         waypoints.add(_intermediateLocation1!);
       }
@@ -312,7 +315,8 @@ class MapScreenState extends State<MapScreen> {
         waypoints.add(_intermediateLocation2!);
       }
 
-      await generatePolyline(_startingLocation!, _endingLocation!,
+      // Use current location as start point instead of original route start
+      await generatePolyline(currentLocation!, _endingLocation!,
           waypoints: waypoints.isNotEmpty ? waypoints : null);
 
       _lastPolylineUpdateLocation = currentLocation;
@@ -399,7 +403,6 @@ class MapScreenState extends State<MapScreen> {
       // Only update polyline if moved significantly AND we're initialized
       if (_shouldUpdatePolyline(newLatLng) &&
           _initState == MapInitState.initialized &&
-          _startingLocation != null &&
           _endingLocation != null) {
         List<LatLng> waypoints = [];
         if (_intermediateLocation1 != null)
@@ -407,9 +410,8 @@ class MapScreenState extends State<MapScreen> {
         if (_intermediateLocation2 != null)
           waypoints.add(_intermediateLocation2!);
 
-        // IMPORTANT: Always use original start/end for route consistency
-        generatePolyline(_startingLocation!, _endingLocation!,
-            currentLocation: newLatLng,
+        // IMPORTANT: Use current location as start point for better user experience
+        generatePolyline(newLatLng, _endingLocation!,
             waypoints: waypoints.isNotEmpty ? waypoints : null);
 
         _lastPolylineUpdateLocation = newLatLng;
