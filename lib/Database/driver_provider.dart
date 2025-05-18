@@ -278,20 +278,20 @@ class DriverProvider with ChangeNotifier {
         return;
       }
 
-      final response = await supabase
+      final vehicleResponse = await supabase
           .from('vehicleTable')
           .select('route_id, plate_number')
           .eq('vehicle_id', vehicleID)
           .single();
 
       // Validate response and route_id
-      if (response['route_id'] == null) {
+      if (vehicleResponse['route_id'] == null) {
         debugPrint('No route ID found for vehicle: $vehicleID');
         return;
       }
 
       // Safely parse route_id
-      final routeId = response['route_id'];
+      final routeId = vehicleResponse['route_id'];
       if (routeId is int) {
         _routeID = routeId;
       } else if (routeId is String) {
@@ -300,12 +300,27 @@ class DriverProvider with ChangeNotifier {
         _routeID = 0;
       }
 
-      _plateNumber = response['plate_number'];
+      _plateNumber = vehicleResponse['plate_number'];
 
-      debugPrint('Get driver route response: $_routeID');
+      // Only fetch route name if we have a valid route ID
       if (_routeID > 0) {
-        ShowMessage().showToast('Driver route: $_routeID');
+        try {
+          final routeResponse = await supabase
+              .from('official_routes')
+              .select('route_name')
+              .eq('officialroute_id', _routeID)
+              .single();
+
+          if (routeResponse != null && routeResponse['route_name'] != null) {
+            _routeName = routeResponse['route_name'];
+            debugPrint('Route name loaded: $_routeName');
+          }
+        } catch (e) {
+          debugPrint('Error loading route name: $e');
+        }
       }
+
+      debugPrint('Get driver route response: $_routeID | $_routeName');
     } catch (e, stacktrace) {
       debugPrint('Error getting driver route: $e');
       debugPrint('Get Driver Route StackTrace: $stacktrace');
