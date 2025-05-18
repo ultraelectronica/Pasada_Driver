@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -14,22 +15,31 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/UI/constants.dart';
 
+// Future for assets preloading
+late final Future<List<AssetImage>> _preloadedAssets;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize preloaded assets
+  _preloadedAssets = _preloadAssets();
+
   try {
+    // Load environment variables
     await dotenv.load(fileName: ".env");
 
-    await Supabase.initialize(
-        anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-        url: dotenv.env['SUPABASE_URL']!);
+    // Initialize Supabase with timeout handling
+    await _initializeSupabase();
 
+    // Initialize providers
     final driverProvider = DriverProvider();
     final mapProvider = MapProvider();
     final passengerProvider = PassengerProvider();
 
-    CheckPermissions()
-        .checkPermissions(); //check permissions for location services
+    // Check permissions for location services
+    await CheckPermissions().checkPermissions();
 
+    // Run the app with all providers initialized
     runApp(MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => driverProvider),
@@ -43,7 +53,116 @@ Future<void> main() async {
       print('Error during initialization: $e');
       print(stacktrace);
     }
-    // runApp(ErrorApp(error: e.toString()));
+    // Run error app with useful error information
+    runApp(ErrorApp(error: e.toString(), stackTrace: stacktrace.toString()));
+  }
+}
+
+// Separate function to initialize Supabase with timeout handling
+Future<void> _initializeSupabase() async {
+  try {
+    // Add timeout to prevent hanging if Supabase servers are unresponsive
+    await Supabase.initialize(
+      anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+      url: dotenv.env['SUPABASE_URL']!,
+    ).timeout(
+      const Duration(seconds: 10),
+      onTimeout: () =>
+          throw TimeoutException('Supabase initialization timed out'),
+    );
+  } catch (e) {
+    if (kDebugMode) {
+      print('Supabase initialization error: $e');
+    }
+    rethrow; // Let the main error handler manage this
+  }
+}
+
+// Function to preload assets for faster app startup
+Future<List<AssetImage>> _preloadAssets() async {
+  final List<AssetImage> preloadedAssets = [
+    const AssetImage('assets/png/PasadaLogo.png'),
+    // Add any other commonly used assets here
+  ];
+
+  // Just instantiate the images - actual precaching will happen when MyApp builds
+  return preloadedAssets;
+}
+
+// Error screen for displaying initialization errors
+class ErrorApp extends StatelessWidget {
+  final String error;
+  final String stackTrace;
+
+  const ErrorApp({
+    super.key,
+    required this.error,
+    this.stackTrace = '',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Pasada Driver - Error',
+      theme: ThemeData(
+        scaffoldBackgroundColor: Colors.white,
+        primaryColor: Colors.red,
+        useMaterial3: true,
+      ),
+      home: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.red,
+          title: const Text('Initialization Error',
+              style: TextStyle(color: Colors.white)),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'The app encountered an error during startup:',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Text(error, style: const TextStyle(fontSize: 14)),
+              const SizedBox(height: 24),
+              if (kDebugMode) ...[
+                const Text(
+                  'Stack Trace:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  color: Colors.grey[200],
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Text(stackTrace,
+                        style: const TextStyle(fontFamily: 'monospace')),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Restart app
+                    main();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Retry'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -65,10 +184,17 @@ class _MyAppState extends State<MyApp> {
     _precacheAssets();
   }
 
+  // Properly precache assets with a valid BuildContext
   void _precacheAssets() {
-    // Pre-cache common assets at app startup
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      precacheImage(const AssetImage('assets/png/PasadaLogo.png'), context);
+    // Wait until the first frame is built so we have a valid context
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        // Await the Future to get the actual List<AssetImage>
+        final assets = await _preloadedAssets;
+        for (final asset in assets) {
+          precacheImage(asset, context);
+        }
+      }
     });
   }
 
@@ -94,36 +220,54 @@ class _MyAppState extends State<MyApp> {
 
       // User is still logged in
       if (hasSession) {
-        // Load driver data from secure storage
-        await context.read<DriverProvider>().loadFromSecureStorage(context);
-
-        // Move processing to post-frame callback
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          if (mounted) {
-            final driverProvider = context.read<DriverProvider>();
-            final mapProvider = context.read<MapProvider>();
-            final passengerProvider = context.read<PassengerProvider>();
-
-            // Ensure route data is loaded, first check if route ID is valid
-            if (driverProvider.routeID > 0) {
-              debugPrint(
-                  'Fetching route coordinates for route: ${driverProvider.routeID}');
-
-              // Fetch route data from the database and coordinates
-              await mapProvider.getRouteCoordinates(driverProvider.routeID);
-
-              // Set route ID in MapProvider to match
-              mapProvider.setRouteID(driverProvider.routeID);
-
-              // Now fetch passenger pickup locations AFTER route data is loaded
-              // This is important because the passenger validation requires route data
-              await passengerProvider.getBookingRequestsID(context);
-            } else {
-              debugPrint('No valid route ID found: ${driverProvider.routeID}');
-            }
-          }
-        });
+        await _loadUserData();
       }
+    }
+  }
+
+  // Separated user data loading for better error handling
+  Future<void> _loadUserData() async {
+    try {
+      // Load driver data from secure storage
+      await context.read<DriverProvider>().loadFromSecureStorage(context);
+
+      // Move processing to post-frame callback
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+
+        final driverProvider = context.read<DriverProvider>();
+        final mapProvider = context.read<MapProvider>();
+        final passengerProvider = context.read<PassengerProvider>();
+
+        // Ensure route data is loaded, first check if route ID is valid
+        if (driverProvider.routeID > 0) {
+          if (kDebugMode) {
+            debugPrint(
+                'Fetching route coordinates for route: ${driverProvider.routeID}');
+          }
+
+          // Fetch route data from the database and coordinates
+          await mapProvider.getRouteCoordinates(driverProvider.routeID);
+
+          // Set route ID in MapProvider to match
+          mapProvider.setRouteID(driverProvider.routeID);
+
+          // Now fetch passenger pickup locations AFTER route data is loaded
+          // This is important because the passenger validation requires route data
+          await passengerProvider.getBookingRequestsID(context);
+        } else {
+          if (kDebugMode) {
+            debugPrint('No valid route ID found: ${driverProvider.routeID}');
+          }
+        }
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error loading user data: $e');
+      }
+      // Don't reset session here as it could be a temporary network issue
+      // Just show an error message
+      ShowMessage().showToast('Error loading data. Please restart the app.');
     }
   }
 

@@ -104,41 +104,45 @@ class MapScreenState extends State<MapScreen> {
         final previousPickupLocation = _pickupLocation;
         _pickupLocation = mapProvider.pickupLocation;
 
-        debugPrint(
-            'getPickUpLocation called, previous: $previousPickupLocation, new: $_pickupLocation');
+        if (kDebugMode) {
+          debugPrint(
+              'getPickUpLocation called, previous: $previousPickupLocation, new: $_pickupLocation');
+        }
 
         if (_pickupLocation != null) {
           // We have a valid pickup location
-          debugPrint(
-              'VALID PICKUP FOUND: Setting from MapProvider: $_pickupLocation');
+          if (kDebugMode) {
+            debugPrint(
+                'VALID PICKUP FOUND: Setting from MapProvider: $_pickupLocation');
+          }
 
           // Only update UI if pickup location is different
           if (previousPickupLocation == null ||
               previousPickupLocation.latitude != _pickupLocation!.latitude ||
               previousPickupLocation.longitude != _pickupLocation!.longitude) {
-            debugPrint('Pickup location changed, updating UI');
+            if (kDebugMode) {
+              debugPrint('Pickup location changed, updating UI');
+            }
             setState(() {});
             _initializeMarkers();
-          } else {
-            debugPrint('Pickup location unchanged, skipping UI update');
           }
         } else {
-          debugPrint('WARNING: No pickup location found in MapProvider');
+          if (kDebugMode) {
+            debugPrint('WARNING: No pickup location found in MapProvider');
+          }
           // If we previously had a pickup location but now it's null, don't overwrite
           if (previousPickupLocation != null) {
-            debugPrint(
-                'Keeping previous pickup location: $previousPickupLocation');
+            if (kDebugMode) {
+              debugPrint(
+                  'Keeping previous pickup location: $previousPickupLocation');
+            }
             _pickupLocation = previousPickupLocation;
-          } else {
-            debugPrint('No previous pickup location to fall back to');
           }
 
           // Still update UI in case other markers need to be refreshed
           setState(() {});
           _initializeMarkers();
         }
-      } else {
-        debugPrint('ERROR: getPickUpLocation called when widget not mounted');
       }
     });
   }
@@ -167,7 +171,9 @@ class MapScreenState extends State<MapScreen> {
 
         // If still invalid, fall back to a default route or handle the error
         if (driverProvider.routeID <= 0) {
-          debugPrint('No valid route ID available, using default fallback');
+          if (kDebugMode) {
+            debugPrint('No valid route ID available, using default fallback');
+          }
           // Use a default route ID if none available (fallback for stored sessions)
           driverProvider.setRouteID(1); // Set to a default route ID that exists
         }
@@ -177,10 +183,14 @@ class MapScreenState extends State<MapScreen> {
       try {
         await mapProvider.getRouteCoordinates(driverProvider.routeID);
       } catch (e) {
-        debugPrint('Error fetching route coordinates: $e');
+        if (kDebugMode) {
+          debugPrint('Error fetching route coordinates: $e');
+        }
         // If coordinates fetch failed, try with default route ID
         if (driverProvider.routeID != 1) {
-          debugPrint('Trying fallback route ID: 1');
+          if (kDebugMode) {
+            debugPrint('Trying fallback route ID: 1');
+          }
           driverProvider.setRouteID(1);
           await mapProvider.getRouteCoordinates(1);
         }
@@ -196,13 +206,6 @@ class MapScreenState extends State<MapScreen> {
 
       // Restore pickup location or get new one
       _pickupLocation = mapProvider.pickupLocation ?? existingPickupLocation;
-
-      // Debug pickup status
-      if (_pickupLocation != null) {
-        debugPrint('Route loaded with pickup: $_pickupLocation');
-      } else {
-        debugPrint('Route loaded but no pickup location available');
-      }
 
       // Initialize markers with all locations
       _initializeMarkers();
@@ -226,12 +229,16 @@ class MapScreenState extends State<MapScreen> {
 
         _lastPolylineUpdateLocation = currentLocation;
       } else {
-        debugPrint('Missing start/end coordinates for polyline generation');
+        if (kDebugMode) {
+          debugPrint('Missing start/end coordinates for polyline generation');
+        }
       }
 
       _routeCoordinatesLoaded = true;
     } catch (e) {
-      debugPrint('Error loading route coordinates: $e');
+      if (kDebugMode) {
+        debugPrint('Error loading route coordinates: $e');
+      }
       _routeCoordinatesLoaded = false;
     }
   }
@@ -275,9 +282,9 @@ class MapScreenState extends State<MapScreen> {
           final newLatLng =
               LatLng(newLocation.latitude!, newLocation.longitude!);
 
-          // Update driver location in database
-          final String driverID = context.read<DriverProvider>().driverID;
-          _updateDriverLocationToDB(driverID, newLocation);
+          // Update driver location in database - send every update for real-time tracking
+          final String driverId = context.read<DriverProvider>().driverID;
+          _updateDriverLocationToDB(driverId, newLocation);
 
           // Only update UI if location changed significantly
           if (_shouldUpdateUI(newLatLng)) {
@@ -330,7 +337,9 @@ class MapScreenState extends State<MapScreen> {
       });
     } catch (e) {
       ShowMessage().showToast('Location service error');
-      debugPrint('Error getting location: $e');
+      if (kDebugMode) {
+        debugPrint('Error getting location: $e');
+      }
     }
   }
 
@@ -362,7 +371,7 @@ class MapScreenState extends State<MapScreen> {
 
   // <<-- UPDATE LOCATION TO DATABASE -->>
   Future<void> _updateDriverLocationToDB(
-      String driverID, LocationData newLocation) async {
+      String driverId, LocationData newLocation) async {
     try {
       // Convert LocationData to WKT (Well-Known Text) Point format
       final wktPoint =
@@ -373,7 +382,7 @@ class MapScreenState extends State<MapScreen> {
           .update({
             'current_location': wktPoint,
           })
-          .eq('driver_id', driverID)
+          .eq('driver_id', driverId)
           .select('current_location');
 
       if (kDebugMode) {
@@ -411,7 +420,9 @@ class MapScreenState extends State<MapScreen> {
       await generatePolyline(start, destination, waypoints: waypoints);
     } catch (e) {
       ShowMessage().showToast('Error: ${e.toString()}');
-      debugPrint('Error generating polyline: $e');
+      if (kDebugMode) {
+        debugPrint('Error generating polyline: $e');
+      }
     }
   }
 
@@ -419,15 +430,19 @@ class MapScreenState extends State<MapScreen> {
   Future<void> generatePolyline(LatLng start, LatLng end,
       {List<LatLng>? waypoints}) async {
     try {
-      debugPrint(
-          'Generating polyline from ${start.latitude},${start.longitude} to ${end.latitude},${end.longitude}');
-      if (waypoints != null && waypoints.isNotEmpty) {
-        debugPrint('With ${waypoints.length} waypoints');
+      if (kDebugMode) {
+        debugPrint(
+            'Generating polyline from ${start.latitude},${start.longitude} to ${end.latitude},${end.longitude}');
+        if (waypoints != null && waypoints.isNotEmpty) {
+          debugPrint('With ${waypoints.length} waypoints');
+        }
       }
 
       final String apiKey = dotenv.env['ANDROID_MAPS_API_KEY']!;
       if (apiKey.isEmpty) {
-        debugPrint('ERROR: API key is empty');
+        if (kDebugMode) {
+          debugPrint('ERROR: API key is empty');
+        }
         return;
       }
 
@@ -488,7 +503,9 @@ class MapScreenState extends State<MapScreen> {
 
       _processRouteResponse(response, polylinePoints);
     } catch (e) {
-      debugPrint('Error generating polyline: $e');
+      if (kDebugMode) {
+        debugPrint('Error generating polyline: $e');
+      }
       ShowMessage().showToast('Error generating route');
     }
   }
@@ -532,7 +549,9 @@ class MapScreenState extends State<MapScreen> {
         });
       }
     } catch (e) {
-      debugPrint('Error processing route response: $e');
+      if (kDebugMode) {
+        debugPrint('Error processing route response: $e');
+      }
       ShowMessage().showToast('Error processing route');
     }
   }
@@ -565,19 +584,19 @@ class MapScreenState extends State<MapScreen> {
   void _initializeMarkers() {
     if (!mounted) return;
 
-    debugPrint('Initializing markers');
-    debugPrint('Current location: $currentLocation');
-    debugPrint('Starting location: $_startingLocation');
-    debugPrint('Ending location: $_endingLocation');
-    debugPrint('Pickup location: $_pickupLocation');
+    if (kDebugMode) {
+      debugPrint('Initializing markers');
+    }
 
     // Get pickup location from provider first
     final mapProvider = context.read<MapProvider>();
     final providerPickupLocation = mapProvider.pickupLocation;
 
     if (providerPickupLocation != null && _pickupLocation == null) {
-      debugPrint(
-          'INIT: Found pickup location in provider: $providerPickupLocation');
+      if (kDebugMode) {
+        debugPrint(
+            'INIT: Found pickup location in provider: $providerPickupLocation');
+      }
       _pickupLocation = providerPickupLocation;
     }
 
@@ -597,7 +616,6 @@ class MapScreenState extends State<MapScreen> {
             zIndex: 2.0, // Higher z-index to stay on top
           ),
         );
-        debugPrint('Added CurrentLocation marker: $currentLocation');
       }
 
       // Add starting location marker if available
@@ -611,7 +629,6 @@ class MapScreenState extends State<MapScreen> {
             title: 'Starting Point',
           ),
         );
-        debugPrint('Added StartingLocation marker: $_startingLocation');
       }
 
       // Add ending location marker if available
@@ -625,7 +642,6 @@ class MapScreenState extends State<MapScreen> {
             title: 'Destination',
           ),
         );
-        debugPrint('Added EndingLocation marker: $_endingLocation');
       }
 
       // Add pickup location marker if available (with highest z-index)
@@ -640,32 +656,20 @@ class MapScreenState extends State<MapScreen> {
             zIndex: 3.0, // Highest z-index to ensure visibility
           ),
         );
-        debugPrint('Added Pickup marker: $_pickupLocation');
-
-        // Also add a debug marker at a slight offset to verify pin placement
-        markers.add(
-          createMarker(
-            id: 'DebugPickup',
-            position: LatLng(
-              _pickupLocation!.latitude + 0.0001,
-              _pickupLocation!.longitude + 0.0001,
-            ),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueAzure),
-            title: 'Debug Pickup Marker',
-            zIndex: 2.5,
-          ),
-        );
       } else {
         // Try to fetch pickup location from provider one more time
-        debugPrint(
-            'No pickup location in local state, checking provider again...');
+        if (kDebugMode) {
+          debugPrint(
+              'No pickup location in local state, checking provider again...');
+        }
         // If no pickup location in this class but available in provider, get it immediately
         final providerPickupLocation = mapProvider.pickupLocation;
         if (providerPickupLocation != null) {
           _pickupLocation = providerPickupLocation;
-          debugPrint(
-              'INIT (Retry): Got pickup from provider: $_pickupLocation');
+          if (kDebugMode) {
+            debugPrint(
+                'INIT (Retry): Got pickup from provider: $_pickupLocation');
+          }
 
           // Add the pickup marker
           markers.add(
@@ -678,31 +682,10 @@ class MapScreenState extends State<MapScreen> {
               zIndex: 3.0,
             ),
           );
-          debugPrint('Added Pickup marker from provider: $_pickupLocation');
-
-          // Also add debug marker
-          markers.add(
-            createMarker(
-              id: 'DebugPickup',
-              position: LatLng(
-                providerPickupLocation.latitude + 0.0001,
-                providerPickupLocation.longitude + 0.0001,
-              ),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueAzure),
-              title: 'Debug Pickup Marker',
-              zIndex: 2.5,
-            ),
-          );
-        } else {
+        } else if (kDebugMode) {
           debugPrint('INIT: No pickup location available in provider');
         }
       }
-
-      // Debug output about markers
-      debugPrint('Total markers after initialization: ${markers.length}');
-      markers.forEach((marker) => debugPrint(
-          '  - Marker: ${marker.markerId.value} at ${marker.position}'));
     });
 
     // Force a marker refresh after a short delay
@@ -756,13 +739,6 @@ class MapScreenState extends State<MapScreen> {
 
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-
-    // Debug info - log all markers in current state
-    debugPrint('BUILD: Current marker count: ${markers.length}');
-    if (markers.isNotEmpty) {
-      markers.forEach((marker) => debugPrint(
-          '  - Marker: ${marker.markerId.value} at ${marker.position}'));
-    }
 
     return Scaffold(
         body: Stack(
@@ -843,25 +819,22 @@ class MapScreenState extends State<MapScreen> {
       // Check if pickup location is available in the provider
       final pickupLocation = mapProvider.pickupLocation;
 
-      debugPrint(
-          '_fetchPickupLocation called, MapProvider pickup location: $pickupLocation');
+      if (kDebugMode) {
+        debugPrint(
+            '_fetchPickupLocation called, MapProvider pickup location: $pickupLocation');
+      }
 
       if (pickupLocation != null) {
-        debugPrint(
-            'FOUND PICKUP: Got pickup location from MapProvider: $pickupLocation');
+        if (kDebugMode) {
+          debugPrint(
+              'FOUND PICKUP: Got pickup location from MapProvider: $pickupLocation');
+        }
 
         setState(() {
           _pickupLocation = pickupLocation;
 
-          // Debug current markers before removal
-          debugPrint('Markers before update: ${markers.length}');
-          markers.forEach((m) =>
-              debugPrint(' - Marker: ${m.markerId.value} at ${m.position}'));
-
-          // Update markers if pickup location is set
-          markers.removeWhere((m) =>
-              m.markerId == const MarkerId('Pickup') ||
-              m.markerId == const MarkerId('DebugPickup'));
+          // Remove existing pickup markers
+          markers.removeWhere((m) => m.markerId == const MarkerId('Pickup'));
 
           // Create pickup marker with distinctive appearance
           final pickupMarker = createMarker(
@@ -874,39 +847,20 @@ class MapScreenState extends State<MapScreen> {
           );
 
           markers.add(pickupMarker);
-
-          // Add debug marker (different color) to verify position is correct
-          markers.add(
-            createMarker(
-              id: 'DebugPickup',
-              position: LatLng(
-                pickupLocation.latitude +
-                    0.0001, // Slightly offset for visibility
-                pickupLocation.longitude + 0.0001,
-              ),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueAzure),
-              title: 'Debug Pickup',
-              zIndex: 2.0,
-            ),
-          );
-
-          debugPrint('Updated pickup location marker: $_pickupLocation');
-          debugPrint('Current markers: ${markers.length}');
-          markers.forEach((marker) => debugPrint(
-              '  - Marker: ${marker.markerId.value} at ${marker.position}'));
         });
       } else {
-        debugPrint('No pickup location available from MapProvider');
+        if (kDebugMode) {
+          debugPrint('No pickup location available from MapProvider');
+        }
         // If we have a local pickup location but MapProvider doesn't, synchronize back
         if (_pickupLocation != null) {
-          debugPrint('Synchronizing local pickup location to MapProvider');
+          if (kDebugMode) {
+            debugPrint('Synchronizing local pickup location to MapProvider');
+          }
           mapProvider.setPickUpLocation(_pickupLocation!);
         }
-        debugPrint(
-            'MapProvider state: routeState=${mapProvider.routeState}, errorMessage=${mapProvider.errorMessage}');
       }
-    } else {
+    } else if (kDebugMode) {
       debugPrint('ERROR: _fetchPickupLocation called when widget not mounted');
     }
   }

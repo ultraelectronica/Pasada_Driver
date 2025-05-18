@@ -18,12 +18,14 @@ class PassengerProvider with ChangeNotifier {
   int _passengerCapacity = 0;
   int _completedBooking = 0;
   List<Booking> _bookings = [];
+  bool _isProcessingBookings = false;
 
   // Getters
   int get passengerCapacity => _passengerCapacity;
   int get completedBooking => _completedBooking;
   List<Booking> get bookings => _bookings;
   List<String> get bookingIDs => _bookings.map((b) => b.id).toList();
+  bool get isProcessingBookings => _isProcessingBookings;
 
   // Constructor
   PassengerProvider({BookingRepository? repository})
@@ -64,13 +66,27 @@ class PassengerProvider with ChangeNotifier {
   /// TODO: if the driver is closer to the pick up location, set the booking status to 'ongoing'
   /// TODO: if the driver is not closer to the pick up location, do nothing
   Future<void> getBookingRequestsID(BuildContext context) async {
+    // Prevent multiple simultaneous calls
+    if (_isProcessingBookings) {
+      if (kDebugMode) {
+        debugPrint(
+            'Booking processing already in progress, skipping duplicate call');
+      }
+      return;
+    }
+
+    _isProcessingBookings = true;
+    notifyListeners();
+
     try {
       // Store the context in a local variable
       final currentContext = context;
 
       // Get driver ID and locations
       final driverID = currentContext.read<DriverProvider>().driverID;
-      debugPrint('Driver ID from provider: $driverID');
+      if (kDebugMode) {
+        debugPrint('Driver ID from provider: $driverID');
+      }
 
       LatLng? currentLocation = await _getCurrentLocation(currentContext);
 
@@ -80,7 +96,11 @@ class PassengerProvider with ChangeNotifier {
 
       // Validate locations
       if (!currentContext.mounted) {
-        debugPrint('Error: Context no longer mounted, aborting operation');
+        if (kDebugMode) {
+          debugPrint('Error: Context no longer mounted, aborting operation');
+        }
+        _isProcessingBookings = false;
+        notifyListeners();
         return;
       }
 
@@ -91,6 +111,8 @@ class PassengerProvider with ChangeNotifier {
           debugPrint(
               'Error: Missing location data: currentLocation=$currentLocation, endingLocation=$endingLocation');
         }
+        _isProcessingBookings = false;
+        notifyListeners();
         return;
       }
 
@@ -101,9 +123,37 @@ class PassengerProvider with ChangeNotifier {
       // if there are no active bookings, clear the booking data
       if (activeBookings.isEmpty) {
         _clearBookingData();
+        _isProcessingBookings = false;
+        notifyListeners();
         return;
       }
 
+      await _processBookings(
+        context: currentContext,
+        activeBookings: activeBookings,
+        driverLocation: currentLocation,
+        endingLocation: endingLocation,
+      );
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        print('Error fetching booking details: $e');
+        print('Stack Trace: $stackTrace');
+      }
+      _clearBookingData();
+    } finally {
+      _isProcessingBookings = false;
+      notifyListeners();
+    }
+  }
+
+  /// Process bookings - separated for better readability and testability
+  Future<void> _processBookings({
+    required BuildContext context,
+    required List<Booking> activeBookings,
+    required LatLng driverLocation,
+    required LatLng endingLocation,
+  }) async {
+    try {
       // Filter the bookings based on the status
       final requestedBookings = activeBookings
           .where((b) => b.rideStatus == BookingRepository.statusRequested)
@@ -123,7 +173,7 @@ class PassengerProvider with ChangeNotifier {
       final validRequestedBookings =
           BookingFilterService.filterValidRequestedBookings(
         bookings: requestedBookings,
-        driverLocation: currentLocation,
+        driverLocation: driverLocation,
         destinationLocation: endingLocation,
       );
 
@@ -133,25 +183,11 @@ class PassengerProvider with ChangeNotifier {
       }
 
       // PROCESS BOOKINGS: Process requested bookings - update status based on validity
-      for (final booking in requestedBookings) {
-        // Check if this is a valid booking (passenger ahead on route)
-        final isValid =
-            validRequestedBookings.any((valid) => valid.id == booking.id);
-
-        if (isValid) {
-          // If valid, set the booking request to 'accepted'
-          await _repository.updateBookingStatus(
-              booking.id, BookingRepository.statusAccepted);
-        } else {
-          // If not valid, set the booking request to 'cancelled'
-          await _repository.updateBookingStatus(
-              booking.id, BookingRepository.statusCancelled);
-        }
-      }
+      await _updateBookingStatuses(requestedBookings, validRequestedBookings);
 
       // Refresh bookings after status updates to get newly accepted bookings
-      final updatedActiveBookings =
-          await _repository.fetchActiveBookings(driverID);
+      final updatedActiveBookings = await _repository
+          .fetchActiveBookings(context.read<DriverProvider>().driverID);
 
       // Get ALL accepted bookings (newly accepted + previously accepted)
       final allAcceptedBookings = updatedActiveBookings
@@ -165,57 +201,100 @@ class PassengerProvider with ChangeNotifier {
             'After processing: Found ${allAcceptedBookings.length} accepted/ongoing bookings');
       }
 
-      // Calculate distance to driver for all accepted bookings to find nearest
-      final acceptedBookingsWithDistance = allAcceptedBookings.map((booking) {
-        final distanceToDriver = LocationService.calculateDistance(
-            currentLocation, booking.pickupLocation);
-        return booking.copyWith(distanceToDriver: distanceToDriver);
-      }).toList();
-
-      // Find nearest booking from ALL accepted bookings
-      if (acceptedBookingsWithDistance.isNotEmpty) {
-        // Sort by distance to driver
-        acceptedBookingsWithDistance.sort((a, b) =>
-            (a.distanceToDriver ?? double.infinity)
-                .compareTo(b.distanceToDriver ?? double.infinity));
-
-        final nearestBooking = acceptedBookingsWithDistance.first;
-
-        // Set the nearest booking as the pickup location
-        final pickupLocation = nearestBooking.pickupLocation;
-        debugPrint(
-            'Setting pickup location in MapProvider for nearest ACCEPTED booking: $pickupLocation');
-
-        if (currentContext.mounted) {
-          currentContext.read<MapProvider>().setPickUpLocation(pickupLocation);
-
-          // Immediately verify if the pickup location was set correctly
-          final verifiedPickupLocation =
-              currentContext.read<MapProvider>().pickupLocation;
-          debugPrint(
-              'Verified pickup location in MapProvider: $verifiedPickupLocation');
-        } else {
-          debugPrint(
-              'ERROR: Context is no longer mounted when trying to set pickup location');
-        }
-
-        if (kDebugMode) {
-          debugPrint('Set nearest passenger: ID: ${nearestBooking.id}, '
-              'Status: ${nearestBooking.rideStatus}, '
-              'Distance: ${(nearestBooking.distanceToDriver ?? 0).toStringAsFixed(2)} meters');
-        }
-      } else {
-        debugPrint('No accepted bookings found to set as pickup location');
-      }
+      await _findAndSetNearestPickup(
+          context, allAcceptedBookings, driverLocation);
 
       // Update state with all relevant bookings
       setBookings(updatedActiveBookings);
-    } catch (e, stackTrace) {
+    } catch (e) {
       if (kDebugMode) {
-        print('Error fetching booking details: $e');
-        print('Stack Trace: $stackTrace');
+        debugPrint('Error processing bookings: $e');
       }
-      _clearBookingData();
+      rethrow;
+    }
+  }
+
+  /// Update booking statuses in the database
+  Future<void> _updateBookingStatuses(List<Booking> requestedBookings,
+      List<Booking> validRequestedBookings) async {
+    for (final booking in requestedBookings) {
+      // Check if this is a valid booking (passenger ahead on route)
+      final isValid =
+          validRequestedBookings.any((valid) => valid.id == booking.id);
+
+      try {
+        if (isValid) {
+          // If valid, set the booking request to 'accepted'
+          await _repository.updateBookingStatus(
+              booking.id, BookingRepository.statusAccepted);
+        } else {
+          // If not valid, set the booking request to 'cancelled'
+          await _repository.updateBookingStatus(
+              booking.id, BookingRepository.statusCancelled);
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('Error updating booking ${booking.id} status: $e');
+        }
+        // Continue processing other bookings even if one fails
+      }
+    }
+  }
+
+  /// Find the nearest pickup location from accepted bookings and set it in MapProvider
+  Future<void> _findAndSetNearestPickup(BuildContext context,
+      List<Booking> acceptedBookings, LatLng driverLocation) async {
+    if (!context.mounted) return;
+
+    // Calculate distance to driver for all accepted bookings to find nearest
+    final acceptedBookingsWithDistance = acceptedBookings.map((booking) {
+      final distanceToDriver = LocationService.calculateDistance(
+          driverLocation, booking.pickupLocation);
+      return booking.copyWith(distanceToDriver: distanceToDriver);
+    }).toList();
+
+    // Find nearest booking from ALL accepted bookings
+    if (acceptedBookingsWithDistance.isNotEmpty) {
+      // Sort by distance to driver
+      acceptedBookingsWithDistance.sort((a, b) =>
+          (a.distanceToDriver ?? double.infinity)
+              .compareTo(b.distanceToDriver ?? double.infinity));
+
+      final nearestBooking = acceptedBookingsWithDistance.first;
+
+      // Set the nearest booking as the pickup location
+      final pickupLocation = nearestBooking.pickupLocation;
+      if (kDebugMode) {
+        debugPrint(
+            'Setting pickup location in MapProvider for nearest ACCEPTED booking: $pickupLocation');
+      }
+
+      if (context.mounted) {
+        context.read<MapProvider>().setPickUpLocation(pickupLocation);
+
+        // Immediately verify if the pickup location was set correctly
+        final verifiedPickupLocation =
+            context.read<MapProvider>().pickupLocation;
+        if (kDebugMode) {
+          debugPrint(
+              'Verified pickup location in MapProvider: $verifiedPickupLocation');
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint(
+              'ERROR: Context is no longer mounted when trying to set pickup location');
+        }
+      }
+
+      if (kDebugMode) {
+        debugPrint('Set nearest passenger: ID: ${nearestBooking.id}, '
+            'Status: ${nearestBooking.rideStatus}, '
+            'Distance: ${(nearestBooking.distanceToDriver ?? 0).toStringAsFixed(2)} meters');
+      }
+    } else {
+      if (kDebugMode) {
+        debugPrint('No accepted bookings found to set as pickup location');
+      }
     }
   }
 
@@ -225,7 +304,9 @@ class PassengerProvider with ChangeNotifier {
       final driverID = context.read<DriverProvider>().driverID;
 
       if (driverID.isEmpty || driverID == 'N/A') {
-        debugPrint('Invalid driver ID: $driverID');
+        if (kDebugMode) {
+          debugPrint('Invalid driver ID: $driverID');
+        }
         setCompletedBooking(0);
         return;
       }
@@ -234,8 +315,10 @@ class PassengerProvider with ChangeNotifier {
       notifyListeners();
       setCompletedBooking(count);
     } catch (e, stackTrace) {
-      debugPrint('Error fetching completed bookings: $e');
-      debugPrint('Stack Trace: $stackTrace');
+      if (kDebugMode) {
+        debugPrint('Error fetching completed bookings: $e');
+        debugPrint('Stack Trace: $stackTrace');
+      }
       setCompletedBooking(0);
     }
   }
@@ -250,18 +333,24 @@ class PassengerProvider with ChangeNotifier {
             const LocationSettings(accuracy: LocationAccuracy.high),
       );
       location = LatLng(position.latitude, position.longitude);
-      debugPrint(
-          'Got GPS location: ${position.latitude}, ${position.longitude}');
+      if (kDebugMode) {
+        debugPrint(
+            'Got GPS location: ${position.latitude}, ${position.longitude}');
+      }
 
       // Also update the MapProvider for consistency
       if (context.mounted) {
         context.read<MapProvider>().setCurrentLocation(location);
       }
     } catch (e) {
-      debugPrint('Error getting GPS location: $e');
+      if (kDebugMode) {
+        debugPrint('Error getting GPS location: $e');
+      }
       // Fall back to MapProvider location if GPS fails
       location = context.read<MapProvider>().currentLocation;
-      debugPrint('Using fallback location from MapProvider: $location');
+      if (kDebugMode) {
+        debugPrint('Using fallback location from MapProvider: $location');
+      }
     }
     return location;
   }
@@ -291,11 +380,72 @@ class PassengerProvider with ChangeNotifier {
   /// Test method to verify the booking filter logic
   Future<void> testBookingFilters(BuildContext context) async {
     try {
-      debugPrint('========== TESTING BOOKING FILTERS ==========');
+      if (kDebugMode) {
+        debugPrint('========== TESTING BOOKING FILTERS ==========');
+      }
       await getBookingRequestsID(context);
-      debugPrint('========== TEST COMPLETED ==========');
+      if (kDebugMode) {
+        debugPrint('========== TEST COMPLETED ==========');
+      }
     } catch (e) {
-      debugPrint('Test error: $e');
+      if (kDebugMode) {
+        debugPrint('Test error: $e');
+      }
+    }
+  }
+
+  /// Mark a booking as ongoing when driver is near pickup location
+  Future<bool> markBookingAsOngoing(String bookingId) async {
+    try {
+      final success = await _repository.updateBookingStatus(
+          bookingId, BookingRepository.statusOngoing);
+
+      if (success) {
+        // Update local state to reflect the change
+        final updatedBookings = _bookings.map((booking) {
+          if (booking.id == bookingId) {
+            return booking.copyWith(
+                rideStatus: BookingRepository.statusOngoing);
+          }
+          return booking;
+        }).toList();
+
+        setBookings(updatedBookings);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error marking booking as ongoing: $e');
+      }
+      return false;
+    }
+  }
+
+  /// Mark a booking as completed when passenger reaches destination
+  Future<bool> markBookingAsCompleted(String bookingId) async {
+    try {
+      final success = await _repository.updateBookingStatus(
+          bookingId, BookingRepository.statusCompleted);
+
+      if (success) {
+        // Remove the completed booking from local state
+        final updatedBookings =
+            _bookings.where((booking) => booking.id != bookingId).toList();
+
+        setBookings(updatedBookings);
+
+        // Increment completed bookings counter
+        setCompletedBooking(_completedBooking + 1);
+
+        return true;
+      }
+      return false;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error marking booking as completed: $e');
+      }
+      return false;
     }
   }
 }
@@ -395,8 +545,10 @@ class BookingRepository {
           .map((json) => Booking.fromJson(json))
           .toList();
     } catch (e, stackTrace) {
-      debugPrint('Error fetching active bookings: $e');
-      debugPrint('Stack trace: $stackTrace');
+      if (kDebugMode) {
+        debugPrint('Error fetching active bookings: $e');
+        debugPrint('Stack trace: $stackTrace');
+      }
       return [];
     }
   }
@@ -412,8 +564,10 @@ class BookingRepository {
 
       return response.length;
     } catch (e, stackTrace) {
-      debugPrint('Error fetching completed bookings: $e');
-      debugPrint('Stack trace: $stackTrace');
+      if (kDebugMode) {
+        debugPrint('Error fetching completed bookings: $e');
+        debugPrint('Stack trace: $stackTrace');
+      }
       return 0;
     }
   }
@@ -430,8 +584,10 @@ class BookingRepository {
       }
       return true;
     } catch (e, stackTrace) {
-      debugPrint('Error updating booking status: $e');
-      debugPrint('Stack trace: $stackTrace');
+      if (kDebugMode) {
+        debugPrint('Error updating booking status: $e');
+        debugPrint('Stack trace: $stackTrace');
+      }
       return false;
     }
   }
