@@ -117,7 +117,7 @@ class DriverProvider with ChangeNotifier {
     try {
       final response = await supabase
           .from('driverTable')
-          .update({'driving_status': newStatus})
+          .update({'driving_status': newStatus.toLowerCase()})
           .eq('driver_id', driverID)
           .select()
           .single();
