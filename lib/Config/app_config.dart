@@ -10,6 +10,10 @@ class AppConfig {
   static const int notificationCooldown =
       15; // Minimum time between similar notifications
 
+  // Timeouts (in seconds)
+  static const int databaseOperationTimeout = 15; // Timeout for DB operations
+  static const int locationFetchTimeout = 10; // Timeout for location fetching
+
   // Distance thresholds (in meters)
   static const double pickupProximityThreshold =
       50; // Distance to mark driver as "at pickup location"
@@ -21,6 +25,18 @@ class AppConfig {
       200; // Distance to mark driver as "approaching dropoff"
   static const double minPassengerAheadDistance =
       20; // Minimum distance passenger should be ahead of driver
+  static const double maxPickupDistanceThreshold =
+      3000; // Maximum distance for valid pickup
+  static const double maxDistanceSecondaryCheck =
+      5000; // Maximum distance for secondary validation check
+
+  // Bearing and direction thresholds (in degrees)
+  static const double bearingAngleThreshold =
+      60.0; // Angle threshold for "ahead" calculation
+  static const double behindDriverMinBearing =
+      270.0; // Minimum bearing considered "behind" driver
+  static const double behindDriverMaxBearing =
+      360.0; // Maximum bearing considered "behind" driver
 
   // Test mode values (much larger for testing purposes)
   static const bool isTestMode = true; // Set to false for production values

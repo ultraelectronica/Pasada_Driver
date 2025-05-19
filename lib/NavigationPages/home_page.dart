@@ -14,7 +14,6 @@ import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'package:flutter/scheduler.dart';
-import 'dart:math';
 import 'package:pasada_driver_side/Config/app_config.dart';
 
 // Model to track passenger proximity status
@@ -149,8 +148,6 @@ class HomePageState extends State<HomePage> {
       return;
     }
 
-    // Remove periodic booking refresh from here since we have a dedicated timer now
-
     // Get current location
     final currentLocation = mapProvider.currentLocation;
 
@@ -232,29 +229,8 @@ class HomePageState extends State<HomePage> {
       ));
     }
 
-    // Smart sorting: prioritize by status categories and then by distance
-    passengerStatuses.sort((a, b) {
-      // Priority 1: Passengers ready for pickup/dropoff (those who are waiting and driver is there)
-      if (a.isNearPickup && !b.isNearPickup) return -1;
-      if (b.isNearPickup && !a.isNearPickup) return 1;
-      if (a.isNearDropoff && !b.isNearDropoff) return -1;
-      if (b.isNearDropoff && !a.isNearDropoff) return 1;
-
-      // Priority 2: Passengers who are being approached by driver
-      if (a.isApproachingPickup && !b.isApproachingPickup) return -1;
-      if (b.isApproachingPickup && !a.isApproachingPickup) return 1;
-      if (a.isApproachingDropoff && !b.isApproachingDropoff) return -1;
-      if (b.isApproachingDropoff && !a.isApproachingDropoff) return 1;
-
-      // Priority 3: Ongoing rides over pickups
-      if (a.booking.rideStatus == BookingRepository.statusOngoing &&
-          b.booking.rideStatus == BookingRepository.statusAccepted) return -1;
-      if (b.booking.rideStatus == BookingRepository.statusOngoing &&
-          a.booking.rideStatus == BookingRepository.statusAccepted) return 1;
-
-      // Priority 4: Sort by absolute distance (closest first)
-      return a.distance.compareTo(b.distance);
-    });
+    // Sort simply by distance - the closest booking is the most important
+    passengerStatuses.sort((a, b) => a.distance.compareTo(b.distance));
 
     // Keep only the 3 nearest passengers
     if (passengerStatuses.length > 3) {
@@ -267,78 +243,21 @@ class HomePageState extends State<HomePage> {
         now.difference(_lastProximityNotificationTime!).inSeconds > 15;
 
     if (canShowNotification && passengerStatuses.isNotEmpty) {
-      // Find the closest passenger with a status change to notify about
-      PassengerStatus? passengerToNotify;
+      // Just use the closest booking for notification
+      final closestPassenger = passengerStatuses.first;
 
-      // First check for pickups
-      passengerToNotify = passengerStatuses.firstWhere(
-          (p) =>
-              p.isNearPickup &&
-              p.booking.rideStatus == BookingRepository.statusAccepted,
-          orElse: () => PassengerStatus(
-              booking: Booking(
-                  id: '',
-                  passengerId: '',
-                  rideStatus: '',
-                  pickupLocation: LatLng(0, 0),
-                  dropoffLocation: LatLng(0, 0)),
-              distance: double.infinity));
+      // Only show notification if there's a status change
+      bool shouldNotify = closestPassenger.isNearPickup ||
+          closestPassenger.isNearDropoff ||
+          closestPassenger.isApproachingPickup ||
+          closestPassenger.isApproachingDropoff;
 
-      // Then check for dropoffs if no pickup notification
-      if (passengerToNotify.booking.id.isEmpty) {
-        passengerToNotify = passengerStatuses.firstWhere(
-            (p) =>
-                p.isNearDropoff &&
-                p.booking.rideStatus == BookingRepository.statusOngoing,
-            orElse: () => PassengerStatus(
-                booking: Booking(
-                    id: '',
-                    passengerId: '',
-                    rideStatus: '',
-                    pickupLocation: LatLng(0, 0),
-                    dropoffLocation: LatLng(0, 0)),
-                distance: double.infinity));
-      }
-
-      // Then check for approaching pickups
-      if (passengerToNotify.booking.id.isEmpty) {
-        passengerToNotify = passengerStatuses.firstWhere(
-            (p) =>
-                p.isApproachingPickup &&
-                p.booking.rideStatus == BookingRepository.statusAccepted,
-            orElse: () => PassengerStatus(
-                booking: Booking(
-                    id: '',
-                    passengerId: '',
-                    rideStatus: '',
-                    pickupLocation: LatLng(0, 0),
-                    dropoffLocation: LatLng(0, 0)),
-                distance: double.infinity));
-      }
-
-      // Finally check for approaching dropoffs
-      if (passengerToNotify.booking.id.isEmpty) {
-        passengerToNotify = passengerStatuses.firstWhere(
-            (p) =>
-                p.isApproachingDropoff &&
-                p.booking.rideStatus == BookingRepository.statusOngoing,
-            orElse: () => PassengerStatus(
-                booking: Booking(
-                    id: '',
-                    passengerId: '',
-                    rideStatus: '',
-                    pickupLocation: LatLng(0, 0),
-                    dropoffLocation: LatLng(0, 0)),
-                distance: double.infinity));
-      }
-
-      // Show notification if applicable
-      if (passengerToNotify.booking.id.isNotEmpty) {
+      if (shouldNotify) {
         _lastProximityNotificationTime = now;
 
         SchedulerBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
-            if (passengerToNotify!.isNearPickup) {
+            if (closestPassenger.isNearPickup) {
               // Arrived at pickup
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -347,7 +266,7 @@ class HomePageState extends State<HomePage> {
                   duration: const Duration(seconds: 3),
                 ),
               );
-            } else if (passengerToNotify.isNearDropoff) {
+            } else if (closestPassenger.isNearDropoff) {
               // Arrived at dropoff
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -357,22 +276,22 @@ class HomePageState extends State<HomePage> {
                   duration: const Duration(seconds: 3),
                 ),
               );
-            } else if (passengerToNotify.isApproachingPickup) {
+            } else if (closestPassenger.isApproachingPickup) {
               // Approaching pickup
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                      'Approaching pickup: ${passengerToNotify.distance.toInt()} meters away'),
+                      'Approaching pickup: ${closestPassenger.distance.toInt()} meters away'),
                   backgroundColor: Colors.blue,
                   duration: const Duration(seconds: 2),
                 ),
               );
-            } else if (passengerToNotify.isApproachingDropoff) {
+            } else if (closestPassenger.isApproachingDropoff) {
               // Approaching dropoff
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                      'Approaching dropoff: ${passengerToNotify.distance.toInt()} meters away'),
+                      'Approaching dropoff: ${closestPassenger.distance.toInt()} meters away'),
                   backgroundColor: Colors.orange,
                   duration: const Duration(seconds: 2),
                 ),
@@ -387,46 +306,32 @@ class HomePageState extends State<HomePage> {
     setState(() {
       _nearbyPassengers = passengerStatuses;
 
-      // Set selected passenger if not already set
-      if (_selectedPassengerId == null && passengerStatuses.isNotEmpty) {
-        _selectedPassengerId = passengerStatuses.first.booking.id;
-      } else if (_selectedPassengerId != null) {
-        // Make sure selected passenger is still in the list
-        final stillExists =
-            passengerStatuses.any((p) => p.booking.id == _selectedPassengerId);
-        if (!stillExists && passengerStatuses.isNotEmpty) {
-          _selectedPassengerId = passengerStatuses.first.booking.id;
-        } else if (!stillExists) {
-          _selectedPassengerId = null;
-        }
-      }
+      // We no longer need a separate selection - always use the closest booking
+      _selectedPassengerId = passengerStatuses.isNotEmpty
+          ? passengerStatuses.first.booking.id
+          : null;
 
-      // Set backward compatibility flags for the selected passenger
-      if (_selectedPassengerId != null) {
-        final selectedPassenger = passengerStatuses.firstWhere(
-            (p) => p.booking.id == _selectedPassengerId,
-            orElse: () => PassengerStatus(
-                booking: Booking(
-                    id: '',
-                    passengerId: '',
-                    rideStatus: '',
-                    pickupLocation: LatLng(0, 0),
-                    dropoffLocation: LatLng(0, 0)),
-                distance: double.infinity));
+      // Set action buttons based on the closest passenger
+      if (_selectedPassengerId != null && passengerStatuses.isNotEmpty) {
+        final closestPassenger = passengerStatuses.first;
 
-        if (selectedPassenger.booking.id.isNotEmpty) {
-          _isNearPickupLocation = selectedPassenger.isNearPickup;
-          _isNearDropoffLocation = selectedPassenger.isNearDropoff;
-
-          if (selectedPassenger.booking.rideStatus ==
-              BookingRepository.statusAccepted) {
-            _nearestBookingId = selectedPassenger.booking.id;
-            _ongoingBookingId = null;
-          } else if (selectedPassenger.booking.rideStatus ==
-              BookingRepository.statusOngoing) {
-            _nearestBookingId = null;
-            _ongoingBookingId = selectedPassenger.booking.id;
-          }
+        // Set action button visibility based on the closest booking
+        if (closestPassenger.booking.rideStatus ==
+            BookingRepository.statusAccepted) {
+          _isNearPickupLocation = closestPassenger.isNearPickup;
+          _isNearDropoffLocation = false;
+          _nearestBookingId = closestPassenger.isNearPickup
+              ? closestPassenger.booking.id
+              : null;
+          _ongoingBookingId = null;
+        } else if (closestPassenger.booking.rideStatus ==
+            BookingRepository.statusOngoing) {
+          _isNearPickupLocation = false;
+          _isNearDropoffLocation = closestPassenger.isNearDropoff;
+          _nearestBookingId = null;
+          _ongoingBookingId = closestPassenger.isNearDropoff
+              ? closestPassenger.booking.id
+              : null;
         }
       } else {
         _isNearPickupLocation = false;
@@ -1128,16 +1033,22 @@ class PassengerListWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Create a combined sorted list
+    final List<PassengerStatus> sortedPassengers = List.from(passengers);
+
+    // Sort by absolute distance only
+    sortedPassengers.sort((a, b) => a.distance.compareTo(b.distance));
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
             spreadRadius: 1,
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -1146,192 +1057,241 @@ class PassengerListWidget extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Text(
-              'Nearby Passengers',
-              style:
-                  Styles().textStyle(16, Styles.w600Weight, Styles.customBlack),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Row(
+              children: [
+                Text(
+                  'Booking Operations',
+                  style: Styles()
+                      .textStyle(14, Styles.w600Weight, Styles.customBlack),
+                ),
+                const Spacer(),
+                Icon(Icons.swipe_down_alt, size: 16, color: Colors.grey[500]),
+              ],
             ),
           ),
-          const Divider(height: 1, thickness: 1),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: passengers.length,
-            separatorBuilder: (context, index) =>
-                const Divider(height: 1, thickness: 1),
-            itemBuilder: (context, index) {
-              final passenger = passengers[index];
-              final isSelected = passenger.booking.id == selectedPassengerId;
+          const Divider(height: 1, thickness: 1, indent: 0, endIndent: 0),
 
-              // Determine status text and icon
-              IconData statusIcon;
-              Color statusColor;
-              String statusText;
+          // Build the summary section showing pickup and dropoff counts
+          _buildListSummary(context, sortedPassengers),
 
-              if (passenger.booking.rideStatus ==
-                  BookingRepository.statusAccepted) {
-                if (passenger.isNearPickup) {
-                  statusIcon = Icons.place;
-                  statusColor = Constants.GREEN_COLOR;
-                  statusText = 'Ready for pickup';
-                } else if (passenger.isApproachingPickup) {
-                  statusIcon = Icons.directions_car;
-                  statusColor = Colors.blue;
-                  statusText = 'Approaching pickup';
-                } else {
-                  statusIcon = Icons.access_time;
-                  statusColor = Colors.blue;
-                  statusText = 'Pickup pending';
-                }
-              } else {
-                // Ongoing
-                if (passenger.isNearDropoff) {
-                  statusIcon = Icons.place;
-                  statusColor = Colors.orange;
-                  statusText = 'Ready for dropoff';
-                } else if (passenger.isApproachingDropoff) {
-                  statusIcon = Icons.directions_car;
-                  statusColor = Colors.orange;
-                  statusText = 'Approaching dropoff';
-                } else {
-                  statusIcon = Icons.access_time;
-                  statusColor = Colors.orange;
-                  statusText = 'Dropoff pending';
-                }
-              }
+          // COMBINED LIST
+          if (sortedPassengers.isNotEmpty)
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: sortedPassengers.length,
+              itemBuilder: (context, index) =>
+                  _buildCompactPassengerItem(context, sortedPassengers[index]),
+            ),
 
-              final priorityLevel = _getPriorityLevel(passenger);
-              final priorityColor = priorityLevel == 1
-                  ? Colors.red
-                  : priorityLevel == 2
-                      ? Colors.orange
-                      : priorityLevel == 3
-                          ? Colors.blue
-                          : Colors.grey;
-
-              return InkWell(
-                onTap: () => onSelected(passenger.booking.id),
-                child: Container(
-                  color: isSelected
-                      ? Colors.grey.withOpacity(0.2)
-                      : Colors.transparent,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      // Priority indicator
-                      Container(
-                        width: 4,
-                        height: 45,
-                        color: priorityColor,
-                        margin: const EdgeInsets.only(right: 8),
-                      ),
-
-                      // Status icon
-                      Container(
-                        decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        padding: const EdgeInsets.all(8),
-                        child: Icon(statusIcon, color: statusColor, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-
-                      // Passenger details
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                // Passenger ID (truncated for display)
-                                Text(
-                                  'Passenger: ${passenger.booking.passengerId.substring(0, min(4, passenger.booking.passengerId.length))}...',
-                                  style: Styles().textStyle(14,
-                                      Styles.w500Weight, Styles.customBlack),
-                                ),
-                                const Spacer(),
-                                // Distance with badge
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: statusColor.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.directions_car,
-                                        size: 12,
-                                        color: statusColor,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        _formatDistance(passenger.distance),
-                                        style: Styles().textStyle(
-                                            12, Styles.w500Weight, statusColor),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            // Status text
-                            Row(
-                              children: [
-                                Text(
-                                  statusText,
-                                  style: Styles().textStyle(
-                                      12, Styles.w400Weight, statusColor),
-                                ),
-                                if (priorityLevel == 1)
-                                  Container(
-                                    margin: const EdgeInsets.only(left: 6),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: priorityColor.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      'URGENT',
-                                      style: Styles().textStyle(
-                                          9, Styles.w700Weight, priorityColor),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Selection indicator
-                      if (isSelected)
-                        const Icon(Icons.check_circle,
-                            color: Colors.blue, size: 24),
-                    ],
+          // Show empty state if no bookings
+          if (passengers.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.not_listed_location, size: 16, color: Colors.grey),
+                  const SizedBox(width: 6),
+                  Text(
+                    'No active bookings',
+                    style:
+                        Styles().textStyle(12, Styles.w500Weight, Colors.grey),
                   ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Build the summary section showing pickup and dropoff counts
+  Widget _buildListSummary(
+      BuildContext context, List<PassengerStatus> passengers) {
+    final pickupCount = passengers
+        .where((p) => p.booking.rideStatus == BookingRepository.statusAccepted)
+        .length;
+
+    final dropoffCount = passengers
+        .where((p) => p.booking.rideStatus == BookingRepository.statusOngoing)
+        .length;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      child: Row(
+        children: [
+          // Pickup count
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.person_pin_circle, color: Colors.blue, size: 12),
+                const SizedBox(width: 4),
+                Text(
+                  'PICKUPS: $pickupCount',
+                  style: Styles().textStyle(10, Styles.w700Weight, Colors.blue),
                 ),
-              );
-            },
+              ],
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          // Dropoff count
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.location_on, color: Colors.orange, size: 12),
+                const SizedBox(width: 4),
+                Text(
+                  'DROPOFFS: $dropoffCount',
+                  style:
+                      Styles().textStyle(10, Styles.w700Weight, Colors.orange),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  // Format distance to be more human-readable
-  String _formatDistance(double meters) {
-    if (meters >= 1000) {
-      final km = (meters / 1000).toStringAsFixed(1);
-      return '$km km';
+  // Compact passenger item - significantly reduced size
+  Widget _buildCompactPassengerItem(
+      BuildContext context, PassengerStatus passenger) {
+    final isSelected = passenger.booking.id == selectedPassengerId;
+    final isPickup =
+        passenger.booking.rideStatus == BookingRepository.statusAccepted;
+
+    // Determine status icon and color
+    IconData statusIcon;
+    Color statusColor;
+
+    if (isPickup) {
+      if (passenger.isNearPickup) {
+        statusIcon = Icons.place;
+        statusColor = Constants.GREEN_COLOR;
+      } else {
+        statusIcon = Icons.directions_car;
+        statusColor = Colors.blue;
+      }
     } else {
-      return '${meters.round()} m';
+      if (passenger.isNearDropoff) {
+        statusIcon = Icons.place;
+        statusColor = Colors.orange;
+      } else {
+        statusIcon = Icons.directions_car;
+        statusColor = Colors.orange;
+      }
+    }
+
+    final priorityLevel = _getPriorityLevel(passenger);
+    final isUrgent = priorityLevel == 1;
+
+    // Format distance with km/m units
+    final formattedDistance = _formatDistance(passenger.distance);
+
+    return InkWell(
+      onTap: () => onSelected(passenger.booking.id),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isPickup
+                  ? Colors.blue.withOpacity(0.05)
+                  : Colors.orange.withOpacity(0.05))
+              : Colors.transparent,
+          border: Border(
+            left: BorderSide(
+              color: isSelected
+                  ? statusColor
+                  : (isPickup ? Colors.blue : Colors.orange),
+              width: isSelected ? 3 : 2,
+            ),
+            bottom: BorderSide(
+              color: Colors.grey.withOpacity(0.1),
+              width: 1,
+            ),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          children: [
+            // Status icon
+            Container(
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              padding: const EdgeInsets.all(4),
+              child: Icon(statusIcon, color: statusColor, size: 14),
+            ),
+            const SizedBox(width: 8),
+
+            // Booking info
+            Expanded(
+              child: Row(
+                children: [
+                  Text(
+                    '#${passenger.booking.id}',
+                    style: Styles()
+                        .textStyle(12, Styles.w600Weight, Styles.customBlack),
+                  ),
+                  if (isUrgent) ...[
+                    const SizedBox(width: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'URGENT',
+                        style: Styles()
+                            .textStyle(9, Styles.w700Weight, Colors.red),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // Distance
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                formattedDistance,
+                style: Styles().textStyle(11, Styles.w600Weight, statusColor),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Format distance with appropriate units
+  String _formatDistance(double distanceMeters) {
+    if (distanceMeters < 1000) {
+      return '${distanceMeters.toInt()} m';
+    } else {
+      final km = distanceMeters / 1000;
+      return '${km.toStringAsFixed(1)} km';
     }
   }
 }
