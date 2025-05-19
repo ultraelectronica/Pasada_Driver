@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 // import 'package:pasada_driver_side/NavigationPages/passenger_counter.dart';
 import 'package:pasada_driver_side/UI/constants.dart';
@@ -8,8 +9,10 @@ import 'package:pasada_driver_side/NavigationPages/activity_page.dart';
 import 'package:pasada_driver_side/NavigationPages/home_page.dart';
 import 'package:pasada_driver_side/NavigationPages/profile_page.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
+import 'package:pasada_driver_side/Database/passenger_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -22,6 +25,8 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   int _currentIndex = 0;
   Timer? _timer;
   bool isDialogShown = false;
+  // Tracks if we've already shown the driving dialog in this session
+  bool hasShownDrivingPrompt = false;
 
   final List<Widget> pages = [
     const HomeScreen(),
@@ -49,14 +54,34 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     super.didChangeAppLifecycleState(state);
 
     if (state == AppLifecycleState.resumed) {
-      // set driving status to Online
-      context
-          .read<DriverProvider>()
-          .updateStatusToDB(context.read<DriverProvider>().lastDriverStatus!, context); //Error here
+      // set driving status back to previous status
+      final previousStatus = context.read<DriverProvider>().lastDriverStatus!;
+      context.read<DriverProvider>().updateStatusToDB(previousStatus, context);
       ShowMessage().showToast('App resumed');
+
+      // If returning to driving status, fetch bookings
+      if (previousStatus == 'Driving') {
+        // Use post-frame callback to avoid setState during build
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            context.read<PassengerProvider>().getBookingRequestsID(context);
+          }
+        });
+      } else {
+        // If not driving, we should show the prompt again when they go back to driving
+        hasShownDrivingPrompt = false;
+      }
     } else if (state == AppLifecycleState.paused) {
       // set driving status to idling
+      final currentStatus = context.read<DriverProvider>().driverStatus;
+      context.read<DriverProvider>().setLastDriverStatus(currentStatus);
       context.read<DriverProvider>().updateStatusToDB('Idling', context);
+
+      // Reset the prompt flag if they were idling so they get prompted again
+      if (currentStatus == 'Driving') {
+        hasShownDrivingPrompt = false;
+      }
+
       ShowMessage().showToast('App paused');
     }
   }
@@ -74,16 +99,28 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   void onTap(int newIndex) {
     setState(() {
       _currentIndex = newIndex;
+
+      // Reset the dialog flag when user navigates away from home and back
+      if (_currentIndex == 0) {
+        // Only reset if driver is not in driving mode
+        if (context.read<DriverProvider>().isDriving == false) {
+          hasShownDrivingPrompt = false;
+        }
+      }
     });
   }
 
   void isDriving(DriverProvider driverProvider) {
-    if (driverProvider.isDriving == false && _currentIndex == 0) {
+    if (driverProvider.isDriving == false &&
+        _currentIndex == 0 &&
+        !hasShownDrivingPrompt) {
       if (!isDialogShown) {
         isDialogShown = true; // Set flag before showing dialog
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
+        SchedulerBinding.instance.addPostFrameCallback((_) async {
           // Make callback async
           await _showStartDrivingDialog(); // Await the dialog
+          // Mark that we've shown the prompt already
+          hasShownDrivingPrompt = true;
         });
       }
     }
@@ -91,57 +128,156 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
   // START DRIVING DIALOG
   Future<void> _showStartDrivingDialog() async {
+    bool isStartingDrive = false;
+
     await showDialog(
       context: context,
       barrierDismissible: true, // Enables dismissing dialog by tapping outside
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            'Welcome Manong!',
-            textAlign: TextAlign.center,
-            style: Styles().textStyle(22, Styles.w600Weight, Styles.customBlack),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'To start getting passengers, start driving.',
-                textAlign: TextAlign.center,
-                style: Styles().textStyle(15, Styles.w500Weight, Styles.customBlack),
-              ),
-              const SizedBox(height: 20), // Add some spacing
-              Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    context
-                        .read<DriverProvider>()
-                        .updateStatusToDB('Driving', context); //update status to driving
-                    context
-                        .read<DriverProvider>()
-                        .setDriverStatus('Driving'); //update driver status to driving
-                    context.read<DriverProvider>().setIsDriving(true); //update is driving to true
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(builder: (context, setState) {
+          return AlertDialog(
+            title: Text(
+              'Welcome Manong!',
+              textAlign: TextAlign.center,
+              style:
+                  Styles().textStyle(22, Styles.w600Weight, Styles.customBlack),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'To start getting passengers, start driving.',
+                  textAlign: TextAlign.center,
+                  style: Styles()
+                      .textStyle(15, Styles.w500Weight, Styles.customBlack),
+                ),
+                const SizedBox(height: 20), // Add some spacing
+                Center(
+                  child: ElevatedButton(
+                    onPressed: isStartingDrive
+                        ? null // Disable while processing
+                        : () async {
+                            // Show loading state
+                            setState(() {
+                              isStartingDrive = true;
+                            });
 
-                    Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
+                            try {
+                              // Capture the providers we need before async operations
+                              final driverProvider =
+                                  context.read<DriverProvider>();
+
+                              // Update driver status to driving
+                              await driverProvider.updateStatusToDB(
+                                  'Driving', context);
+                              driverProvider.setDriverStatus('Driving');
+                              driverProvider.setIsDriving(true);
+
+                              // Close the dialog first for better UX
+                              Navigator.of(dialogContext).pop();
+
+                              // Show a progress indicator in a snackbar
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Row(
+                                    children: [
+                                      SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                    Colors.white),
+                                            strokeWidth: 2,
+                                          )),
+                                      SizedBox(width: 12),
+                                      Text('Finding passengers...'),
+                                    ],
+                                  ),
+                                  backgroundColor: Colors.black87,
+                                  duration: Duration(seconds: 4),
+                                ),
+                              );
+
+                              // Fetch bookings after dialog is closed
+                              await Future.delayed(
+                                  const Duration(milliseconds: 300));
+                              if (context.mounted) {
+                                try {
+                                  final passengerProvider =
+                                      context.read<PassengerProvider>();
+                                  // Use stored driver ID instead of context for the booking fetch
+                                  await passengerProvider
+                                      .getBookingRequestsID(null);
+                                } catch (e) {
+                                  if (kDebugMode) {
+                                    print(
+                                        'Error during background booking fetch: $e');
+                                  }
+                                }
+                              }
+                            } catch (e) {
+                              // Handle any errors
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error starting: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+
+                              if (mounted) {
+                                setState(() {
+                                  isStartingDrive = false;
+                                });
+                              }
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 30, vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      elevation: 8,
+                      backgroundColor: Colors.black,
                     ),
-                    elevation: 8,
-                    backgroundColor: Colors.black,
-                  ),
-                  child: Text(
-                    'Start Driving',
-                    style: Styles().textStyle(16, Styles.normalWeight, Styles.customWhite),
+                    child: isStartingDrive
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Starting...',
+                                style: Styles().textStyle(16,
+                                    Styles.normalWeight, Styles.customWhite),
+                              ),
+                            ],
+                          )
+                        : Text(
+                            'Start Driving',
+                            style: Styles().textStyle(
+                                16, Styles.normalWeight, Styles.customWhite),
+                          ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        );
+              ],
+            ),
+          );
+        });
       },
     );
+
     // This runs after the dialog is dismissed by any means
     isDialogShown = false;
   }
@@ -169,8 +305,10 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
       onTap: onTap,
       showSelectedLabels: true,
       showUnselectedLabels: false,
-      selectedLabelStyle: Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
-      unselectedLabelStyle: Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
+      selectedLabelStyle:
+          Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
+      unselectedLabelStyle:
+          Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
       selectedItemColor: Constants.GREEN_COLOR,
       type: BottomNavigationBarType.fixed,
       items: [
@@ -191,13 +329,15 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     );
   }
 
-  BottomNavigationBarItem _buildNavItem(int index, String label, String selectedIcon, String unselectedIcon) {
+  BottomNavigationBarItem _buildNavItem(
+      int index, String label, String selectedIcon, String unselectedIcon) {
     return BottomNavigationBarItem(
       label: label,
       icon: _currentIndex == index
           ? SvgPicture.asset(
               'assets/svg/$selectedIcon',
-              colorFilter: ColorFilter.mode(Constants.GREEN_COLOR, BlendMode.srcIn),
+              colorFilter:
+                  ColorFilter.mode(Constants.GREEN_COLOR, BlendMode.srcIn),
               width: 28,
               height: 28,
             )
