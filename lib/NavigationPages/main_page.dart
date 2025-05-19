@@ -12,6 +12,7 @@ import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/passenger_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -165,8 +166,6 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
                               // Capture the providers we need before async operations
                               final driverProvider =
                                   context.read<DriverProvider>();
-                              final passengerProvider =
-                                  context.read<PassengerProvider>();
 
                               // Update driver status to driving
                               await driverProvider.updateStatusToDB(
@@ -174,49 +173,48 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
                               driverProvider.setDriverStatus('Driving');
                               driverProvider.setIsDriving(true);
 
-                              // Store driver ID for safer async operations
-                              final driverId = driverProvider.driverID;
-
                               // Close the dialog first for better UX
-                              if (dialogContext.mounted) {
-                                Navigator.of(dialogContext).pop();
-                              }
+                              Navigator.of(dialogContext).pop();
 
                               // Show a progress indicator in a snackbar
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Row(
-                                      children: [
-                                        SizedBox(
-                                            width: 20,
-                                            height: 20,
-                                            child: CircularProgressIndicator(
-                                              valueColor:
-                                                  AlwaysStoppedAnimation<Color>(
-                                                      Colors.white),
-                                              strokeWidth: 2,
-                                            )),
-                                        const SizedBox(width: 12),
-                                        const Text('Finding passengers...'),
-                                      ],
-                                    ),
-                                    backgroundColor: Colors.black87,
-                                    duration: const Duration(seconds: 4),
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Row(
+                                    children: [
+                                      SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                    Colors.white),
+                                            strokeWidth: 2,
+                                          )),
+                                      SizedBox(width: 12),
+                                      Text('Finding passengers...'),
+                                    ],
                                   ),
-                                );
-                              }
+                                  backgroundColor: Colors.black87,
+                                  duration: Duration(seconds: 4),
+                                ),
+                              );
 
-                              // Short delay to ensure UI updates
+                              // Fetch bookings after dialog is closed
                               await Future.delayed(
                                   const Duration(milliseconds: 300));
-
-                              // Safely fetch bookings if still mounted
                               if (context.mounted) {
-                                // Start booking stream using the saved driver ID
-                                passengerProvider.startBookingStream(driverId);
-                                await passengerProvider
-                                    .getBookingRequestsID(context);
+                                try {
+                                  final passengerProvider =
+                                      context.read<PassengerProvider>();
+                                  // Use stored driver ID instead of context for the booking fetch
+                                  await passengerProvider
+                                      .getBookingRequestsID(null);
+                                } catch (e) {
+                                  if (kDebugMode) {
+                                    print(
+                                        'Error during background booking fetch: $e');
+                                  }
+                                }
                               }
                             } catch (e) {
                               // Handle any errors
@@ -249,7 +247,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
                         ? Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              SizedBox(
+                              const SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(

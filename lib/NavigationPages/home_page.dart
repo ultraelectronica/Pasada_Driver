@@ -453,9 +453,18 @@ class HomePageState extends State<HomePage> {
       await Future.delayed(Duration.zero);
       // Get driver provider
       final driverProvider = context.read<DriverProvider>();
+      final passengerProvider = context.read<PassengerProvider>();
+
       // Only fetch if in driving mode
       if (driverProvider.driverStatus == 'Driving') {
-        await context.read<PassengerProvider>().getBookingRequestsID(context);
+        // Use the direct startBookingStream call if possible
+        final driverId = driverProvider.driverID;
+        if (driverId.isNotEmpty) {
+          passengerProvider.startBookingStream(driverId);
+        }
+
+        // Use context-less call to avoid disposed widget issues
+        await passengerProvider.getBookingRequestsID(null);
       }
     } finally {
       if (mounted) {

@@ -254,7 +254,7 @@ class MapScreenState extends State<MapScreen> {
           id: 'StartingLocation',
           position: _startingLocation!,
           icon:
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
           title: 'Starting Point (Route Origin)',
         ));
       }

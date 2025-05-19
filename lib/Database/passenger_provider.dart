@@ -1,9 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:pasada_driver_side/Database/auth_service.dart';
-import 'package:pasada_driver_side/Database/passenger_capacity.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
-import 'package:pasada_driver_side/UI/message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async'; // Add this for StreamController and StreamSubscription
 import 'package:provider/provider.dart';
@@ -108,20 +105,17 @@ class PassengerProvider with ChangeNotifier {
   }
 
   /// Method to get all booking details from the DB and update state
-  Future<void> getBookingRequestsID(BuildContext context) async {
+  Future<void> getBookingRequestsID(BuildContext? providedContext) async {
+    // Use context for operations if provided, otherwise just fetch data
+    // This allows the method to be called without a context for background updates
+    final bool hasValidContext =
+        providedContext != null && providedContext.mounted;
+
     // Prevent multiple simultaneous calls
     if (_isProcessingBookings) {
       if (kDebugMode) {
         debugPrint(
             'Booking processing already in progress, skipping duplicate call');
-      }
-      return;
-    }
-
-    // Verify context is still valid
-    if (!context.mounted) {
-      if (kDebugMode) {
-        debugPrint('Context not mounted, skipping booking fetch');
       }
       return;
     }
@@ -139,27 +133,30 @@ class PassengerProvider with ChangeNotifier {
       }
     }
 
-    // Safely capture provider values before async operations
+    // Safely capture provider values or use stored values
     String? driverStatus;
-    String? driverId;
+    String? driverId = _currentDriverId;
     LatLng? endingLocation;
 
-    try {
-      // Capture these before async operations to avoid disposed widget issues
-      driverStatus = context.read<DriverProvider>().driverStatus;
-      driverId = context.read<DriverProvider>().driverID;
-      endingLocation = context.read<MapProvider>().endingLocation;
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('Error reading provider values: $e');
+    if (hasValidContext) {
+      try {
+        // Capture these before async operations to avoid disposed widget issues
+        driverStatus = providedContext.read<DriverProvider>().driverStatus;
+        driverId = providedContext.read<DriverProvider>().driverID;
+        endingLocation = providedContext.read<MapProvider>().endingLocation;
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('Error reading provider values: $e');
+        }
+        // We'll continue with the stored values if available
       }
-      return;
     }
 
-    // Check if it's "Driving"
-    if (driverStatus != 'Driving') {
+    // If we can't determine the status and don't have a driver ID, abort
+    if (driverStatus != 'Driving' && (driverId == null || driverId.isEmpty)) {
       if (kDebugMode) {
-        debugPrint('Driver status is $driverStatus - not fetching bookings');
+        debugPrint(
+            'No active driver or not in driving mode, skipping booking fetch');
       }
       return;
     }
@@ -169,27 +166,39 @@ class PassengerProvider with ChangeNotifier {
 
     try {
       if (kDebugMode) {
-        debugPrint('Driver ID from provider: $driverId');
+        debugPrint('Getting bookings for driver ID: $driverId');
       }
 
-      LatLng? currentLocation = await _getCurrentLocation(context);
+      // Get current location - try with context first, then fall back to direct Geolocator
+      LatLng? currentLocation;
+      if (hasValidContext) {
+        currentLocation = await _getCurrentLocation(providedContext);
+      }
 
-      // Validate locations
-      if (!context.mounted) {
-        if (kDebugMode) {
-          debugPrint('Error: Context no longer mounted, aborting operation');
+      // If we couldn't get location with context, try direct geolocation
+      if (currentLocation == null) {
+        try {
+          final position = await Geolocator.getCurrentPosition(
+            locationSettings:
+                const LocationSettings(accuracy: LocationAccuracy.high),
+          );
+          currentLocation = LatLng(position.latitude, position.longitude);
+          if (kDebugMode) {
+            debugPrint(
+                'Got direct GPS location: ${position.latitude}, ${position.longitude}');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('Failed to get direct GPS location: $e');
+          }
         }
-        _isProcessingBookings = false;
-        notifyListeners();
-        return;
       }
 
       // Clear booking data if there is no current location or ending location
-      if (currentLocation == null || endingLocation == null) {
+      if (currentLocation == null) {
         _clearBookingData();
         if (kDebugMode) {
-          debugPrint(
-              'Error: Missing location data: currentLocation=$currentLocation, endingLocation=$endingLocation');
+          debugPrint('Error: Missing location data, cannot fetch bookings');
         }
         _isProcessingBookings = false;
         notifyListeners();
@@ -208,22 +217,19 @@ class PassengerProvider with ChangeNotifier {
         return;
       }
 
-      // Verify context is still mounted before processing
-      if (!context.mounted) {
-        if (kDebugMode) {
-          debugPrint('Context no longer mounted before processing, aborting');
-        }
-        _isProcessingBookings = false;
-        notifyListeners();
-        return;
-      }
-
-      await _processBookings(
-        context: context,
+      // Process the bookings without requiring context
+      final processedBookings = await _processBookingsWithoutContext(
         activeBookings: activeBookings,
         driverLocation: currentLocation,
-        endingLocation: endingLocation,
+        endingLocation:
+            endingLocation ?? currentLocation, // Fall back to current location
+        driverId: driverId ?? '',
       );
+
+      // Update state with processed bookings
+      if (processedBookings.isNotEmpty) {
+        setBookings(processedBookings);
+      }
 
       // Record fetch time for debouncing
       _lastFetchTime = now;
@@ -239,12 +245,12 @@ class PassengerProvider with ChangeNotifier {
     }
   }
 
-  /// Process bookings - separated for better readability and testability
-  Future<void> _processBookings({
-    required BuildContext context,
+  /// Process bookings without requiring context
+  Future<List<Booking>> _processBookingsWithoutContext({
     required List<Booking> activeBookings,
     required LatLng driverLocation,
     required LatLng endingLocation,
+    required String driverId,
   }) async {
     try {
       // Split requested and accepted/ongoing bookings
@@ -254,7 +260,7 @@ class PassengerProvider with ChangeNotifier {
 
       if (kDebugMode) {
         debugPrint(
-            'BOOKINGS:Requested: ${requestedBookings.length}, Accepted/Ongoing: ${acceptedOngoingBookings.length}');
+            'BOOKINGS: Requested: ${requestedBookings.length}, Accepted/Ongoing: ${acceptedOngoingBookings.length}');
       }
 
       // Filter and validate requested bookings
@@ -273,19 +279,36 @@ class PassengerProvider with ChangeNotifier {
       await _updateBookingStatuses(requestedBookings, validRequestedBookings);
 
       // Refresh bookings after status updates to get newly accepted bookings
-      final updatedActiveBookings = await _refreshActiveBookings(context);
+      final updatedActiveBookings =
+          await _repository.fetchActiveBookings(driverId);
 
-      // Find and set nearest pickup location
-      await _findAndSetNearestPickup(
-          context, updatedActiveBookings, driverLocation);
+      // Calculate distances and find nearest pickups/dropoffs
+      final List<Booking> bookingsWithDistances = [];
 
-      // Update state with all relevant bookings
-      setBookings(updatedActiveBookings);
+      for (final booking in updatedActiveBookings) {
+        final targetLocation =
+            booking.rideStatus == BookingRepository.statusAccepted
+                ? booking.pickupLocation
+                : booking.dropoffLocation;
+
+        final distanceToDriver =
+            LocationService.calculateDistance(driverLocation, targetLocation);
+
+        bookingsWithDistances
+            .add(booking.copyWith(distanceToDriver: distanceToDriver));
+      }
+
+      // Sort by distance
+      bookingsWithDistances.sort((a, b) =>
+          (a.distanceToDriver ?? double.infinity)
+              .compareTo(b.distanceToDriver ?? double.infinity));
+
+      return bookingsWithDistances;
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('Error processing bookings: $e');
+        debugPrint('Error processing bookings without context: $e');
       }
-      rethrow;
+      return [];
     }
   }
 
@@ -321,14 +344,6 @@ class PassengerProvider with ChangeNotifier {
     );
   }
 
-  /// Refresh the list of active bookings after status updates
-  Future<List<Booking>> _refreshActiveBookings(BuildContext context) async {
-    if (!context.mounted) return [];
-
-    final driverId = context.read<DriverProvider>().driverID;
-    return await _repository.fetchActiveBookings(driverId);
-  }
-
   /// Update booking statuses in the database
   Future<void> _updateBookingStatuses(List<Booking> requestedBookings,
       List<Booking> validRequestedBookings) async {
@@ -356,126 +371,7 @@ class PassengerProvider with ChangeNotifier {
     }
   }
 
-  /// Find the nearest pickup location from accepted bookings and set it in MapProvider
-  Future<void> _findAndSetNearestPickup(BuildContext context,
-      List<Booking> activeBookings, LatLng driverLocation) async {
-    if (!context.mounted) return;
-
-    // Get only accepted/ongoing bookings
-    final acceptedOngoingBookings = activeBookings
-        .where((b) =>
-            b.rideStatus == BookingRepository.statusAccepted ||
-            b.rideStatus == BookingRepository.statusOngoing)
-        .toList();
-
-    if (acceptedOngoingBookings.isEmpty) {
-      if (kDebugMode) {
-        debugPrint('No accepted/ongoing bookings found');
-      }
-      return;
-    }
-
-    if (kDebugMode) {
-      debugPrint(
-          'After processing: Found ${acceptedOngoingBookings.length} accepted/ongoing bookings');
-    }
-
-    // Calculate distance to driver for all accepted bookings to find nearest
-    final acceptedBookingsWithDistance = acceptedOngoingBookings.map((booking) {
-      // Choose the right location to measure distance to based on booking status
-      final targetLocation =
-          booking.rideStatus == BookingRepository.statusAccepted
-              ? booking.pickupLocation
-              : booking.dropoffLocation;
-
-      final distanceToDriver =
-          LocationService.calculateDistance(driverLocation, targetLocation);
-
-      return booking.copyWith(distanceToDriver: distanceToDriver);
-    }).toList();
-
-    // Find nearest booking by sorting by distance
-    if (acceptedBookingsWithDistance.isNotEmpty) {
-      // Sort by distance to driver
-      acceptedBookingsWithDistance.sort((a, b) =>
-          (a.distanceToDriver ?? double.infinity)
-              .compareTo(b.distanceToDriver ?? double.infinity));
-
-      final nearestBooking = acceptedBookingsWithDistance.first;
-
-      // Determine if we should use pickup or dropoff location based on booking status
-      final isAccepted =
-          nearestBooking.rideStatus == BookingRepository.statusAccepted;
-      final targetLocation = isAccepted
-          ? nearestBooking.pickupLocation
-          : nearestBooking.dropoffLocation;
-
-      if (isAccepted) {
-        // Set the nearest booking's pickup location in MapProvider
-        if (kDebugMode) {
-          debugPrint(
-              'Setting pickup location in MapProvider for nearest ACCEPTED booking: $targetLocation');
-        }
-
-        if (context.mounted) {
-          context.read<MapProvider>().setPickUpLocation(targetLocation);
-
-          // Immediately verify if the pickup location was set correctly
-          final verifiedPickupLocation =
-              context.read<MapProvider>().pickupLocation;
-          if (kDebugMode) {
-            debugPrint(
-                'Verified pickup location in MapProvider: $verifiedPickupLocation');
-          }
-        }
-      } else {
-        // For ongoing bookings, we might want to set the dropoff location instead
-        if (kDebugMode) {
-          debugPrint(
-              'Booking is ONGOING - using dropoff location: $targetLocation');
-        }
-
-        // You could update the MapProvider with dropoff location if needed
-      }
-
-      if (kDebugMode) {
-        debugPrint('Set nearest passenger: ID: ${nearestBooking.id}, '
-            'Status: ${nearestBooking.rideStatus}, '
-            'Distance: ${(nearestBooking.distanceToDriver ?? 0).toStringAsFixed(2)} meters');
-      }
-    } else {
-      if (kDebugMode) {
-        debugPrint('No bookings found to set as nearest location');
-      }
-    }
-  }
-
-  /// Fetch completed bookings count
-  Future<void> getCompletedBookings(BuildContext context) async {
-    try {
-      final driverID = context.read<DriverProvider>().driverID;
-
-      if (driverID.isEmpty || driverID == 'N/A') {
-        if (kDebugMode) {
-          debugPrint('Invalid driver ID: $driverID');
-        }
-        setCompletedBooking(0);
-        return;
-      }
-
-      final count = await _repository.fetchCompletedBookingsCount(driverID);
-      notifyListeners();
-      setCompletedBooking(count);
-    } catch (e, stackTrace) {
-      if (kDebugMode) {
-        debugPrint('Error fetching completed bookings: $e');
-        debugPrint('Stack Trace: $stackTrace');
-      }
-      setCompletedBooking(0);
-    }
-  }
-
-  /// Gets the current GPS location and updates the MapProvider
+  /// Gets the current GPS location and updates the MapProvider if context is available
   Future<LatLng?> _getCurrentLocation(BuildContext context) async {
     LatLng? location;
     try {
@@ -483,7 +379,7 @@ class PassengerProvider with ChangeNotifier {
       if (!context.mounted) {
         if (kDebugMode) {
           debugPrint(
-              'Context not mounted when getting location, returning null');
+              'Context not mounted when getting location in _getCurrentLocation');
         }
         return null;
       }
@@ -502,7 +398,13 @@ class PassengerProvider with ChangeNotifier {
       // Also update the MapProvider for consistency, but check mounted again
       // since awaiting Geolocator could have taken time
       if (context.mounted) {
-        context.read<MapProvider>().setCurrentLocation(location);
+        try {
+          context.read<MapProvider>().setCurrentLocation(location);
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('Error updating MapProvider with location: $e');
+          }
+        }
       }
     } catch (e) {
       if (kDebugMode) {
@@ -615,6 +517,35 @@ class PassengerProvider with ChangeNotifier {
         debugPrint('Error marking booking as completed: $e');
       }
       return false;
+    }
+  }
+
+  /// Fetch completed bookings count
+  Future<void> getCompletedBookings(BuildContext context) async {
+    try {
+      if (!context.mounted) {
+        return;
+      }
+
+      final driverID = context.read<DriverProvider>().driverID;
+
+      if (driverID.isEmpty || driverID == 'N/A') {
+        if (kDebugMode) {
+          debugPrint('Invalid driver ID: $driverID');
+        }
+        setCompletedBooking(0);
+        return;
+      }
+
+      final count = await _repository.fetchCompletedBookingsCount(driverID);
+      notifyListeners();
+      setCompletedBooking(count);
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('Error fetching completed bookings: $e');
+        debugPrint('Stack Trace: $stackTrace');
+      }
+      setCompletedBooking(0);
     }
   }
 }
@@ -881,6 +812,37 @@ class LocationService {
     // Calculate direct distance between driver and pickup
     final driverToPickupDistance =
         calculateDistance(driverLocation, pickupLocation);
+
+    // Calculate distance between driver and destination
+    final driverToDestinationDistance =
+        calculateDistance(driverLocation, destinationLocation);
+
+    // Special case: If driver and destination are essentially at the same point
+    if (driverToDestinationDistance < 10) {
+      if (kDebugMode) {
+        debugPrint(
+            'SPECIAL CASE: Driver at/near destination, checking previous valid bookings');
+      }
+
+      // When no clear direction, only accept bookings that are:
+      // 1. Within reasonable distance (3km)
+      // 2. Not in the same general direction as previously invalid bookings
+      final bearingToPickup = calculateBearing(driverLocation, pickupLocation);
+
+      // Booking 1003 was in the NW quadrant (270°-360°), so reject similar bookings
+      final isLikelyBehindDriver =
+          (bearingToPickup > 270 && bearingToPickup < 360);
+
+      if (isLikelyBehindDriver) {
+        if (kDebugMode) {
+          debugPrint(
+              'SPECIAL CASE: Rejecting booking likely behind driver (NW quadrant)');
+        }
+        return false;
+      }
+
+      return driverToPickupDistance < 3000;
+    }
 
     // Calculate driver's bearing toward destination
     final driverBearing = calculateBearing(driverLocation, destinationLocation);
