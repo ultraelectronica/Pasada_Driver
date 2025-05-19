@@ -62,6 +62,7 @@ class MapScreenState extends State<MapScreen> {
 
   // <<-- MARKERS -->>
   Set<Marker> markers = {};
+  Set<String> _passengerMarkerIds = {}; // Track passenger-related marker IDs
 
   // Route locations
   LatLng? _startingLocation;
@@ -1100,5 +1101,46 @@ class MapScreenState extends State<MapScreen> {
 
     // Only update polyline when significant movement has occurred
     return distanceMoved > _minDistanceForPolylineUpdate;
+  }
+
+  // Add custom marker with all options
+  void addCustomMarker({
+    required String id,
+    required LatLng position,
+    required BitmapDescriptor icon,
+    required String title,
+    double zIndex = 1.0,
+    double alpha =
+        1.0, // Transparency (1.0 = fully opaque, 0.0 = fully transparent)
+  }) {
+    if (!mounted) return;
+
+    setState(() {
+      // Add ID to passenger marker tracking set
+      _passengerMarkerIds.add(id);
+
+      // Add marker to the set
+      markers.add(Marker(
+        markerId: MarkerId(id),
+        position: position,
+        icon: icon,
+        infoWindow: InfoWindow(title: title),
+        zIndex: zIndex,
+        alpha: alpha,
+      ));
+    });
+  }
+
+  // Clear all passenger-related markers (preserves route markers)
+  void clearPassengerMarkers() {
+    if (!mounted) return;
+
+    setState(() {
+      // Remove all markers with IDs in the passenger tracking set
+      markers.removeWhere(
+          (marker) => _passengerMarkerIds.contains(marker.markerId.value));
+      // Clear the tracking set
+      _passengerMarkerIds.clear();
+    });
   }
 }

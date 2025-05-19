@@ -14,6 +14,45 @@ import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'package:flutter/scheduler.dart';
+import 'package:intl/intl.dart';
+import 'dart:math';
+
+// Model to track passenger proximity status
+class PassengerStatus {
+  final Booking booking;
+  final double distance;
+  final bool isNearPickup;
+  final bool isNearDropoff;
+  final bool isApproachingPickup;
+  final bool isApproachingDropoff;
+
+  const PassengerStatus({
+    required this.booking,
+    required this.distance,
+    this.isNearPickup = false,
+    this.isNearDropoff = false,
+    this.isApproachingPickup = false,
+    this.isApproachingDropoff = false,
+  });
+
+  PassengerStatus copyWith({
+    Booking? booking,
+    double? distance,
+    bool? isNearPickup,
+    bool? isNearDropoff,
+    bool? isApproachingPickup,
+    bool? isApproachingDropoff,
+  }) {
+    return PassengerStatus(
+      booking: booking ?? this.booking,
+      distance: distance ?? this.distance,
+      isNearPickup: isNearPickup ?? this.isNearPickup,
+      isNearDropoff: isNearDropoff ?? this.isNearDropoff,
+      isApproachingPickup: isApproachingPickup ?? this.isApproachingPickup,
+      isApproachingDropoff: isApproachingDropoff ?? this.isApproachingDropoff,
+    );
+  }
+}
 
 void main() => runApp(const HomeScreen());
 
@@ -57,6 +96,12 @@ class HomePageState extends State<HomePage> {
   final GlobalKey containerKey = GlobalKey();
   double containerHeight = 0;
 
+  // List of nearby passengers with their status
+  List<PassengerStatus> _nearbyPassengers = [];
+
+  // Currently selected passenger for interaction
+  String? _selectedPassengerId;
+
   // Flag to track if driver is near pickup location
   bool _isNearPickupLocation = false;
   String? _nearestBookingId;
@@ -78,207 +123,302 @@ class HomePageState extends State<HomePage> {
     // _showToast('Vehicle capacity: $Capacity');
   }
 
-  // Method to check if driver is near pickup location
-  void _checkPickupProximity(BuildContext context) {
+  // Method to check proximity for all passengers
+  void _checkProximity(BuildContext context) {
     if (!mounted) return;
 
     final mapProvider = context.read<MapProvider>();
     final passengerProvider = context.read<PassengerProvider>();
 
-    // Get current location and pickup location
+    // Get current location
     final currentLocation = mapProvider.currentLocation;
-    final pickupLocation = mapProvider.pickupLocation;
 
-    // Get active bookings
-    final activeBookings = passengerProvider.bookings
+    // Get all relevant bookings
+    final acceptedBookings = passengerProvider.bookings
         .where(
             (booking) => booking.rideStatus == BookingRepository.statusAccepted)
         .toList();
 
-    // Get ongoing bookings for dropoff detection
     final ongoingBookings = passengerProvider.bookings
         .where(
             (booking) => booking.rideStatus == BookingRepository.statusOngoing)
         .toList();
 
-    // PICKUP PROXIMITY CHECK
-    if (currentLocation != null &&
-        pickupLocation != null &&
-        activeBookings.isNotEmpty) {
-      // Calculate distance between driver and pickup location
-      final distance = Geolocator.distanceBetween(
-          currentLocation.latitude,
-          currentLocation.longitude,
-          pickupLocation.latitude,
-          pickupLocation.longitude);
+    // Combined list of all active bookings
+    final allActiveBookings = [...acceptedBookings, ...ongoingBookings];
 
-      // Find the nearest booking with the pickup location
-      final nearestBooking = activeBookings.firstWhere(
-        (booking) =>
-            booking.pickupLocation.latitude == pickupLocation.latitude &&
-            booking.pickupLocation.longitude == pickupLocation.longitude,
-        orElse: () => activeBookings.first,
-      );
-
-      // Determine if it's time to show another notification (not more often than every 15 seconds)
-      final now = DateTime.now();
-      final canShowNotification = _lastProximityNotificationTime == null ||
-          now.difference(_lastProximityNotificationTime!).inSeconds > 15;
-
-      // If distance is less than 50 meters (or 500 for testing), show the pickup button
-      if (distance < 500) {
-        // TODO: CHANGE THIS TO 50(500 VALUS IS FOR TESTING ONLY)
-        final wasNearPickup = _isNearPickupLocation;
-        setState(() {
-          _isNearPickupLocation = true;
-          _nearestBookingId = nearestBooking.id;
-        });
-
-        // Show arrival notification only once when first arriving
-        if (!wasNearPickup && canShowNotification) {
-          _lastProximityNotificationTime = now;
-
-          // Use SchedulerBinding to show SnackBar after the current frame
-          SchedulerBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content:
-                      const Text('You have arrived at the pickup location!'),
-                  backgroundColor: Constants.GREEN_COLOR,
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-            }
-          });
-        }
-      }
-      // If distance is between 50-200 meters (or 500-1000 for testing), show approaching notification
-      else if (distance >= 500 && distance < 1000 && canShowNotification) {
-        // TODO: CHANGE TO 50-200 RANGE FOR PRODUCTION
-        setState(() {
-          _isNearPickupLocation = false;
-          _nearestBookingId = nearestBooking.id;
-        });
-
-        // Show a proximity indicator (not too frequently)
-        _lastProximityNotificationTime = now;
-
-        // Use SchedulerBinding to show SnackBar after the current frame
-        SchedulerBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    'Approaching pickup location: ${distance.toInt()} meters away'),
-                backgroundColor: Colors.blue,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-        });
-      } else {
-        setState(() {
-          _isNearPickupLocation = false;
-          _nearestBookingId = null;
-        });
-      }
-    } else {
+    // Skip if no location or no bookings
+    if (currentLocation == null || allActiveBookings.isEmpty) {
       setState(() {
+        _nearbyPassengers = [];
+        _selectedPassengerId = null;
         _isNearPickupLocation = false;
         _nearestBookingId = null;
-      });
-    }
-
-    // DROPOFF PROXIMITY CHECK
-    if (currentLocation != null && ongoingBookings.isNotEmpty) {
-      // Reset dropoff proximity state if no ongoing bookings
-      if (ongoingBookings.isEmpty) {
-        setState(() {
-          _isNearDropoffLocation = false;
-          _ongoingBookingId = null;
-        });
-        return;
-      }
-
-      // Get the current ongoing booking
-      final ongoingBooking = ongoingBookings.first;
-
-      // Calculate distance to dropoff location
-      final dropoffDistance = Geolocator.distanceBetween(
-          currentLocation.latitude,
-          currentLocation.longitude,
-          ongoingBooking.dropoffLocation.latitude,
-          ongoingBooking.dropoffLocation.longitude);
-
-      // Determine if it's time to show a notification
-      final now = DateTime.now();
-      final canShowNotification = _lastProximityNotificationTime == null ||
-          now.difference(_lastProximityNotificationTime!).inSeconds > 15;
-
-      // If close to dropoff (less than 50m for production, 500m for testing)
-      if (dropoffDistance < 5000) {
-        // TODO: Change to 50 for production
-        final wasNearDropoff = _isNearDropoffLocation;
-        setState(() {
-          _isNearDropoffLocation = true;
-          _ongoingBookingId = ongoingBooking.id;
-        });
-
-        // Show arrival notification once when first arriving at dropoff
-        if (!wasNearDropoff && canShowNotification) {
-          _lastProximityNotificationTime = now;
-
-          SchedulerBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content:
-                      const Text('You have arrived at the dropoff location!'),
-                  backgroundColor: Constants.GREEN_COLOR,
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-            }
-          });
-        }
-      }
-      // If approaching dropoff (between 500-1000m for testing, 50-200m for production)
-      else if (dropoffDistance >= 5000 &&
-          dropoffDistance < 10000 &&
-          canShowNotification) {
-        setState(() {
-          _isNearDropoffLocation = false;
-          _ongoingBookingId = ongoingBooking.id;
-        });
-
-        // Show approaching notification
-        _lastProximityNotificationTime = now;
-
-        SchedulerBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    'Approaching dropoff location: ${dropoffDistance.toInt()} meters away'),
-                backgroundColor: Colors.orange,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-        });
-      } else {
-        setState(() {
-          _isNearDropoffLocation = false;
-          _ongoingBookingId = null;
-        });
-      }
-    } else {
-      setState(() {
         _isNearDropoffLocation = false;
         _ongoingBookingId = null;
       });
+      return;
     }
+
+    // Calculate distances and statuses for all active bookings
+    List<PassengerStatus> passengerStatuses = [];
+
+    // Process all bookings
+    for (final booking in allActiveBookings) {
+      // Calculate appropriate distance based on booking status
+      double distance;
+      bool isNearPickup = false;
+      bool isApproachingPickup = false;
+      bool isNearDropoff = false;
+      bool isApproachingDropoff = false;
+
+      if (booking.rideStatus == BookingRepository.statusAccepted) {
+        // For accepted bookings, measure distance to pickup
+        distance = Geolocator.distanceBetween(
+            currentLocation.latitude,
+            currentLocation.longitude,
+            booking.pickupLocation.latitude,
+            booking.pickupLocation.longitude);
+
+        // TODO: Set proximity flags based on distance (using test ranges)
+        isNearPickup =
+            distance < 5000; // Arrived at pickup (test: 5000, prod: 50)
+        isApproachingPickup = distance >= 5000 &&
+            distance <
+                10000; // Approaching pickup (test: 5000-10000, prod: 50-200)
+      } else {
+        // For ongoing bookings, measure distance to dropoff
+        distance = Geolocator.distanceBetween(
+            currentLocation.latitude,
+            currentLocation.longitude,
+            booking.dropoffLocation.latitude,
+            booking.dropoffLocation.longitude);
+
+        // TODO: Set proximity flags based on distance (using test ranges)
+        isNearDropoff =
+            distance < 10000; // Arrived at dropoff (test: 5000, prod: 50)
+        isApproachingDropoff = distance >= 5000 &&
+            distance <
+                10000; // Approaching dropoff (test: 5000-10000, prod: 50-200)
+      }
+
+      // Create passenger status for this booking
+      passengerStatuses.add(PassengerStatus(
+        booking: booking,
+        distance: distance,
+        isNearPickup: isNearPickup,
+        isApproachingPickup: isApproachingPickup,
+        isNearDropoff: isNearDropoff,
+        isApproachingDropoff: isApproachingDropoff,
+      ));
+    }
+
+    // Smart sorting: prioritize by status categories and then by distance
+    passengerStatuses.sort((a, b) {
+      // Priority 1: Passengers ready for pickup/dropoff (those who are waiting and driver is there)
+      if (a.isNearPickup && !b.isNearPickup) return -1;
+      if (b.isNearPickup && !a.isNearPickup) return 1;
+      if (a.isNearDropoff && !b.isNearDropoff) return -1;
+      if (b.isNearDropoff && !a.isNearDropoff) return 1;
+
+      // Priority 2: Passengers who are being approached by driver
+      if (a.isApproachingPickup && !b.isApproachingPickup) return -1;
+      if (b.isApproachingPickup && !a.isApproachingPickup) return 1;
+      if (a.isApproachingDropoff && !b.isApproachingDropoff) return -1;
+      if (b.isApproachingDropoff && !a.isApproachingDropoff) return 1;
+
+      // Priority 3: Ongoing rides over pickups
+      if (a.booking.rideStatus == BookingRepository.statusOngoing &&
+          b.booking.rideStatus == BookingRepository.statusAccepted) return -1;
+      if (b.booking.rideStatus == BookingRepository.statusOngoing &&
+          a.booking.rideStatus == BookingRepository.statusAccepted) return 1;
+
+      // Priority 4: Sort by absolute distance (closest first)
+      return a.distance.compareTo(b.distance);
+    });
+
+    // Keep only the 3 nearest passengers
+    if (passengerStatuses.length > 3) {
+      passengerStatuses = passengerStatuses.sublist(0, 3);
+    }
+
+    // Determine if any notifications should be shown (not more often than every 15 seconds)
+    final now = DateTime.now();
+    final canShowNotification = _lastProximityNotificationTime == null ||
+        now.difference(_lastProximityNotificationTime!).inSeconds > 15;
+
+    if (canShowNotification && passengerStatuses.isNotEmpty) {
+      // Find the closest passenger with a status change to notify about
+      PassengerStatus? passengerToNotify;
+
+      // First check for pickups
+      passengerToNotify = passengerStatuses.firstWhere(
+          (p) =>
+              p.isNearPickup &&
+              p.booking.rideStatus == BookingRepository.statusAccepted,
+          orElse: () => PassengerStatus(
+              booking: Booking(
+                  id: '',
+                  passengerId: '',
+                  rideStatus: '',
+                  pickupLocation: LatLng(0, 0),
+                  dropoffLocation: LatLng(0, 0)),
+              distance: double.infinity));
+
+      // Then check for dropoffs if no pickup notification
+      if (passengerToNotify.booking.id.isEmpty) {
+        passengerToNotify = passengerStatuses.firstWhere(
+            (p) =>
+                p.isNearDropoff &&
+                p.booking.rideStatus == BookingRepository.statusOngoing,
+            orElse: () => PassengerStatus(
+                booking: Booking(
+                    id: '',
+                    passengerId: '',
+                    rideStatus: '',
+                    pickupLocation: LatLng(0, 0),
+                    dropoffLocation: LatLng(0, 0)),
+                distance: double.infinity));
+      }
+
+      // Then check for approaching pickups
+      if (passengerToNotify.booking.id.isEmpty) {
+        passengerToNotify = passengerStatuses.firstWhere(
+            (p) =>
+                p.isApproachingPickup &&
+                p.booking.rideStatus == BookingRepository.statusAccepted,
+            orElse: () => PassengerStatus(
+                booking: Booking(
+                    id: '',
+                    passengerId: '',
+                    rideStatus: '',
+                    pickupLocation: LatLng(0, 0),
+                    dropoffLocation: LatLng(0, 0)),
+                distance: double.infinity));
+      }
+
+      // Finally check for approaching dropoffs
+      if (passengerToNotify.booking.id.isEmpty) {
+        passengerToNotify = passengerStatuses.firstWhere(
+            (p) =>
+                p.isApproachingDropoff &&
+                p.booking.rideStatus == BookingRepository.statusOngoing,
+            orElse: () => PassengerStatus(
+                booking: Booking(
+                    id: '',
+                    passengerId: '',
+                    rideStatus: '',
+                    pickupLocation: LatLng(0, 0),
+                    dropoffLocation: LatLng(0, 0)),
+                distance: double.infinity));
+      }
+
+      // Show notification if applicable
+      if (passengerToNotify.booking.id.isNotEmpty) {
+        _lastProximityNotificationTime = now;
+
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            if (passengerToNotify!.isNearPickup) {
+              // Arrived at pickup
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('You have arrived at a pickup location!'),
+                  backgroundColor: Constants.GREEN_COLOR,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            } else if (passengerToNotify.isNearDropoff) {
+              // Arrived at dropoff
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content:
+                      const Text('You have arrived at a dropoff location!'),
+                  backgroundColor: Colors.orange,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            } else if (passengerToNotify.isApproachingPickup) {
+              // Approaching pickup
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                      'Approaching pickup: ${passengerToNotify.distance.toInt()} meters away'),
+                  backgroundColor: Colors.blue,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            } else if (passengerToNotify.isApproachingDropoff) {
+              // Approaching dropoff
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                      'Approaching dropoff: ${passengerToNotify.distance.toInt()} meters away'),
+                  backgroundColor: Colors.orange,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          }
+        });
+      }
+    }
+
+    // Update the state with new passenger statuses
+    setState(() {
+      _nearbyPassengers = passengerStatuses;
+
+      // Set selected passenger if not already set
+      if (_selectedPassengerId == null && passengerStatuses.isNotEmpty) {
+        _selectedPassengerId = passengerStatuses.first.booking.id;
+      } else if (_selectedPassengerId != null) {
+        // Make sure selected passenger is still in the list
+        final stillExists =
+            passengerStatuses.any((p) => p.booking.id == _selectedPassengerId);
+        if (!stillExists && passengerStatuses.isNotEmpty) {
+          _selectedPassengerId = passengerStatuses.first.booking.id;
+        } else if (!stillExists) {
+          _selectedPassengerId = null;
+        }
+      }
+
+      // Set backward compatibility flags for the selected passenger
+      if (_selectedPassengerId != null) {
+        final selectedPassenger = passengerStatuses.firstWhere(
+            (p) => p.booking.id == _selectedPassengerId,
+            orElse: () => PassengerStatus(
+                booking: Booking(
+                    id: '',
+                    passengerId: '',
+                    rideStatus: '',
+                    pickupLocation: LatLng(0, 0),
+                    dropoffLocation: LatLng(0, 0)),
+                distance: double.infinity));
+
+        if (selectedPassenger.booking.id.isNotEmpty) {
+          _isNearPickupLocation = selectedPassenger.isNearPickup;
+          _isNearDropoffLocation = selectedPassenger.isNearDropoff;
+
+          if (selectedPassenger.booking.rideStatus ==
+              BookingRepository.statusAccepted) {
+            _nearestBookingId = selectedPassenger.booking.id;
+            _ongoingBookingId = null;
+          } else if (selectedPassenger.booking.rideStatus ==
+              BookingRepository.statusOngoing) {
+            _nearestBookingId = null;
+            _ongoingBookingId = selectedPassenger.booking.id;
+          }
+        }
+      } else {
+        _isNearPickupLocation = false;
+        _isNearDropoffLocation = false;
+        _nearestBookingId = null;
+        _ongoingBookingId = null;
+      }
+    });
+
+    // Update map markers to reflect passenger status changes
+    _updateMapMarkers();
   }
 
   @override
@@ -292,12 +432,15 @@ class HomePageState extends State<HomePage> {
         _proximityCheckTimer =
             Timer.periodic(const Duration(seconds: 5), (timer) {
           if (mounted) {
-            _checkPickupProximity(context);
+            _checkProximity(context);
+            // Update map markers after proximity check
+            _updateMapMarkers();
           }
         });
 
         // Run initial check
-        _checkPickupProximity(context);
+        _checkProximity(context);
+        _updateMapMarkers();
       }
     });
   }
@@ -305,7 +448,7 @@ class HomePageState extends State<HomePage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // We'll run the initial check in initState instead
+    // Run an initial check when dependencies change
   }
 
   @override
@@ -332,6 +475,57 @@ class HomePageState extends State<HomePage> {
               // initialLocation: StartingLocation,
               // finalLocation: EndingLocation,
             ),
+
+            // PASSENGER LIST - shows top 3 nearest passengers
+            if (_nearbyPassengers.isNotEmpty)
+              Positioned(
+                top: MediaQuery.of(context).padding.top +
+                    10, // Start below status bar
+                left: 10,
+                right: 10,
+                child: PassengerListWidget(
+                  passengers: _nearbyPassengers,
+                  selectedPassengerId: _selectedPassengerId,
+                  onSelected: (passengerId) {
+                    setState(() {
+                      _selectedPassengerId = passengerId;
+
+                      // Update other state variables based on the selected passenger
+                      final selectedPassenger = _nearbyPassengers.firstWhere(
+                          (p) => p.booking.id == passengerId,
+                          orElse: () => _nearbyPassengers.first);
+
+                      _isNearPickupLocation = selectedPassenger.isNearPickup;
+                      _isNearDropoffLocation = selectedPassenger.isNearDropoff;
+
+                      if (selectedPassenger.booking.rideStatus ==
+                          BookingRepository.statusAccepted) {
+                        _nearestBookingId = selectedPassenger.booking.id;
+                        _ongoingBookingId = null;
+
+                        // Focus map on the pickup location for this passenger
+                        _focusMapOnLocation(
+                            selectedPassenger.booking.pickupLocation);
+
+                        // Update the selected pickup in MapProvider
+                        context.read<MapProvider>().setPickUpLocation(
+                            selectedPassenger.booking.pickupLocation);
+                      } else if (selectedPassenger.booking.rideStatus ==
+                          BookingRepository.statusOngoing) {
+                        _nearestBookingId = null;
+                        _ongoingBookingId = selectedPassenger.booking.id;
+
+                        // Focus map on the dropoff location for this passenger
+                        _focusMapOnLocation(
+                            selectedPassenger.booking.dropoffLocation);
+                      }
+                    });
+
+                    // Update map markers to reflect selection change
+                    _updateMapMarkers();
+                  },
+                ),
+              ),
 
             // FLOATING MESSAGE BUTTON
             FloatingMessageButton(
@@ -382,7 +576,7 @@ class HomePageState extends State<HomePage> {
               },
             ),
 
-            // CONFIRM PICKUP BUTTON - only shown when near pickup location
+            // CONFIRM PICKUP BUTTON - only shown when near pickup location and a passenger is selected
             if (_isNearPickupLocation && _nearestBookingId != null)
               Positioned(
                 bottom: screenHeight * 0.15,
@@ -404,9 +598,15 @@ class HomePageState extends State<HomePage> {
                           ),
                         );
                         setState(() {
+                          // Don't reset selection, just update status
                           _isNearPickupLocation = false;
-                          _nearestBookingId = null;
+
+                          // Refresh proximity data
+                          _checkProximity(context);
                         });
+
+                        // Update map markers to reflect the status change
+                        _updateMapMarkers();
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -468,9 +668,15 @@ class HomePageState extends State<HomePage> {
                           ),
                         );
                         setState(() {
+                          // Don't reset selection, just update status
                           _isNearDropoffLocation = false;
-                          _ongoingBookingId = null;
+
+                          // Refresh proximity data
+                          _checkProximity(context);
                         });
+
+                        // Update map markers to reflect the status change
+                        _updateMapMarkers();
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -513,6 +719,85 @@ class HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  // Method to focus the map on a location
+  void _focusMapOnLocation(LatLng location) {
+    // Get reference to the MapScreenState
+    final mapScreenState = mapScreenKey.currentState;
+    if (mapScreenState != null) {
+      // Use the animateToLocation method in MapScreenState
+      mapScreenState.animateToLocation(location);
+    }
+  }
+
+  // Method to update map markers based on passenger statuses
+  void _updateMapMarkers() {
+    final mapScreenState = mapScreenKey.currentState;
+    if (mapScreenState == null) return;
+
+    // Clear all passenger-related markers (keep route markers)
+    mapScreenState.clearPassengerMarkers();
+
+    for (final passenger in _nearbyPassengers) {
+      final isSelected = passenger.booking.id == _selectedPassengerId;
+
+      // Determine marker appearance based on status
+      BitmapDescriptor markerIcon;
+      double zIndex = isSelected ? 5.0 : 3.0; // Selected markers appear on top
+
+      if (passenger.booking.rideStatus == BookingRepository.statusAccepted) {
+        // Pickup markers
+        if (passenger.isNearPickup) {
+          // Ready for pickup - green pin
+          markerIcon =
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
+        } else {
+          // Regular pickup - blue pin
+          markerIcon =
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
+        }
+
+        // Add pickup marker
+        mapScreenState.addCustomMarker(
+          id: 'pickup_${passenger.booking.id}',
+          position: passenger.booking.pickupLocation,
+          icon: markerIcon,
+          title: isSelected ? 'Selected Pickup' : 'Pickup',
+          zIndex: zIndex,
+        );
+
+        // Always show faded dropoff marker for context
+        mapScreenState.addCustomMarker(
+          id: 'dropoff_future_${passenger.booking.id}',
+          position: passenger.booking.dropoffLocation,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRose),
+          title: 'Future Dropoff',
+          zIndex: 2.0,
+          alpha: 0.7, // Semi-transparent
+        );
+      } else {
+        // Dropoff markers for ongoing rides
+        if (passenger.isNearDropoff) {
+          // Ready for dropoff - orange pin
+          markerIcon =
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
+        } else {
+          // Regular dropoff - red pin
+          markerIcon =
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
+        }
+
+        // Add dropoff marker
+        mapScreenState.addCustomMarker(
+          id: 'dropoff_${passenger.booking.id}',
+          position: passenger.booking.dropoffLocation,
+          icon: markerIcon,
+          title: isSelected ? 'Selected Dropoff' : 'Dropoff',
+          zIndex: zIndex,
+        );
+      }
+    }
   }
 }
 
@@ -629,5 +914,239 @@ class FloatingCapacity extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// Widget to display the list of nearby passengers
+class PassengerListWidget extends StatelessWidget {
+  final List<PassengerStatus> passengers;
+  final String? selectedPassengerId;
+  final Function(String) onSelected;
+
+  const PassengerListWidget({
+    Key? key,
+    required this.passengers,
+    this.selectedPassengerId,
+    required this.onSelected,
+  }) : super(key: key);
+
+  // Helper to determine priority level (1-4)
+  int _getPriorityLevel(PassengerStatus passenger) {
+    if (passenger.isNearPickup || passenger.isNearDropoff)
+      return 1; // Highest priority - ready for action
+    if (passenger.isApproachingPickup || passenger.isApproachingDropoff)
+      return 2; // High priority - approaching
+    if (passenger.booking.rideStatus == BookingRepository.statusOngoing)
+      return 3; // Medium priority - ongoing rides
+    return 4; // Normal priority - accepted rides
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Text(
+              'Nearby Passengers',
+              style:
+                  Styles().textStyle(16, Styles.w600Weight, Styles.customBlack),
+            ),
+          ),
+          const Divider(height: 1, thickness: 1),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: passengers.length,
+            separatorBuilder: (context, index) =>
+                const Divider(height: 1, thickness: 1),
+            itemBuilder: (context, index) {
+              final passenger = passengers[index];
+              final isSelected = passenger.booking.id == selectedPassengerId;
+
+              // Determine status text and icon
+              IconData statusIcon;
+              Color statusColor;
+              String statusText;
+
+              if (passenger.booking.rideStatus ==
+                  BookingRepository.statusAccepted) {
+                if (passenger.isNearPickup) {
+                  statusIcon = Icons.place;
+                  statusColor = Constants.GREEN_COLOR;
+                  statusText = 'Ready for pickup';
+                } else if (passenger.isApproachingPickup) {
+                  statusIcon = Icons.directions_car;
+                  statusColor = Colors.blue;
+                  statusText = 'Approaching pickup';
+                } else {
+                  statusIcon = Icons.access_time;
+                  statusColor = Colors.blue;
+                  statusText = 'Pickup pending';
+                }
+              } else {
+                // Ongoing
+                if (passenger.isNearDropoff) {
+                  statusIcon = Icons.place;
+                  statusColor = Colors.orange;
+                  statusText = 'Ready for dropoff';
+                } else if (passenger.isApproachingDropoff) {
+                  statusIcon = Icons.directions_car;
+                  statusColor = Colors.orange;
+                  statusText = 'Approaching dropoff';
+                } else {
+                  statusIcon = Icons.access_time;
+                  statusColor = Colors.orange;
+                  statusText = 'Dropoff pending';
+                }
+              }
+
+              final priorityLevel = _getPriorityLevel(passenger);
+              final priorityColor = priorityLevel == 1
+                  ? Colors.red
+                  : priorityLevel == 2
+                      ? Colors.orange
+                      : priorityLevel == 3
+                          ? Colors.blue
+                          : Colors.grey;
+
+              return InkWell(
+                onTap: () => onSelected(passenger.booking.id),
+                child: Container(
+                  color: isSelected
+                      ? Colors.grey.withOpacity(0.2)
+                      : Colors.transparent,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      // Priority indicator
+                      Container(
+                        width: 4,
+                        height: 45,
+                        color: priorityColor,
+                        margin: const EdgeInsets.only(right: 8),
+                      ),
+
+                      // Status icon
+                      Container(
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        padding: const EdgeInsets.all(8),
+                        child: Icon(statusIcon, color: statusColor, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Passenger details
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                // Passenger ID (truncated for display)
+                                Text(
+                                  'Passenger: ${passenger.booking.passengerId.substring(0, min(4, passenger.booking.passengerId.length))}...',
+                                  style: Styles().textStyle(14,
+                                      Styles.w500Weight, Styles.customBlack),
+                                ),
+                                const Spacer(),
+                                // Distance with badge
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: statusColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.directions_car,
+                                        size: 12,
+                                        color: statusColor,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        _formatDistance(passenger.distance),
+                                        style: Styles().textStyle(
+                                            12, Styles.w500Weight, statusColor),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            // Status text
+                            Row(
+                              children: [
+                                Text(
+                                  statusText,
+                                  style: Styles().textStyle(
+                                      12, Styles.w400Weight, statusColor),
+                                ),
+                                if (priorityLevel == 1)
+                                  Container(
+                                    margin: const EdgeInsets.only(left: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: priorityColor.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      'URGENT',
+                                      style: Styles().textStyle(
+                                          9, Styles.w700Weight, priorityColor),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Selection indicator
+                      if (isSelected)
+                        const Icon(Icons.check_circle,
+                            color: Colors.blue, size: 24),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Format distance to be more human-readable
+  String _formatDistance(double meters) {
+    if (meters >= 1000) {
+      final km = (meters / 1000).toStringAsFixed(1);
+      return '$km km';
+    } else {
+      return '${meters.round()} m';
+    }
   }
 }
