@@ -4,14 +4,14 @@ class AppConfig {
   static const int fetchDebounceTime =
       5; // Minimum time between booking fetches
   static const int periodicFetchInterval =
-      30; // Regular interval for fetching bookings
+      20; // Regular interval for fetching bookings
   static const int proximityCheckInterval =
       5; // How often to check driver proximity to passengers
   static const int notificationCooldown =
       15; // Minimum time between similar notifications
 
   // Timeouts (in seconds)
-  static const int databaseOperationTimeout = 15; // Timeout for DB operations
+  static const int databaseOperationTimeout = 10; // Timeout for DB operations
   static const int locationFetchTimeout = 10; // Timeout for location fetching
 
   // Distance thresholds (in meters)
