@@ -14,8 +14,8 @@ import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'package:flutter/scheduler.dart';
-import 'package:intl/intl.dart';
 import 'dart:math';
+import 'package:pasada_driver_side/Config/app_config.dart';
 
 // Model to track passenger proximity status
 class PassengerStatus {
@@ -116,19 +116,40 @@ class HomePageState extends State<HomePage> {
   // Timer for proximity checks
   Timer? _proximityCheckTimer;
 
+  // Timer for booking fetches (separate from proximity checks)
+  Timer? _bookingFetchTimer;
+
+  // Loading state for bookings fetch
+  bool _isLoadingBookings = false;
+
   Future<void> getPassengerCapacity() async {
     // get the passenger capacity from the DB
-    // await context.read<DriverProvider>().getPassengerCapacity();
     await PassengerCapacity().getPassengerCapacityToDB(context);
-    // _showToast('Vehicle capacity: $Capacity');
   }
 
   // Method to check proximity for all passengers
   void _checkProximity(BuildContext context) {
     if (!mounted) return;
 
+    final driverProvider = context.read<DriverProvider>();
     final mapProvider = context.read<MapProvider>();
     final passengerProvider = context.read<PassengerProvider>();
+
+    // Only perform proximity checks if driver is in Driving mode
+    if (driverProvider.driverStatus != 'Driving') {
+      // Clear passenger data if not driving
+      setState(() {
+        _nearbyPassengers = [];
+        _selectedPassengerId = null;
+        _isNearPickupLocation = false;
+        _nearestBookingId = null;
+        _isNearDropoffLocation = false;
+        _ongoingBookingId = null;
+      });
+      return;
+    }
+
+    // Remove periodic booking refresh from here since we have a dedicated timer now
 
     // Get current location
     final currentLocation = mapProvider.currentLocation;
@@ -180,12 +201,11 @@ class HomePageState extends State<HomePage> {
             booking.pickupLocation.latitude,
             booking.pickupLocation.longitude);
 
-        // TODO: Set proximity flags based on distance (using test ranges)
-        isNearPickup =
-            distance < 5000; // Arrived at pickup (test: 5000, prod: 50)
-        isApproachingPickup = distance >= 5000 &&
-            distance <
-                10000; // Approaching pickup (test: 5000-10000, prod: 50-200)
+        // Use AppConfig threshold values
+        isNearPickup = distance < AppConfig.activePickupProximityThreshold;
+        isApproachingPickup =
+            distance >= AppConfig.activePickupProximityThreshold &&
+                distance < AppConfig.activePickupApproachThreshold;
       } else {
         // For ongoing bookings, measure distance to dropoff
         distance = Geolocator.distanceBetween(
@@ -194,12 +214,11 @@ class HomePageState extends State<HomePage> {
             booking.dropoffLocation.latitude,
             booking.dropoffLocation.longitude);
 
-        // TODO: Set proximity flags based on distance (using test ranges)
-        isNearDropoff =
-            distance < 10000; // Arrived at dropoff (test: 5000, prod: 50)
-        isApproachingDropoff = distance >= 5000 &&
-            distance <
-                10000; // Approaching dropoff (test: 5000-10000, prod: 50-200)
+        // Use AppConfig threshold values
+        isNearDropoff = distance < AppConfig.activeDropoffProximityThreshold;
+        isApproachingDropoff =
+            distance >= AppConfig.activeDropoffProximityThreshold &&
+                distance < AppConfig.activeDropoffApproachThreshold;
       }
 
       // Create passenger status for this booking
@@ -421,6 +440,32 @@ class HomePageState extends State<HomePage> {
     _updateMapMarkers();
   }
 
+  // Method to fetch bookings with loading indicator
+  Future<void> fetchBookings(BuildContext context) async {
+    if (_isLoadingBookings) return; // Prevent multiple simultaneous fetches
+
+    setState(() {
+      _isLoadingBookings = true;
+    });
+
+    try {
+      // Add a small delay to ensure the loading indicator appears
+      await Future.delayed(Duration.zero);
+      // Get driver provider
+      final driverProvider = context.read<DriverProvider>();
+      // Only fetch if in driving mode
+      if (driverProvider.driverStatus == 'Driving') {
+        await context.read<PassengerProvider>().getBookingRequestsID(context);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingBookings = false;
+        });
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -428,9 +473,9 @@ class HomePageState extends State<HomePage> {
     // Delay timer start to ensure context is fully ready
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        // Start periodic proximity check (every 5 seconds)
-        _proximityCheckTimer =
-            Timer.periodic(const Duration(seconds: 5), (timer) {
+        // Start proximity check timer using AppConfig interval
+        _proximityCheckTimer = Timer.periodic(
+            Duration(seconds: AppConfig.proximityCheckInterval), (timer) {
           if (mounted) {
             _checkProximity(context);
             // Update map markers after proximity check
@@ -438,9 +483,31 @@ class HomePageState extends State<HomePage> {
           }
         });
 
-        // Run initial check
+        // Start booking fetch timer using AppConfig interval
+        _bookingFetchTimer = Timer.periodic(
+            Duration(seconds: AppConfig.periodicFetchInterval), (timer) {
+          if (mounted) {
+            final driverProvider = context.read<DriverProvider>();
+            if (driverProvider.driverStatus == 'Driving' &&
+                !_isLoadingBookings) {
+              fetchBookings(context);
+            }
+          }
+        });
+
+        // Run initial checks
         _checkProximity(context);
         _updateMapMarkers();
+
+        // Initial booking fetch if in driving mode
+        final driverProvider = context.read<DriverProvider>();
+
+        // Start real-time booking stream if in driving mode
+        if (driverProvider.driverStatus == 'Driving') {
+          fetchBookings(context);
+          final passengerProvider = context.read<PassengerProvider>();
+          passengerProvider.startBookingStream(driverProvider.driverID);
+        }
       }
     });
   }
@@ -448,13 +515,22 @@ class HomePageState extends State<HomePage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Run an initial check when dependencies change
+    // We'll let the timers handle fetches instead of doing it here
+  }
+
+  // Only listen for status changes from non-driving to driving
+  @override
+  void didUpdateWidget(covariant HomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // We'll let the timers handle fetches instead of doing it here
   }
 
   @override
   void dispose() {
-    // Cancel timer when widget is disposed
+    // Cancel timers when widget is disposed
     _proximityCheckTimer?.cancel();
+    _bookingFetchTimer?.cancel();
     super.dispose();
   }
 
@@ -480,7 +556,7 @@ class HomePageState extends State<HomePage> {
             if (_nearbyPassengers.isNotEmpty)
               Positioned(
                 top: MediaQuery.of(context).padding.top +
-                    10, // Start below status bar
+                    10, // Reset to original position
                 left: 10,
                 right: 10,
                 child: PassengerListWidget(
@@ -529,7 +605,11 @@ class HomePageState extends State<HomePage> {
 
             // FLOATING MESSAGE BUTTON
             FloatingMessageButton(
-                screenHeight: screenHeight, screenWidth: screenWidth),
+              screenHeight: screenHeight,
+              screenWidth: screenWidth,
+              isLoading: _isLoadingBookings,
+              onRefresh: () => fetchBookings(context),
+            ),
 
             // PASSENGER CAPACITY
             FloatingCapacity(
@@ -715,6 +795,50 @@ class HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
+
+            // Loading indicator overlay when fetching bookings
+            if (_isLoadingBookings)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black.withOpacity(0.2),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  Constants.GREEN_COLOR),
+                              strokeWidth: 3,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Finding Passengers...',
+                            style: Styles().textStyle(
+                                16, Styles.w600Weight, Styles.customBlack),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -806,13 +930,20 @@ class FloatingMessageButton extends StatelessWidget {
     super.key,
     required this.screenHeight,
     required this.screenWidth,
+    required this.isLoading,
+    required this.onRefresh,
   });
 
   final double screenHeight;
   final double screenWidth;
+  final bool isLoading;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
+    final driverProvider = context.watch<DriverProvider>();
+    final bool isDriving = driverProvider.driverStatus == 'Driving';
+
     return Positioned(
       bottom: screenHeight * 0.04,
       left: screenWidth * 0.05,
@@ -820,22 +951,67 @@ class FloatingMessageButton extends StatelessWidget {
         width: 50,
         height: 50,
         child: Material(
-          color: Colors.white,
-          elevation: 4,
+          color: isDriving ? Colors.white : Colors.grey[300],
+          elevation: isDriving ? 4 : 2,
           borderRadius: BorderRadius.circular(15),
           child: InkWell(
             onTap: () {
-              PassengerProvider().getBookingRequestsID(context);
+              if (isDriving) {
+                // Manual refresh of bookings
+                if (!isLoading) {
+                  onRefresh();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Refreshing booking requests...'),
+                      backgroundColor: Constants.GREEN_COLOR,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              } else {
+                // Prompt to start driving
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content:
+                        const Text('To get bookings, set status to "Driving"'),
+                    backgroundColor: Colors.orange,
+                    duration: const Duration(seconds: 2),
+                    action: SnackBarAction(
+                      label: 'DRIVE',
+                      textColor: Colors.white,
+                      onPressed: () {
+                        driverProvider.updateStatusToDB('Driving', context);
+                        driverProvider.setDriverStatus('Driving');
+                        driverProvider.setIsDriving(true);
+                      },
+                    ),
+                  ),
+                );
+              }
             },
             borderRadius: BorderRadius.circular(15),
-            splashColor: Colors.blue.withAlpha(77), // ~0.3 opacity
-            highlightColor: Colors.blue.withAlpha(26), // ~0.1 opacity
+            splashColor: isDriving
+                ? Colors.blue.withAlpha(77)
+                : Colors.grey.withAlpha(77),
+            highlightColor: isDriving
+                ? Colors.blue.withAlpha(26)
+                : Colors.grey.withAlpha(26),
             child: Center(
-              child: SvgPicture.asset(
-                'assets/svg/message.svg',
-                height: 20,
-                width: 20,
-              ),
+              child: isLoading
+                  ? SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            isDriving ? Colors.blue : Colors.grey),
+                      ),
+                    )
+                  : Icon(
+                      isDriving ? Icons.refresh : Icons.directions_car,
+                      color: isDriving ? Colors.blue : Colors.grey,
+                      size: 24,
+                    ),
             ),
           ),
         ),
