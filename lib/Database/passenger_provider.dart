@@ -944,6 +944,7 @@ class Booking {
   final String rideStatus;
   final LatLng pickupLocation;
   final LatLng dropoffLocation;
+  final String seatType;
 
   // Optional calculated fields
   final double? distanceToDriver;
@@ -954,6 +955,7 @@ class Booking {
     required this.rideStatus,
     required this.pickupLocation,
     required this.dropoffLocation,
+    required this.seatType,
     this.distanceToDriver,
   });
 
@@ -970,6 +972,7 @@ class Booking {
         (json['dropoff_lat'] as num).toDouble(),
         (json['dropoff_lng'] as num).toDouble(),
       ),
+      seatType: json['seat_type'] as String? ?? 'sitting',
     );
   }
 
@@ -979,6 +982,7 @@ class Booking {
     String? rideStatus,
     LatLng? pickupLocation,
     LatLng? dropoffLocation,
+    String? seatType,
     double? distanceToDriver,
   }) {
     return Booking(
@@ -987,6 +991,7 @@ class Booking {
       rideStatus: rideStatus ?? this.rideStatus,
       pickupLocation: pickupLocation ?? this.pickupLocation,
       dropoffLocation: dropoffLocation ?? this.dropoffLocation,
+      seatType: seatType ?? this.seatType,
       distanceToDriver: distanceToDriver ?? this.distanceToDriver,
     );
   }
@@ -1035,7 +1040,7 @@ class BookingRepository {
       final response = await _supabase
           .from('bookings')
           .select(
-              'booking_id, passenger_id, ride_status, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng')
+              'booking_id, passenger_id, ride_status, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, seat_type')
           .eq('driver_id', driverId)
           .or(
               'ride_status.eq.$statusRequested,ride_status.eq.$statusAccepted,ride_status.eq.$statusOngoing')

@@ -648,6 +648,11 @@ class MapScreenState extends State<MapScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           context.read<MapProvider>().changeRouteLocation(context);
+
+          // Set driving status to Online and update to DB
+          context.read<DriverProvider>().setIsDriving(false);
+          context.read<DriverProvider>().updateStatusToDB('Online', context);
+          context.read<DriverProvider>().setDriverStatus('Online');
         }
       });
     }
