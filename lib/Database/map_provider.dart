@@ -327,6 +327,12 @@ class MapProvider with ChangeNotifier {
           .eq('vehicle_id', context.read<DriverProvider>().vehicleID)
           .select();
 
+      await supabase
+          .from('driverTable')
+          .update({'route_id': newRouteId})
+          .eq('driver_id', context.read<DriverProvider>().driverID)
+          .select();
+
       // Clear pickup location when route changes
       _pickupLocation = null;
       notifyListeners();
@@ -401,9 +407,13 @@ class MapProvider with ChangeNotifier {
       case 2:
         return 1; // Novaliches to Malinta
       case 3:
-        return 4; // Home to STI
+        return 4; // Monumento to Sangandaan
       case 4:
-        return 3; // STI to Home
+        return 3; // Sangandaan to Monumento
+      case 5:
+        return 6; // kanto ni ethan to bahay ni ethan
+      case 6:
+        return 5; // Bahay ni ethan to kanto ni ethan
       default:
         throw Exception('Invalid route ID for change: $currentRouteId');
     }
@@ -414,7 +424,9 @@ class MapProvider with ChangeNotifier {
     return (route1 == 1 && route2 == 2) ||
         (route1 == 2 && route2 == 1) ||
         (route1 == 3 && route2 == 4) ||
-        (route1 == 4 && route2 == 3);
+        (route1 == 4 && route2 == 3) ||
+        (route1 == 5 && route2 == 6) ||
+        (route1 == 6 && route2 == 5);
   }
 
   // Clear cached data

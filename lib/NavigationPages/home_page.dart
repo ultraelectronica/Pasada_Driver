@@ -387,6 +387,9 @@ class HomePageState extends State<HomePage> {
     // Delay timer start to ensure context is fully ready
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        // Initialize the passenger capacity system
+        PassengerCapacity().initializeCapacity(context);
+
         // Start proximity check timer using AppConfig interval
         _proximityCheckTimer = Timer.periodic(
             Duration(seconds: AppConfig.proximityCheckInterval), (timer) {
@@ -525,7 +528,7 @@ class HomePageState extends State<HomePage> {
               onRefresh: () => fetchBookings(context),
             ),
 
-            // PASSENGER CAPACITY
+            // PASSENGER CAPACITY (TOTAL) - Just refreshes data
             FloatingCapacity(
               Provider: driverProvider,
               passengerCapacity: PassengerCapacity(),
@@ -538,9 +541,11 @@ class HomePageState extends State<HomePage> {
               onTap: () {
                 PassengerCapacity().getPassengerCapacityToDB(context);
               },
+              canIncrement:
+                  false, // Total capacity can't be incremented directly
             ),
 
-            // PASSENGER STANDING CAPACITY
+            // PASSENGER STANDING CAPACITY - Can be incremented manually
             FloatingCapacity(
               Provider: driverProvider,
               passengerCapacity: PassengerCapacity(),
@@ -550,12 +555,49 @@ class HomePageState extends State<HomePage> {
               rightPosition: screenWidth * 0.05,
               icon: 'assets/svg/standing.svg',
               text: driverProvider.passengerStandingCapacity.toString(),
-              onTap: () {
-                PassengerCapacity().getPassengerCapacityToDB(context);
+              onTap: () async {
+                // Increment standing capacity by 1 when tapped
+                final success =
+                    await PassengerCapacity().manualIncrementStanding(context);
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Standing passenger added manually'),
+                      backgroundColor: Colors.blue,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+              canIncrement: true, // Standing capacity can be incremented
+              onDecrementTap: () async {
+                // Decrement standing capacity by 1 when decrement button is tapped
+                final success =
+                    await PassengerCapacity().manualDecrementStanding(context);
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content:
+                          const Text('Standing passenger removed manually'),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                } else {
+                  // Show error if can't decrement (e.g., already at 0)
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content:
+                          const Text('Cannot remove: No standing passengers'),
+                      backgroundColor: Colors.grey,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
               },
             ),
 
-            // PASSENGER SITTING CAPACITY
+            // PASSENGER SITTING CAPACITY - Can be incremented manually
             FloatingCapacity(
               Provider: driverProvider,
               passengerCapacity: PassengerCapacity(),
@@ -565,8 +607,44 @@ class HomePageState extends State<HomePage> {
               rightPosition: screenWidth * 0.05,
               icon: 'assets/svg/sitting.svg',
               text: driverProvider.passengerSittingCapacity.toString(),
-              onTap: () {
-                PassengerCapacity().getPassengerCapacityToDB(context);
+              onTap: () async {
+                // Increment sitting capacity by 1 when tapped
+                final success =
+                    await PassengerCapacity().manualIncrementSitting(context);
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Sitting passenger added manually'),
+                      backgroundColor: Colors.blue,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+              canIncrement: true, // Sitting capacity can be incremented
+              onDecrementTap: () async {
+                // Decrement sitting capacity by 1 when decrement button is tapped
+                final success =
+                    await PassengerCapacity().manualDecrementSitting(context);
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Sitting passenger removed manually'),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                } else {
+                  // Show error if can't decrement (e.g., already at 0)
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content:
+                          const Text('Cannot remove: No sitting passengers'),
+                      backgroundColor: Colors.grey,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
               },
             ),
 
@@ -581,13 +659,34 @@ class HomePageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(15),
                   child: InkWell(
                     onTap: () async {
+                      // Get the booking seat type BEFORE marking it as ongoing
+                      String seatType =
+                          'sitting'; // Default to 'sitting' if booking not found
+
+                      try {
+                        // Attempt to find the booking before any status changes
+                        final booking = passengerProvider.bookings.firstWhere(
+                          (b) => b.id == _nearestBookingId,
+                        );
+                        seatType = booking.seatType;
+                        debugPrint(
+                            'Found booking for pickup with seat type: $seatType');
+                      } catch (e) {
+                        debugPrint(
+                            'Booking not found for pickup, using default seat type: $seatType');
+                      }
+
                       // Mark booking as ongoing when driver confirms pickup
                       final success = await passengerProvider
                           .markBookingAsOngoing(_nearestBookingId!);
                       if (success) {
+                        // Increment passenger capacity with the seat type
+                        await PassengerCapacity()
+                            .incrementCapacity(context, seatType);
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Passenger pickup confirmed!'),
+                            content: const Text('Passenger pickup confirmed!'),
                             backgroundColor: Constants.GREEN_COLOR,
                           ),
                         );
@@ -651,10 +750,31 @@ class HomePageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(15),
                   child: InkWell(
                     onTap: () async {
+                      // Get the booking seat type BEFORE marking it as completed
+                      // This prevents the "booking not found" error since bookings are removed after completion
+                      String seatType =
+                          'sitting'; // Default to 'sitting' if booking not found
+
+                      try {
+                        // Attempt to find the booking before it's removed
+                        final booking = passengerProvider.bookings.firstWhere(
+                          (b) => b.id == _ongoingBookingId,
+                        );
+                        seatType = booking.seatType;
+                        debugPrint('Found booking with seat type: $seatType');
+                      } catch (e) {
+                        debugPrint(
+                            'Booking not found before completion, using default seat type: $seatType');
+                      }
+
                       // Mark booking as completed when passenger reaches destination
                       final success = await passengerProvider
                           .markBookingAsCompleted(_ongoingBookingId!);
                       if (success) {
+                        // Decrement passenger capacity using saved seat type
+                        await PassengerCapacity()
+                            .decrementCapacity(context, seatType);
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: const Text('Ride completed successfully!'),
@@ -945,7 +1065,9 @@ class FloatingCapacity extends StatelessWidget {
       required this.passengerCapacity,
       required this.icon,
       required this.text,
-      required this.onTap});
+      required this.onTap,
+      this.canIncrement = false,
+      this.onDecrementTap});
 
   final double screenHeight;
   final double screenWidth;
@@ -956,52 +1078,99 @@ class FloatingCapacity extends StatelessWidget {
   final String icon;
   final String text;
   final VoidCallback onTap;
+  final bool canIncrement; // Whether this capacity can be incremented
+  final VoidCallback? onDecrementTap; // Callback for decrement button
 
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      bottom: bottomPosition, //screenHeight * 0.25
-      right: rightPosition, //screenWidth * 0.05
-      child: Material(
-        color: Colors.white,
-        elevation: 4,
-        borderRadius: BorderRadius.circular(15),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(15),
-          splashColor: Constants.GREEN_COLOR.withAlpha(77), // ~0.3 opacity
-          highlightColor: Constants.GREEN_COLOR.withAlpha(26), // ~0.1 opacity
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: Constants.GREEN_COLOR, width: 2),
-            ),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SvgPicture.asset(
-                  icon,
-                  colorFilter: ColorFilter.mode(
-                    Constants.GREEN_COLOR,
-                    BlendMode.srcIn,
+      bottom: bottomPosition,
+      right: rightPosition,
+      child: Row(
+        children: [
+          // Decrement button (only shown for standing and sitting capacity)
+          if (canIncrement && onDecrementTap != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Material(
+                color: Colors.white,
+                elevation: 4,
+                borderRadius: BorderRadius.circular(15),
+                child: InkWell(
+                  onTap: onDecrementTap,
+                  borderRadius: BorderRadius.circular(15),
+                  splashColor: Colors.red.withAlpha(77),
+                  highlightColor: Colors.red.withAlpha(26),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.red, width: 2),
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: const Icon(
+                      Icons.remove_circle_outline,
+                      color: Colors.red,
+                      size: 22,
+                    ),
                   ),
-                  height: 30,
-                  width: 30,
                 ),
-                const SizedBox(width: 10),
-                Text(
-                  text,
-                  style: Styles()
-                      .textStyle(22, Styles.w600Weight, Styles.customBlack),
+              ),
+            ),
+
+          // Main capacity indicator
+          Material(
+            color: Colors.white,
+            elevation: 4,
+            borderRadius: BorderRadius.circular(15),
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(15),
+              splashColor: Constants.GREEN_COLOR.withAlpha(77), // ~0.3 opacity
+              highlightColor:
+                  Constants.GREEN_COLOR.withAlpha(26), // ~0.1 opacity
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                      color: canIncrement ? Colors.blue : Constants.GREEN_COLOR,
+                      width: 2),
                 ),
-              ],
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SvgPicture.asset(
+                      icon,
+                      colorFilter: ColorFilter.mode(
+                        canIncrement ? Colors.blue : Constants.GREEN_COLOR,
+                        BlendMode.srcIn,
+                      ),
+                      height: 30,
+                      width: 30,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      text,
+                      style: Styles()
+                          .textStyle(22, Styles.w600Weight, Styles.customBlack),
+                    ),
+                    if (canIncrement) ...[
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.add_circle_outline,
+                        color: Colors.blue,
+                        size: 20,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

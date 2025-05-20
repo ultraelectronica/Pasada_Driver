@@ -266,9 +266,9 @@ class ProfilePageState extends State<ProfilePage> {
       shadowColor: Colors.black38,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       color: Colors.white,
-      child: Padding(
+      child: const Padding(
         padding:
-            const EdgeInsets.symmetric(vertical: 0), // Padding around the list
+            EdgeInsets.symmetric(vertical: 0), // Padding around the list
         child: Column(
           children: [
             // _buildActionTile(
@@ -276,24 +276,24 @@ class ProfilePageState extends State<ProfilePage> {
             //   text: 'Update Information',
             //   onTap: () {/* TODO: Implement navigation */},
             // ),
-            _buildDivider(),
-            _buildActionTile(
-              icon: Icons.settings_outlined, // Material Icon
-              text: 'Settings',
-              onTap: () {/* TODO: Implement navigation */},
-            ),
-            _buildDivider(),
-            _buildActionTile(
-              icon: Icons.help_outline, // Material Icon
-              text: 'Help & Support',
-              onTap: () {/* TODO: Implement navigation */},
-            ),
-            _buildDivider(),
-            _buildActionTile(
-              icon: Icons.info_outline, // Material Icon
-              text: 'About',
-              onTap: () {/* TODO: Implement navigation */},
-            ),
+            // _buildDivider(),
+            // _buildActionTile(
+            //   icon: Icons.settings_outlined, // Material Icon
+            //   text: 'Settings',
+            //   onTap: () {/* TODO: Implement navigation */},
+            // ),
+            // _buildDivider(),
+            // _buildActionTile(
+            //   icon: Icons.help_outline, // Material Icon
+            //   text: 'Help & Support',
+            //   onTap: () {/* TODO: Implement navigation */},
+            // ),
+            // _buildDivider(),
+            // _buildActionTile(
+            //   icon: Icons.info_outline, // Material Icon
+            //   text: 'About',
+            //   onTap: () {/* TODO: Implement navigation */},
+            // ),
           ],
         ),
       ),
@@ -426,8 +426,8 @@ class ProfilePageState extends State<ProfilePage> {
               _buildModalDivider(),
               statusOption('Idling'),
               _buildModalDivider(),
-              statusOption('Offline'),
-              _buildModalDivider(),
+              // statusOption('Offline'),
+              // _buildModalDivider(),
               const SizedBox(height: 20)
             ],
           )); // Add a non-nullable widget here
