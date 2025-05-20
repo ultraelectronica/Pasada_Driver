@@ -528,6 +528,12 @@ class HomePageState extends State<HomePage> {
               onRefresh: () => fetchBookings(context),
             ),
 
+            // Floating Status Switch
+            FloatingStatusSwitch(
+              screenHeight: screenHeight,
+              screenWidth: screenWidth,
+            ),
+
             // PASSENGER CAPACITY (TOTAL) - Just refreshes data
             FloatingCapacity(
               Provider: driverProvider,
@@ -567,6 +573,30 @@ class HomePageState extends State<HomePage> {
                       duration: const Duration(seconds: 2),
                     ),
                   );
+                } else {
+                  // Check driver status first
+                  if (driverProvider.driverStatus != 'Driving') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text(
+                            'Cannot add passenger: Driver is not in Driving status'),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                  // Then check capacity limit
+                  else if (driverProvider.passengerStandingCapacity >=
+                      PassengerCapacity.MAX_STANDING_CAPACITY) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            'Cannot add passenger: Maximum standing capacity (${PassengerCapacity.MAX_STANDING_CAPACITY}) reached'),
+                        backgroundColor: Colors.orange,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
                 }
               },
               canIncrement: true, // Standing capacity can be incremented
@@ -584,15 +614,27 @@ class HomePageState extends State<HomePage> {
                     ),
                   );
                 } else {
-                  // Show error if can't decrement (e.g., already at 0)
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content:
-                          const Text('Cannot remove: No standing passengers'),
-                      backgroundColor: Colors.grey,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
+                  // Check if driver status is the issue
+                  if (driverProvider.driverStatus != 'Driving') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text(
+                            'Cannot remove passenger: Driver is not in Driving status'),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  } else {
+                    // Otherwise it's because there are no standing passengers
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content:
+                            const Text('Cannot remove: No standing passengers'),
+                        backgroundColor: Colors.grey,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
                 }
               },
             ),
@@ -619,6 +661,30 @@ class HomePageState extends State<HomePage> {
                       duration: const Duration(seconds: 2),
                     ),
                   );
+                } else {
+                  // Check driver status first
+                  if (driverProvider.driverStatus != 'Driving') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text(
+                            'Cannot add passenger: Driver is not in Driving status'),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                  // Then check capacity limit
+                  else if (driverProvider.passengerSittingCapacity >=
+                      PassengerCapacity.MAX_SITTING_CAPACITY) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            'Cannot add passenger: Maximum sitting capacity (${PassengerCapacity.MAX_SITTING_CAPACITY}) reached'),
+                        backgroundColor: Colors.orange,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
                 }
               },
               canIncrement: true, // Sitting capacity can be incremented
@@ -635,15 +701,27 @@ class HomePageState extends State<HomePage> {
                     ),
                   );
                 } else {
-                  // Show error if can't decrement (e.g., already at 0)
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content:
-                          const Text('Cannot remove: No sitting passengers'),
-                      backgroundColor: Colors.grey,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
+                  // Check if driver status is the issue
+                  if (driverProvider.driverStatus != 'Driving') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text(
+                            'Cannot remove passenger: Driver is not in Driving status'),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  } else {
+                    // Otherwise it's because there are no sitting passengers
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content:
+                            const Text('Cannot remove: No sitting passengers'),
+                        backgroundColor: Colors.grey,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
                 }
               },
             ),
@@ -651,7 +729,7 @@ class HomePageState extends State<HomePage> {
             // CONFIRM PICKUP BUTTON - only shown when near pickup location and a passenger is selected
             if (_isNearPickupLocation && _nearestBookingId != null)
               Positioned(
-                bottom: screenHeight * 0.15,
+                bottom: screenHeight * 0.025,
                 left: screenWidth * 0.2,
                 right: screenWidth * 0.2,
                 child: Material(
@@ -742,7 +820,7 @@ class HomePageState extends State<HomePage> {
             // COMPLETE RIDE BUTTON - only shown when near dropoff location
             if (_isNearDropoffLocation && _ongoingBookingId != null)
               Positioned(
-                bottom: screenHeight * 0.15,
+                bottom: screenHeight * 0.025,
                 left: screenWidth * 0.2,
                 right: screenWidth * 0.2,
                 child: Material(
@@ -1003,22 +1081,13 @@ class FloatingMessageButton extends StatelessWidget {
                   );
                 }
               } else {
-                // Prompt to start driving
+                // Prompt to start driving with snackbar instead of dialog
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content:
-                        const Text('To get bookings, set status to "Driving"'),
+                        const Text('To get bookings, switch to "Driving" mode'),
                     backgroundColor: Colors.orange,
                     duration: const Duration(seconds: 2),
-                    action: SnackBarAction(
-                      label: 'DRIVE',
-                      textColor: Colors.white,
-                      onPressed: () {
-                        driverProvider.updateStatusToDB('Driving', context);
-                        driverProvider.setDriverStatus('Driving');
-                        driverProvider.setIsDriving(true);
-                      },
-                    ),
                   ),
                 );
               }
@@ -1046,6 +1115,94 @@ class FloatingMessageButton extends StatelessWidget {
                       color: isDriving ? Colors.blue : Colors.grey,
                       size: 24,
                     ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class FloatingStatusSwitch extends StatelessWidget {
+  const FloatingStatusSwitch({
+    super.key,
+    required this.screenHeight,
+    required this.screenWidth,
+  });
+
+  final double screenHeight;
+  final double screenWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final driverProvider = context.watch<DriverProvider>();
+    final bool isDriving = driverProvider.driverStatus == 'Driving';
+
+    return Positioned(
+      bottom: screenHeight * 0.115, // Position just above the refresh button
+      left: screenWidth * 0.05,
+      child: SizedBox(
+        width: 135, // Wider to fit the text and switch
+        height: 50,
+        child: Material(
+          color: Colors.white,
+          elevation: 4,
+          borderRadius: BorderRadius.circular(15),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Status text
+                Text(
+                  isDriving ? 'Driving' : 'Online',
+                  style: Styles().textStyle(
+                    14,
+                    Styles.w600Weight,
+                    isDriving ? Constants.GREEN_COLOR : Colors.grey[700]!,
+                  ),
+                ),
+
+                // Toggle switch
+                Switch(
+                  value: isDriving,
+                  activeColor: Constants.GREEN_COLOR,
+                  onChanged: (value) {
+                    if (value) {
+                      // Switch to Driving mode
+                      driverProvider.updateStatusToDB('Driving', context);
+                      driverProvider.setDriverStatus('Driving');
+                      driverProvider.setIsDriving(true);
+
+                      // Also fetch bookings when switching to driving mode
+                      context
+                          .read<PassengerProvider>()
+                          .getBookingRequestsID(context);
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Status set to Driving'),
+                          backgroundColor: Constants.GREEN_COLOR,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    } else {
+                      // Switch to Online mode
+                      driverProvider.updateStatusToDB('Online', context);
+                      driverProvider.setDriverStatus('Online');
+                      driverProvider.setIsDriving(false);
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Status set to Online'),
+                          backgroundColor: Colors.grey[700],
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ],
             ),
           ),
         ),

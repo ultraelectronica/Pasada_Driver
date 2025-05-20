@@ -26,7 +26,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   Timer? _timer;
   bool isDialogShown = false;
   // Tracks if we've already shown the driving dialog in this session
-  bool hasShownDrivingPrompt = false;
+  bool hasShownDrivingPrompt = true;
 
   final List<Widget> pages = [
     const HomeScreen(),
@@ -111,6 +111,12 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   }
 
   void isDriving(DriverProvider driverProvider) {
+    // We're no longer showing the dialog prompt as we're replacing it with a switch
+    // Just set hasShownDrivingPrompt to true to avoid showing the dialog
+    hasShownDrivingPrompt = true;
+
+    // Old logic disabled:
+    /*
     if (driverProvider.isDriving == false &&
         _currentIndex == 0 &&
         !hasShownDrivingPrompt) {
@@ -124,6 +130,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
         });
       }
     }
+    */
   }
 
   // START DRIVING DIALOG
