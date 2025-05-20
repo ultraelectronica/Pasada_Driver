@@ -1137,6 +1137,9 @@ class FloatingStatusSwitch extends StatelessWidget {
   Widget build(BuildContext context) {
     final driverProvider = context.watch<DriverProvider>();
     final bool isDriving = driverProvider.driverStatus == 'Driving';
+    // Calculate total passengers (standing + sitting)
+    final int totalPassengers = driverProvider.passengerStandingCapacity +
+        driverProvider.passengerSittingCapacity;
 
     return Positioned(
       bottom: screenHeight * 0.115, // Position just above the refresh button
@@ -1169,7 +1172,7 @@ class FloatingStatusSwitch extends StatelessWidget {
                   activeColor: Constants.GREEN_COLOR,
                   onChanged: (value) {
                     if (value) {
-                      // Switch to Driving mode
+                      // Switch to Driving mode - always allowed
                       driverProvider.updateStatusToDB('Driving', context);
                       driverProvider.setDriverStatus('Driving');
                       driverProvider.setIsDriving(true);
@@ -1187,18 +1190,31 @@ class FloatingStatusSwitch extends StatelessWidget {
                         ),
                       );
                     } else {
-                      // Switch to Online mode
-                      driverProvider.updateStatusToDB('Online', context);
-                      driverProvider.setDriverStatus('Online');
-                      driverProvider.setIsDriving(false);
+                      // Switching to Online mode - check if there are passengers first
+                      if (totalPassengers > 0) {
+                        // Show warning if there are still passengers
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                'Cannot go Online: Vehicle still has $totalPassengers passenger${totalPassengers > 1 ? "s" : ""}'),
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                      } else {
+                        // No passengers, safe to go Online
+                        driverProvider.updateStatusToDB('Online', context);
+                        driverProvider.setDriverStatus('Online');
+                        driverProvider.setIsDriving(false);
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Status set to Online'),
-                          backgroundColor: Colors.grey[700],
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Status set to Online'),
+                            backgroundColor: Colors.grey[700],
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
                     }
                   },
                 ),
