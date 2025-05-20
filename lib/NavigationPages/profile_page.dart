@@ -300,29 +300,29 @@ class ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildActionTile(
-      {required IconData icon,
-      required String text,
-      required VoidCallback onTap}) {
-    return ListTile(
-      minTileHeight: 50,
-      leading: Icon(icon, color: const Color(0xff067837), size: 20),
-      title: Text(
-        text,
-        style: Styles().textStyle(14, Styles.w500Weight, Styles.customBlack),
-      ),
-      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-      onTap: onTap,
-    );
-  }
+  // Widget _buildActionTile(
+  //     {required IconData icon,
+  //     required String text,
+  //     required VoidCallback onTap}) {
+  //   return ListTile(
+  //     minTileHeight: 50,
+  //     leading: Icon(icon, color: const Color(0xff067837), size: 20),
+  //     title: Text(
+  //       text,
+  //       style: Styles().textStyle(14, Styles.w500Weight, Styles.customBlack),
+  //     ),
+  //     trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+  //     onTap: onTap,
+  //   );
+  // }
 
-  Widget _buildDivider() {
-    return const Padding(
-      padding:
-          EdgeInsets.symmetric(horizontal: 15.0), // Indent divider slightly
-      child: Divider(height: 1, thickness: 0.5, color: Colors.grey),
-    );
-  }
+  // Widget _buildDivider() {
+  //   return const Padding(
+  //     padding:
+  //         EdgeInsets.symmetric(horizontal: 15.0), // Indent divider slightly
+  //     child: Divider(height: 1, thickness: 0.5, color: Colors.grey),
+  //   );
+  // }
 
   Widget _buildLogoutButton() {
     return OutlinedButton.icon(

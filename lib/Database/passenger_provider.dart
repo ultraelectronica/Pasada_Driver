@@ -325,8 +325,8 @@ class PassengerProvider with ChangeNotifier {
         }
       }
 
-      // If we can't determine the status and don't have a driver ID, abort
-      if (driverStatus != 'Driving' && (driverId == null || driverId.isEmpty)) {
+      // If driver is not in Driving mode OR we don't have a driver ID, abort
+      if (driverStatus != 'Driving' || driverId == null || driverId.isEmpty) {
         if (kDebugMode) {
           debugPrint(
               'No active driver or not in driving mode, skipping booking fetch');

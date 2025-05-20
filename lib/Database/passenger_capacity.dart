@@ -16,6 +16,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class PassengerCapacity {
   final SupabaseClient supabase = Supabase.instance.client;
 
+  // Maximum capacity limits
+  static const int MAX_SITTING_CAPACITY = 23;
+  static const int MAX_STANDING_CAPACITY = 5;
+
   /// Initialize vehicle capacity with zero values if columns don't exist
   Future<void> initializeCapacity(BuildContext context) async {
     try {
@@ -205,6 +209,12 @@ class PassengerCapacity {
           Provider.of<DriverProvider>(context, listen: false);
       final String vehicleID = driverProvider.vehicleID;
 
+      // Check if driver is in Driving status
+      if (driverProvider.driverStatus != 'Driving') {
+        debugPrint('Cannot increment: Driver is not in Driving status');
+        return false;
+      }
+
       debugPrint('Manually incrementing standing capacity');
 
       // Get current counts
@@ -216,6 +226,13 @@ class PassengerCapacity {
 
       int totalCapacity = vehicleData['passenger_capacity'] ?? 0;
       int standingCount = vehicleData['standing_passenger'] ?? 0;
+
+      // Check maximum capacity for standing
+      if (standingCount >= MAX_STANDING_CAPACITY) {
+        debugPrint(
+            'Cannot increment: Maximum standing capacity reached (${MAX_STANDING_CAPACITY})');
+        return false;
+      }
 
       // Increment counts
       totalCapacity++;
@@ -247,6 +264,12 @@ class PassengerCapacity {
           Provider.of<DriverProvider>(context, listen: false);
       final String vehicleID = driverProvider.vehicleID;
 
+      // Check if driver is in Driving status
+      if (driverProvider.driverStatus != 'Driving') {
+        debugPrint('Cannot increment: Driver is not in Driving status');
+        return false;
+      }
+
       debugPrint('Manually incrementing sitting capacity');
 
       // Get current counts
@@ -258,6 +281,13 @@ class PassengerCapacity {
 
       int totalCapacity = vehicleData['passenger_capacity'] ?? 0;
       int sittingCount = vehicleData['sitting_passenger'] ?? 0;
+
+      // Check maximum capacity for sitting
+      if (sittingCount >= MAX_SITTING_CAPACITY) {
+        debugPrint(
+            'Cannot increment: Maximum sitting capacity reached (${MAX_SITTING_CAPACITY})');
+        return false;
+      }
 
       // Increment counts
       totalCapacity++;
@@ -288,6 +318,12 @@ class PassengerCapacity {
       final driverProvider =
           Provider.of<DriverProvider>(context, listen: false);
       final String vehicleID = driverProvider.vehicleID;
+
+      // Check if driver is in Driving status
+      if (driverProvider.driverStatus != 'Driving') {
+        debugPrint('Cannot decrement: Driver is not in Driving status');
+        return false;
+      }
 
       debugPrint('Manually decrementing standing capacity');
 
@@ -335,6 +371,12 @@ class PassengerCapacity {
       final driverProvider =
           Provider.of<DriverProvider>(context, listen: false);
       final String vehicleID = driverProvider.vehicleID;
+
+      // Check if driver is in Driving status
+      if (driverProvider.driverStatus != 'Driving') {
+        debugPrint('Cannot decrement: Driver is not in Driving status');
+        return false;
+      }
 
       debugPrint('Manually decrementing sitting capacity');
 
