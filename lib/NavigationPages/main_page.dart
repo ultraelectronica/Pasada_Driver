@@ -133,161 +133,161 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     */
   }
 
-  // START DRIVING DIALOG
-  Future<void> _showStartDrivingDialog() async {
-    bool isStartingDrive = false;
+  // // START DRIVING DIALOG
+  // Future<void> _showStartDrivingDialog() async {
+  //   bool isStartingDrive = false;
 
-    await showDialog(
-      context: context,
-      barrierDismissible: true, // Enables dismissing dialog by tapping outside
-      builder: (BuildContext dialogContext) {
-        return StatefulBuilder(builder: (context, setState) {
-          return AlertDialog(
-            title: Text(
-              'Welcome Manong!',
-              textAlign: TextAlign.center,
-              style:
-                  Styles().textStyle(22, Styles.w600Weight, Styles.customBlack),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'To start getting passengers, start driving.',
-                  textAlign: TextAlign.center,
-                  style: Styles()
-                      .textStyle(15, Styles.w500Weight, Styles.customBlack),
-                ),
-                const SizedBox(height: 20), // Add some spacing
-                Center(
-                  child: ElevatedButton(
-                    onPressed: isStartingDrive
-                        ? null // Disable while processing
-                        : () async {
-                            // Show loading state
-                            setState(() {
-                              isStartingDrive = true;
-                            });
+  //   await showDialog(
+  //     context: context,
+  //     barrierDismissible: true, // Enables dismissing dialog by tapping outside
+  //     builder: (BuildContext dialogContext) {
+  //       return StatefulBuilder(builder: (context, setState) {
+  //         return AlertDialog(
+  //           title: Text(
+  //             'Welcome Manong!',
+  //             textAlign: TextAlign.center,
+  //             style:
+  //                 Styles().textStyle(22, Styles.w600Weight, Styles.customBlack),
+  //           ),
+  //           content: Column(
+  //             mainAxisSize: MainAxisSize.min,
+  //             children: [
+  //               Text(
+  //                 'To start getting passengers, start driving.',
+  //                 textAlign: TextAlign.center,
+  //                 style: Styles()
+  //                     .textStyle(15, Styles.w500Weight, Styles.customBlack),
+  //               ),
+  //               const SizedBox(height: 20), // Add some spacing
+  //               Center(
+  //                 child: ElevatedButton(
+  //                   onPressed: isStartingDrive
+  //                       ? null // Disable while processing
+  //                       : () async {
+  //                           // Show loading state
+  //                           setState(() {
+  //                             isStartingDrive = true;
+  //                           });
 
-                            try {
-                              // Capture the providers we need before async operations
-                              final driverProvider =
-                                  context.read<DriverProvider>();
+  //                           try {
+  //                             // Capture the providers we need before async operations
+  //                             final driverProvider =
+  //                                 context.read<DriverProvider>();
 
-                              // Update driver status to driving
-                              await driverProvider.updateStatusToDB(
-                                  'Driving', context);
-                              driverProvider.setDriverStatus('Driving');
-                              driverProvider.setIsDriving(true);
+  //                             // Update driver status to driving
+  //                             await driverProvider.updateStatusToDB(
+  //                                 'Driving', context);
+  //                             driverProvider.setDriverStatus('Driving');
+  //                             driverProvider.setIsDriving(true);
 
-                              // Close the dialog first for better UX
-                              Navigator.of(dialogContext).pop();
+  //                             // Close the dialog first for better UX
+  //                             Navigator.of(dialogContext).pop();
 
-                              // Show a progress indicator in a snackbar
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Row(
-                                    children: [
-                                      SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                    Colors.white),
-                                            strokeWidth: 2,
-                                          )),
-                                      SizedBox(width: 12),
-                                      Text('Finding passengers...'),
-                                    ],
-                                  ),
-                                  backgroundColor: Colors.black87,
-                                  duration: Duration(seconds: 4),
-                                ),
-                              );
+  //                             // Show a progress indicator in a snackbar
+  //                             ScaffoldMessenger.of(context).showSnackBar(
+  //                               const SnackBar(
+  //                                 content: Row(
+  //                                   children: [
+  //                                     SizedBox(
+  //                                         width: 20,
+  //                                         height: 20,
+  //                                         child: CircularProgressIndicator(
+  //                                           valueColor:
+  //                                               AlwaysStoppedAnimation<Color>(
+  //                                                   Colors.white),
+  //                                           strokeWidth: 2,
+  //                                         )),
+  //                                     SizedBox(width: 12),
+  //                                     Text('Finding passengers...'),
+  //                                   ],
+  //                                 ),
+  //                                 backgroundColor: Colors.black87,
+  //                                 duration: Duration(seconds: 4),
+  //                               ),
+  //                             );
 
-                              // Fetch bookings after dialog is closed
-                              await Future.delayed(
-                                  const Duration(milliseconds: 300));
-                              if (context.mounted) {
-                                try {
-                                  final passengerProvider =
-                                      context.read<PassengerProvider>();
-                                  // Use stored driver ID instead of context for the booking fetch
-                                  await passengerProvider
-                                      .getBookingRequestsID(null);
-                                } catch (e) {
-                                  if (kDebugMode) {
-                                    print(
-                                        'Error during background booking fetch: $e');
-                                  }
-                                }
-                              }
-                            } catch (e) {
-                              // Handle any errors
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Error starting: $e'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
+  //                             // Fetch bookings after dialog is closed
+  //                             await Future.delayed(
+  //                                 const Duration(milliseconds: 300));
+  //                             if (context.mounted) {
+  //                               try {
+  //                                 final passengerProvider =
+  //                                     context.read<PassengerProvider>();
+  //                                 // Use stored driver ID instead of context for the booking fetch
+  //                                 await passengerProvider
+  //                                     .getBookingRequestsID(null);
+  //                               } catch (e) {
+  //                                 if (kDebugMode) {
+  //                                   print(
+  //                                       'Error during background booking fetch: $e');
+  //                                 }
+  //                               }
+  //                             }
+  //                           } catch (e) {
+  //                             // Handle any errors
+  //                             if (context.mounted) {
+  //                               ScaffoldMessenger.of(context).showSnackBar(
+  //                                 SnackBar(
+  //                                   content: Text('Error starting: $e'),
+  //                                   backgroundColor: Colors.red,
+  //                                 ),
+  //                               );
+  //                             }
 
-                              if (mounted) {
-                                setState(() {
-                                  isStartingDrive = false;
-                                });
-                              }
-                            }
-                          },
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 30, vertical: 15),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      elevation: 8,
-                      backgroundColor: Colors.black,
-                    ),
-                    child: isStartingDrive
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Starting...',
-                                style: Styles().textStyle(16,
-                                    Styles.normalWeight, Styles.customWhite),
-                              ),
-                            ],
-                          )
-                        : Text(
-                            'Start Driving',
-                            style: Styles().textStyle(
-                                16, Styles.normalWeight, Styles.customWhite),
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        });
-      },
-    );
+  //                             if (mounted) {
+  //                               setState(() {
+  //                                 isStartingDrive = false;
+  //                               });
+  //                             }
+  //                           }
+  //                         },
+  //                   style: ElevatedButton.styleFrom(
+  //                     padding: const EdgeInsets.symmetric(
+  //                         horizontal: 30, vertical: 15),
+  //                     shape: RoundedRectangleBorder(
+  //                       borderRadius: BorderRadius.circular(15),
+  //                     ),
+  //                     elevation: 8,
+  //                     backgroundColor: Colors.black,
+  //                   ),
+  //                   child: isStartingDrive
+  //                       ? Row(
+  //                           mainAxisSize: MainAxisSize.min,
+  //                           children: [
+  //                             const SizedBox(
+  //                               width: 20,
+  //                               height: 20,
+  //                               child: CircularProgressIndicator(
+  //                                 strokeWidth: 2,
+  //                                 valueColor: AlwaysStoppedAnimation<Color>(
+  //                                     Colors.white),
+  //                               ),
+  //                             ),
+  //                             const SizedBox(width: 12),
+  //                             Text(
+  //                               'Starting...',
+  //                               style: Styles().textStyle(16,
+  //                                   Styles.normalWeight, Styles.customWhite),
+  //                             ),
+  //                           ],
+  //                         )
+  //                       : Text(
+  //                           'Start Driving',
+  //                           style: Styles().textStyle(
+  //                               16, Styles.normalWeight, Styles.customWhite),
+  //                         ),
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //         );
+  //       });
+  //     },
+  //   );
 
-    // This runs after the dialog is dismissed by any means
-    isDialogShown = false;
-  }
+  //   // This runs after the dialog is dismissed by any means
+  //   isDialogShown = false;
+  // }
 
   @override
   Widget build(BuildContext context) {

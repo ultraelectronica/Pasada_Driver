@@ -5,6 +5,8 @@ import 'package:flutter_svg/svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pasada_driver_side/Database/passenger_capacity.dart';
 import 'package:pasada_driver_side/Database/passenger_provider.dart';
+import 'package:pasada_driver_side/Database/booking_model.dart';
+import 'package:pasada_driver_side/Database/booking_constants.dart';
 import 'package:pasada_driver_side/Map/google_map.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
@@ -154,12 +156,12 @@ class HomePageState extends State<HomePage> {
     // Get all relevant bookings
     final acceptedBookings = passengerProvider.bookings
         .where(
-            (booking) => booking.rideStatus == BookingRepository.statusAccepted)
+            (booking) => booking.rideStatus == BookingConstants.statusAccepted)
         .toList();
 
     final ongoingBookings = passengerProvider.bookings
         .where(
-            (booking) => booking.rideStatus == BookingRepository.statusOngoing)
+            (booking) => booking.rideStatus == BookingConstants.statusOngoing)
         .toList();
 
     // Combined list of all active bookings
@@ -190,7 +192,7 @@ class HomePageState extends State<HomePage> {
       bool isNearDropoff = false;
       bool isApproachingDropoff = false;
 
-      if (booking.rideStatus == BookingRepository.statusAccepted) {
+      if (booking.rideStatus == BookingConstants.statusAccepted) {
         // For accepted bookings, measure distance to pickup
         distance = Geolocator.distanceBetween(
             currentLocation.latitude,
@@ -317,7 +319,7 @@ class HomePageState extends State<HomePage> {
 
         // Set action button visibility based on the closest booking
         if (closestPassenger.booking.rideStatus ==
-            BookingRepository.statusAccepted) {
+            BookingConstants.statusAccepted) {
           _isNearPickupLocation = closestPassenger.isNearPickup;
           _isNearDropoffLocation = false;
           _nearestBookingId = closestPassenger.isNearPickup
@@ -325,7 +327,7 @@ class HomePageState extends State<HomePage> {
               : null;
           _ongoingBookingId = null;
         } else if (closestPassenger.booking.rideStatus ==
-            BookingRepository.statusOngoing) {
+            BookingConstants.statusOngoing) {
           _isNearPickupLocation = false;
           _isNearDropoffLocation = closestPassenger.isNearDropoff;
           _nearestBookingId = null;
@@ -492,7 +494,7 @@ class HomePageState extends State<HomePage> {
                       _isNearDropoffLocation = selectedPassenger.isNearDropoff;
 
                       if (selectedPassenger.booking.rideStatus ==
-                          BookingRepository.statusAccepted) {
+                          BookingConstants.statusAccepted) {
                         _nearestBookingId = selectedPassenger.booking.id;
                         _ongoingBookingId = null;
 
@@ -504,7 +506,7 @@ class HomePageState extends State<HomePage> {
                         context.read<MapProvider>().setPickUpLocation(
                             selectedPassenger.booking.pickupLocation);
                       } else if (selectedPassenger.booking.rideStatus ==
-                          BookingRepository.statusOngoing) {
+                          BookingConstants.statusOngoing) {
                         _nearestBookingId = null;
                         _ongoingBookingId = selectedPassenger.booking.id;
 
@@ -982,7 +984,7 @@ class HomePageState extends State<HomePage> {
       BitmapDescriptor markerIcon;
       double zIndex = isSelected ? 5.0 : 3.0; // Selected markers appear on top
 
-      if (passenger.booking.rideStatus == BookingRepository.statusAccepted) {
+      if (passenger.booking.rideStatus == BookingConstants.statusAccepted) {
         // Pickup markers
         if (passenger.isNearPickup) {
           // Ready for pickup - green pin
@@ -1368,7 +1370,7 @@ class PassengerListWidget extends StatelessWidget {
       return 1; // Highest priority - ready for action
     if (passenger.isApproachingPickup || passenger.isApproachingDropoff)
       return 2; // High priority - approaching
-    if (passenger.booking.rideStatus == BookingRepository.statusOngoing)
+    if (passenger.booking.rideStatus == BookingConstants.statusOngoing)
       return 3; // Medium priority - ongoing rides
     return 4; // Normal priority - accepted rides
   }
@@ -1453,11 +1455,11 @@ class PassengerListWidget extends StatelessWidget {
   Widget _buildListSummary(
       BuildContext context, List<PassengerStatus> passengers) {
     final pickupCount = passengers
-        .where((p) => p.booking.rideStatus == BookingRepository.statusAccepted)
+        .where((p) => p.booking.rideStatus == BookingConstants.statusAccepted)
         .length;
 
     final dropoffCount = passengers
-        .where((p) => p.booking.rideStatus == BookingRepository.statusOngoing)
+        .where((p) => p.booking.rideStatus == BookingConstants.statusOngoing)
         .length;
 
     return Padding(
@@ -1514,7 +1516,7 @@ class PassengerListWidget extends StatelessWidget {
       BuildContext context, PassengerStatus passenger) {
     final isSelected = passenger.booking.id == selectedPassengerId;
     final isPickup =
-        passenger.booking.rideStatus == BookingRepository.statusAccepted;
+        passenger.booking.rideStatus == BookingConstants.statusAccepted;
 
     // Determine status icon and color
     IconData statusIcon;
