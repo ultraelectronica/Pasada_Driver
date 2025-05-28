@@ -5,6 +5,8 @@ import 'package:flutter_svg/svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pasada_driver_side/Database/passenger_capacity.dart';
 import 'package:pasada_driver_side/Database/passenger_provider.dart';
+import 'package:pasada_driver_side/Database/booking_model.dart';
+import 'package:pasada_driver_side/Database/booking_constants.dart';
 import 'package:pasada_driver_side/Map/google_map.dart';
 import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:pasada_driver_side/Database/map_provider.dart';
@@ -154,12 +156,12 @@ class HomePageState extends State<HomePage> {
     // Get all relevant bookings
     final acceptedBookings = passengerProvider.bookings
         .where(
-            (booking) => booking.rideStatus == BookingRepository.statusAccepted)
+            (booking) => booking.rideStatus == BookingConstants.statusAccepted)
         .toList();
 
     final ongoingBookings = passengerProvider.bookings
         .where(
-            (booking) => booking.rideStatus == BookingRepository.statusOngoing)
+            (booking) => booking.rideStatus == BookingConstants.statusOngoing)
         .toList();
 
     // Combined list of all active bookings
@@ -190,7 +192,7 @@ class HomePageState extends State<HomePage> {
       bool isNearDropoff = false;
       bool isApproachingDropoff = false;
 
-      if (booking.rideStatus == BookingRepository.statusAccepted) {
+      if (booking.rideStatus == BookingConstants.statusAccepted) {
         // For accepted bookings, measure distance to pickup
         distance = Geolocator.distanceBetween(
             currentLocation.latitude,
@@ -317,7 +319,7 @@ class HomePageState extends State<HomePage> {
 
         // Set action button visibility based on the closest booking
         if (closestPassenger.booking.rideStatus ==
-            BookingRepository.statusAccepted) {
+            BookingConstants.statusAccepted) {
           _isNearPickupLocation = closestPassenger.isNearPickup;
           _isNearDropoffLocation = false;
           _nearestBookingId = closestPassenger.isNearPickup
@@ -325,7 +327,7 @@ class HomePageState extends State<HomePage> {
               : null;
           _ongoingBookingId = null;
         } else if (closestPassenger.booking.rideStatus ==
-            BookingRepository.statusOngoing) {
+            BookingConstants.statusOngoing) {
           _isNearPickupLocation = false;
           _isNearDropoffLocation = closestPassenger.isNearDropoff;
           _nearestBookingId = null;
@@ -492,7 +494,7 @@ class HomePageState extends State<HomePage> {
                       _isNearDropoffLocation = selectedPassenger.isNearDropoff;
 
                       if (selectedPassenger.booking.rideStatus ==
-                          BookingRepository.statusAccepted) {
+                          BookingConstants.statusAccepted) {
                         _nearestBookingId = selectedPassenger.booking.id;
                         _ongoingBookingId = null;
 
@@ -504,7 +506,7 @@ class HomePageState extends State<HomePage> {
                         context.read<MapProvider>().setPickUpLocation(
                             selectedPassenger.booking.pickupLocation);
                       } else if (selectedPassenger.booking.rideStatus ==
-                          BookingRepository.statusOngoing) {
+                          BookingConstants.statusOngoing) {
                         _nearestBookingId = null;
                         _ongoingBookingId = selectedPassenger.booking.id;
 
@@ -563,9 +565,10 @@ class HomePageState extends State<HomePage> {
               text: driverProvider.passengerStandingCapacity.toString(),
               onTap: () async {
                 // Increment standing capacity by 1 when tapped
-                final success =
+                final result =
                     await PassengerCapacity().manualIncrementStanding(context);
-                if (success) {
+
+                if (result.success) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('Standing passenger added manually'),
@@ -574,37 +577,44 @@ class HomePageState extends State<HomePage> {
                     ),
                   );
                 } else {
-                  // Check driver status first
-                  if (driverProvider.driverStatus != 'Driving') {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text(
-                            'Cannot add passenger: Driver is not in Driving status'),
-                        backgroundColor: Colors.red,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+                  // Show specific error message based on error type
+                  String errorMessage = 'Failed to add passenger';
+                  Color errorColor = Colors.red;
+
+                  switch (result.errorType) {
+                    case PassengerCapacity.ERROR_DRIVER_NOT_DRIVING:
+                      errorMessage =
+                          'Cannot add passenger: Driver is not in Driving status';
+                      break;
+                    case PassengerCapacity.ERROR_CAPACITY_EXCEEDED:
+                      errorMessage =
+                          'Cannot add passenger: Maximum capacity reached';
+                      errorColor = Colors.orange;
+                      break;
+                    case PassengerCapacity.ERROR_NEGATIVE_VALUES:
+                      errorMessage = 'Cannot add passenger: Invalid operation';
+                      break;
+                    default:
+                      errorMessage =
+                          result.errorMessage ?? 'Unknown error occurred';
                   }
-                  // Then check capacity limit
-                  else if (driverProvider.passengerStandingCapacity >=
-                      PassengerCapacity.MAX_STANDING_CAPACITY) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            'Cannot add passenger: Maximum standing capacity (${PassengerCapacity.MAX_STANDING_CAPACITY}) reached'),
-                        backgroundColor: Colors.orange,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(errorMessage),
+                      backgroundColor: errorColor,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
                 }
               },
               canIncrement: true, // Standing capacity can be incremented
               onDecrementTap: () async {
                 // Decrement standing capacity by 1 when decrement button is tapped
-                final success =
+                final result =
                     await PassengerCapacity().manualDecrementStanding(context);
-                if (success) {
+
+                if (result.success) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content:
@@ -614,27 +624,31 @@ class HomePageState extends State<HomePage> {
                     ),
                   );
                 } else {
-                  // Check if driver status is the issue
-                  if (driverProvider.driverStatus != 'Driving') {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text(
-                            'Cannot remove passenger: Driver is not in Driving status'),
-                        backgroundColor: Colors.red,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  } else {
-                    // Otherwise it's because there are no standing passengers
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content:
-                            const Text('Cannot remove: No standing passengers'),
-                        backgroundColor: Colors.grey,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+                  // Show specific error message based on error type
+                  String errorMessage = 'Failed to remove passenger';
+                  Color errorColor = Colors.red;
+
+                  switch (result.errorType) {
+                    case PassengerCapacity.ERROR_DRIVER_NOT_DRIVING:
+                      errorMessage =
+                          'Cannot remove passenger: Driver is not in Driving status';
+                      break;
+                    case PassengerCapacity.ERROR_NEGATIVE_VALUES:
+                      errorMessage = 'Cannot remove: No standing passengers';
+                      errorColor = Colors.grey;
+                      break;
+                    default:
+                      errorMessage =
+                          result.errorMessage ?? 'Unknown error occurred';
                   }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(errorMessage),
+                      backgroundColor: errorColor,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
                 }
               },
             ),
@@ -651,9 +665,10 @@ class HomePageState extends State<HomePage> {
               text: driverProvider.passengerSittingCapacity.toString(),
               onTap: () async {
                 // Increment sitting capacity by 1 when tapped
-                final success =
+                final result =
                     await PassengerCapacity().manualIncrementSitting(context);
-                if (success) {
+
+                if (result.success) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('Sitting passenger added manually'),
@@ -662,37 +677,44 @@ class HomePageState extends State<HomePage> {
                     ),
                   );
                 } else {
-                  // Check driver status first
-                  if (driverProvider.driverStatus != 'Driving') {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text(
-                            'Cannot add passenger: Driver is not in Driving status'),
-                        backgroundColor: Colors.red,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+                  // Show specific error message based on error type
+                  String errorMessage = 'Failed to add passenger';
+                  Color errorColor = Colors.red;
+
+                  switch (result.errorType) {
+                    case PassengerCapacity.ERROR_DRIVER_NOT_DRIVING:
+                      errorMessage =
+                          'Cannot add passenger: Driver is not in Driving status';
+                      break;
+                    case PassengerCapacity.ERROR_CAPACITY_EXCEEDED:
+                      errorMessage =
+                          'Cannot add passenger: Maximum capacity reached';
+                      errorColor = Colors.orange;
+                      break;
+                    case PassengerCapacity.ERROR_NEGATIVE_VALUES:
+                      errorMessage = 'Cannot add passenger: Invalid operation';
+                      break;
+                    default:
+                      errorMessage =
+                          result.errorMessage ?? 'Unknown error occurred';
                   }
-                  // Then check capacity limit
-                  else if (driverProvider.passengerSittingCapacity >=
-                      PassengerCapacity.MAX_SITTING_CAPACITY) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            'Cannot add passenger: Maximum sitting capacity (${PassengerCapacity.MAX_SITTING_CAPACITY}) reached'),
-                        backgroundColor: Colors.orange,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(errorMessage),
+                      backgroundColor: errorColor,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
                 }
               },
               canIncrement: true, // Sitting capacity can be incremented
               onDecrementTap: () async {
                 // Decrement sitting capacity by 1 when decrement button is tapped
-                final success =
+                final result =
                     await PassengerCapacity().manualDecrementSitting(context);
-                if (success) {
+
+                if (result.success) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('Sitting passenger removed manually'),
@@ -701,27 +723,31 @@ class HomePageState extends State<HomePage> {
                     ),
                   );
                 } else {
-                  // Check if driver status is the issue
-                  if (driverProvider.driverStatus != 'Driving') {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text(
-                            'Cannot remove passenger: Driver is not in Driving status'),
-                        backgroundColor: Colors.red,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  } else {
-                    // Otherwise it's because there are no sitting passengers
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content:
-                            const Text('Cannot remove: No sitting passengers'),
-                        backgroundColor: Colors.grey,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+                  // Show specific error message based on error type
+                  String errorMessage = 'Failed to remove passenger';
+                  Color errorColor = Colors.red;
+
+                  switch (result.errorType) {
+                    case PassengerCapacity.ERROR_DRIVER_NOT_DRIVING:
+                      errorMessage =
+                          'Cannot remove passenger: Driver is not in Driving status';
+                      break;
+                    case PassengerCapacity.ERROR_NEGATIVE_VALUES:
+                      errorMessage = 'Cannot remove: No sitting passengers';
+                      errorColor = Colors.grey;
+                      break;
+                    default:
+                      errorMessage =
+                          result.errorMessage ?? 'Unknown error occurred';
                   }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(errorMessage),
+                      backgroundColor: errorColor,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
                 }
               },
             ),
@@ -759,31 +785,29 @@ class HomePageState extends State<HomePage> {
                           .markBookingAsOngoing(_nearestBookingId!);
                       if (success) {
                         // Increment passenger capacity with the seat type
-                        await PassengerCapacity()
+                        final capacityResult = await PassengerCapacity()
                             .incrementCapacity(context, seatType);
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Passenger pickup confirmed!'),
-                            backgroundColor: Constants.GREEN_COLOR,
-                          ),
-                        );
-                        setState(() {
-                          // Don't reset selection, just update status
-                          _isNearPickupLocation = false;
-
-                          // Refresh proximity data
-                          _checkProximity(context);
-                        });
-
-                        // Update map markers to reflect the status change
-                        _updateMapMarkers();
+                        if (capacityResult.success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Passenger picked up successfully'),
+                              backgroundColor: Colors.green,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        } else {
+                          // Capacity update failed, log error but don't show to user
+                          // as the booking status was already updated
+                          debugPrint(
+                              'Warning: Capacity update failed after pickup: ${capacityResult.errorMessage}');
+                        }
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content:
-                                Text('Failed to confirm pickup. Try again.'),
+                          SnackBar(
+                            content: Text('Failed to confirm passenger pickup'),
                             backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 2),
                           ),
                         );
                       }
@@ -850,31 +874,29 @@ class HomePageState extends State<HomePage> {
                           .markBookingAsCompleted(_ongoingBookingId!);
                       if (success) {
                         // Decrement passenger capacity using saved seat type
-                        await PassengerCapacity()
+                        final capacityResult = await PassengerCapacity()
                             .decrementCapacity(context, seatType);
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Ride completed successfully!'),
-                            backgroundColor: Constants.GREEN_COLOR,
-                          ),
-                        );
-                        setState(() {
-                          // Don't reset selection, just update status
-                          _isNearDropoffLocation = false;
-
-                          // Refresh proximity data
-                          _checkProximity(context);
-                        });
-
-                        // Update map markers to reflect the status change
-                        _updateMapMarkers();
+                        if (capacityResult.success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Ride completed successfully'),
+                              backgroundColor: Colors.green,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        } else {
+                          // Capacity update failed, log error but don't show to user
+                          // as the booking status was already updated
+                          debugPrint(
+                              'Warning: Capacity update failed after dropoff: ${capacityResult.errorMessage}');
+                        }
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content:
-                                Text('Failed to complete ride. Try again.'),
+                          SnackBar(
+                            content: Text('Failed to complete ride'),
                             backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 2),
                           ),
                         );
                       }
@@ -951,6 +973,102 @@ class HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
+
+            // RESET CAPACITY BUTTON - only shown when capacity is non-zero but no active bookings exist
+            if (driverProvider.passengerCapacity > 0 &&
+                _nearbyPassengers.isEmpty &&
+                driverProvider.driverStatus == 'Driving')
+              Positioned(
+                bottom: screenHeight * 0.33,
+                right: screenWidth * 0.05,
+                child: Material(
+                  elevation: 6,
+                  borderRadius: BorderRadius.circular(15),
+                  child: InkWell(
+                    onTap: () async {
+                      // Show confirmation dialog before resetting
+                      final shouldReset = await showDialog<bool>(
+                        context: context,
+                        builder: (BuildContext context) => AlertDialog(
+                          title: const Text('Reset Capacity'),
+                          content: Text(
+                            'Current capacity: ${driverProvider.passengerCapacity} passengers\n\n'
+                            'This will reset all passenger counts to zero. '
+                            'Only use this if you have no passengers on board and the system is out of sync.',
+                          ),
+                          actions: [
+                            TextButton(
+                              child: const Text('Cancel'),
+                              onPressed: () => Navigator.of(context).pop(false),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Reset'),
+                              onPressed: () => Navigator.of(context).pop(true),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (shouldReset == true) {
+                        final result = await PassengerCapacity()
+                            .resetCapacityToZero(context);
+
+                        if (result.success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                  'Capacity reset to zero successfully'),
+                              backgroundColor: Colors.green,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  'Failed to reset capacity: ${result.errorMessage}'),
+                              backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(15),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(15),
+                        border:
+                            Border.all(color: Colors.red.shade700, width: 2),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.refresh,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Reset\nCapacity',
+                            textAlign: TextAlign.center,
+                            style: Styles()
+                                .textStyle(10, Styles.w600Weight, Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -982,7 +1100,7 @@ class HomePageState extends State<HomePage> {
       BitmapDescriptor markerIcon;
       double zIndex = isSelected ? 5.0 : 3.0; // Selected markers appear on top
 
-      if (passenger.booking.rideStatus == BookingRepository.statusAccepted) {
+      if (passenger.booking.rideStatus == BookingConstants.statusAccepted) {
         // Pickup markers
         if (passenger.isNearPickup) {
           // Ready for pickup - green pin
@@ -1368,7 +1486,7 @@ class PassengerListWidget extends StatelessWidget {
       return 1; // Highest priority - ready for action
     if (passenger.isApproachingPickup || passenger.isApproachingDropoff)
       return 2; // High priority - approaching
-    if (passenger.booking.rideStatus == BookingRepository.statusOngoing)
+    if (passenger.booking.rideStatus == BookingConstants.statusOngoing)
       return 3; // Medium priority - ongoing rides
     return 4; // Normal priority - accepted rides
   }
@@ -1453,11 +1571,11 @@ class PassengerListWidget extends StatelessWidget {
   Widget _buildListSummary(
       BuildContext context, List<PassengerStatus> passengers) {
     final pickupCount = passengers
-        .where((p) => p.booking.rideStatus == BookingRepository.statusAccepted)
+        .where((p) => p.booking.rideStatus == BookingConstants.statusAccepted)
         .length;
 
     final dropoffCount = passengers
-        .where((p) => p.booking.rideStatus == BookingRepository.statusOngoing)
+        .where((p) => p.booking.rideStatus == BookingConstants.statusOngoing)
         .length;
 
     return Padding(
@@ -1514,7 +1632,7 @@ class PassengerListWidget extends StatelessWidget {
       BuildContext context, PassengerStatus passenger) {
     final isSelected = passenger.booking.id == selectedPassengerId;
     final isPickup =
-        passenger.booking.rideStatus == BookingRepository.statusAccepted;
+        passenger.booking.rideStatus == BookingConstants.statusAccepted;
 
     // Determine status icon and color
     IconData statusIcon;
