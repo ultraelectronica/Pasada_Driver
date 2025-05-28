@@ -3,6 +3,21 @@ import 'package:pasada_driver_side/Database/driver_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Result class for capacity operations
+class CapacityOperationResult {
+  final bool success;
+  final String? errorType;
+  final String? errorMessage;
+  final Map<String, int>? capacityData;
+
+  CapacityOperationResult({
+    required this.success,
+    this.errorType,
+    this.errorMessage,
+    this.capacityData,
+  });
+}
+
 /// PassengerCapacity manages the current vehicle occupancy.
 ///
 /// Database schema in vehicleTable:
@@ -19,6 +34,185 @@ class PassengerCapacity {
   // Maximum capacity limits
   static const int MAX_SITTING_CAPACITY = 23;
   static const int MAX_STANDING_CAPACITY = 5;
+  static const int MAX_TOTAL_CAPACITY =
+      MAX_SITTING_CAPACITY + MAX_STANDING_CAPACITY;
+
+  // Error types for better error handling
+  static const String ERROR_DRIVER_NOT_DRIVING = 'driver_not_driving';
+  static const String ERROR_CAPACITY_EXCEEDED = 'capacity_exceeded';
+  static const String ERROR_NEGATIVE_VALUES = 'negative_values';
+  static const String ERROR_DATABASE_FAILED = 'database_failed';
+  static const String ERROR_VALIDATION_FAILED = 'validation_failed';
+
+  /// Validate driver status for manual operations
+  bool _validateDriverStatus(DriverProvider driverProvider) {
+    return driverProvider.driverStatus == 'Driving';
+  }
+
+  /// Validate capacity limits
+  bool _validateCapacityLimits(
+      int standingCount, int sittingCount, String operation) {
+    if (operation == 'increment') {
+      if (standingCount >= MAX_STANDING_CAPACITY) {
+        debugPrint(
+            'Cannot increment: Maximum standing capacity reached ($MAX_STANDING_CAPACITY)');
+        return false;
+      }
+      if (sittingCount >= MAX_SITTING_CAPACITY) {
+        debugPrint(
+            'Cannot increment: Maximum sitting capacity reached ($MAX_SITTING_CAPACITY)');
+        return false;
+      }
+      if ((standingCount + sittingCount) >= MAX_TOTAL_CAPACITY) {
+        debugPrint(
+            'Cannot increment: Maximum total capacity reached ($MAX_TOTAL_CAPACITY)');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// Validate against negative values
+  bool _validateNonNegative(int totalCapacity, int standingCount,
+      int sittingCount, String operation) {
+    if (operation == 'decrement') {
+      // Allow values to become 0, just prevent negative values
+      if (totalCapacity < 0 || standingCount < 0 || sittingCount < 0) {
+        debugPrint('Cannot decrement: Values would become negative');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// Atomic update with proper rollback and validation
+  Future<CapacityOperationResult> _atomicCapacityUpdate(
+      BuildContext context,
+      String operation, // 'increment' or 'decrement'
+      String seatType,
+      {bool isManual = false}) async {
+    final driverProvider = Provider.of<DriverProvider>(context, listen: false);
+    final String vehicleID = driverProvider.vehicleID;
+
+    // Store original state for rollback
+    final originalTotal = driverProvider.passengerCapacity;
+    final originalStanding = driverProvider.passengerStandingCapacity;
+    final originalSitting = driverProvider.passengerSittingCapacity;
+
+    try {
+      // Validate driver status for manual operations
+      if (isManual && !_validateDriverStatus(driverProvider)) {
+        return CapacityOperationResult(
+          success: false,
+          errorType: ERROR_DRIVER_NOT_DRIVING,
+          errorMessage:
+              'Driver must be in Driving status for manual operations',
+        );
+      }
+
+      // Get current counts from database (source of truth)
+      final vehicleData = await supabase
+          .from('vehicleTable')
+          .select('passenger_capacity, standing_passenger, sitting_passenger')
+          .eq('vehicle_id', vehicleID)
+          .single();
+
+      int totalCapacity = vehicleData['passenger_capacity'] ?? 0;
+      int standingCount = vehicleData['standing_passenger'] ?? 0;
+      int sittingCount = vehicleData['sitting_passenger'] ?? 0;
+
+      debugPrint(
+          'Current state before $operation: Total: $totalCapacity, Standing: $standingCount, Sitting: $sittingCount');
+
+      // Calculate new values
+      int newTotal = totalCapacity;
+      int newStanding = standingCount;
+      int newSitting = sittingCount;
+
+      if (operation == 'increment') {
+        newTotal++;
+        if (seatType == 'standing') {
+          newStanding++;
+        } else if (seatType == 'sitting') {
+          newSitting++;
+        }
+      } else if (operation == 'decrement') {
+        newTotal--;
+        if (seatType == 'standing') {
+          newStanding--;
+        } else if (seatType == 'sitting') {
+          newSitting--;
+        }
+      }
+
+      debugPrint(
+          'Calculated new state after $operation ($seatType): Total: $newTotal, Standing: $newStanding, Sitting: $newSitting');
+
+      // Comprehensive validation
+      if (!_validateCapacityLimits(newStanding, newSitting, operation)) {
+        return CapacityOperationResult(
+          success: false,
+          errorType: ERROR_CAPACITY_EXCEEDED,
+          errorMessage: 'Operation would exceed capacity limits',
+        );
+      }
+
+      if (!_validateNonNegative(newTotal, newStanding, newSitting, operation)) {
+        return CapacityOperationResult(
+          success: false,
+          errorType: ERROR_NEGATIVE_VALUES,
+          errorMessage: 'Operation would result in negative values',
+        );
+      }
+
+      // Validate data consistency
+      if (newTotal != (newStanding + newSitting)) {
+        return CapacityOperationResult(
+          success: false,
+          errorType: ERROR_VALIDATION_FAILED,
+          errorMessage:
+              'Data consistency check failed: Total ≠ Standing + Sitting',
+        );
+      }
+
+      // Perform atomic database update
+      await supabase.from('vehicleTable').update({
+        'passenger_capacity': newTotal,
+        'standing_passenger': newStanding,
+        'sitting_passenger': newSitting,
+      }).eq('vehicle_id', vehicleID);
+
+      // Update provider state
+      driverProvider.setPassengerCapacity(newTotal);
+      driverProvider.setPassengerStandingCapacity(newStanding);
+      driverProvider.setPassengerSittingCapacity(newSitting);
+
+      debugPrint(
+          '$operation operation successful. Total: $newTotal, Standing: $newStanding, Sitting: $newSitting');
+
+      return CapacityOperationResult(
+        success: true,
+        capacityData: {
+          'total': newTotal,
+          'standing': newStanding,
+          'sitting': newSitting,
+        },
+      );
+    } catch (e) {
+      debugPrint('Error in atomic capacity update: $e');
+
+      // Rollback provider state
+      driverProvider.setPassengerCapacity(originalTotal);
+      driverProvider.setPassengerStandingCapacity(originalStanding);
+      driverProvider.setPassengerSittingCapacity(originalSitting);
+
+      return CapacityOperationResult(
+        success: false,
+        errorType: ERROR_DATABASE_FAILED,
+        errorMessage: 'Database operation failed: $e',
+      );
+    }
+  }
 
   /// Initialize vehicle capacity with zero values if columns don't exist
   Future<void> initializeCapacity(BuildContext context) async {
@@ -103,318 +297,123 @@ class PassengerCapacity {
   }
 
   /// Increment passenger capacity when a passenger is picked up
-  Future<bool> incrementCapacity(BuildContext context, String seatType) async {
-    try {
-      final driverProvider =
-          Provider.of<DriverProvider>(context, listen: false);
-      final String vehicleID = driverProvider.vehicleID;
-
-      debugPrint('Incrementing capacity for seat type: $seatType');
-
-      // Get current counts
-      final vehicleData = await supabase
-          .from('vehicleTable')
-          .select('passenger_capacity, standing_passenger, sitting_passenger')
-          .eq('vehicle_id', vehicleID)
-          .single();
-
-      int totalCapacity = vehicleData['passenger_capacity'] ?? 0;
-      int standingCount = vehicleData['standing_passenger'] ?? 0;
-      int sittingCount = vehicleData['sitting_passenger'] ?? 0;
-
-      // Increment appropriate counts
-      totalCapacity++;
-      if (seatType == 'standing') {
-        standingCount++;
-      } else if (seatType == 'sitting') {
-        sittingCount++;
-      }
-
-      // Update the database
-      await supabase.from('vehicleTable').update({
-        'passenger_capacity': totalCapacity,
-        'standing_passenger': standingCount,
-        'sitting_passenger': sittingCount,
-      }).eq('vehicle_id', vehicleID);
-
-      // Update provider
-      driverProvider.setPassengerCapacity(totalCapacity);
-      driverProvider.setPassengerStandingCapacity(standingCount);
-      driverProvider.setPassengerSittingCapacity(sittingCount);
-
-      debugPrint('Capacity incremented. Total: $totalCapacity');
-      debugPrint('Standing: $standingCount, Sitting: $sittingCount');
-      return true;
-    } catch (e) {
-      debugPrint('Error incrementing capacity: $e');
-      return false;
-    }
+  Future<CapacityOperationResult> incrementCapacity(
+      BuildContext context, String seatType) async {
+    return await _atomicCapacityUpdate(context, 'increment', seatType);
   }
 
   /// Decrement passenger capacity when a passenger completes their ride
-  Future<bool> decrementCapacity(BuildContext context, String seatType) async {
-    try {
-      final driverProvider =
-          Provider.of<DriverProvider>(context, listen: false);
-      final String vehicleID = driverProvider.vehicleID;
-
-      debugPrint('Decrementing capacity for seat type: $seatType');
-
-      // Get current counts
-      final vehicleData = await supabase
-          .from('vehicleTable')
-          .select('passenger_capacity, standing_passenger, sitting_passenger')
-          .eq('vehicle_id', vehicleID)
-          .single();
-
-      int totalCapacity = vehicleData['passenger_capacity'] ?? 0;
-      int standingCount = vehicleData['standing_passenger'] ?? 0;
-      int sittingCount = vehicleData['sitting_passenger'] ?? 0;
-
-      // Prevent negative values
-      if (totalCapacity > 0) {
-        totalCapacity--;
-        if (seatType == 'standing' && standingCount > 0) {
-          standingCount--;
-        } else if (seatType == 'sitting' && sittingCount > 0) {
-          sittingCount--;
-        }
-      }
-
-      // Update the database
-      await supabase.from('vehicleTable').update({
-        'passenger_capacity': totalCapacity,
-        'standing_passenger': standingCount,
-        'sitting_passenger': sittingCount,
-      }).eq('vehicle_id', vehicleID);
-
-      // Update provider
-      driverProvider.setPassengerCapacity(totalCapacity);
-      driverProvider.setPassengerStandingCapacity(standingCount);
-      driverProvider.setPassengerSittingCapacity(sittingCount);
-
-      debugPrint('Capacity decremented. Total: $totalCapacity');
-      debugPrint('Standing: $standingCount, Sitting: $sittingCount');
-      return true;
-    } catch (e) {
-      debugPrint('Error decrementing capacity: $e');
-      return false;
-    }
+  Future<CapacityOperationResult> decrementCapacity(
+      BuildContext context, String seatType) async {
+    return await _atomicCapacityUpdate(context, 'decrement', seatType);
   }
 
   /// Manually increment standing capacity by 1
-  Future<bool> manualIncrementStanding(BuildContext context) async {
-    try {
-      final driverProvider =
-          Provider.of<DriverProvider>(context, listen: false);
-      final String vehicleID = driverProvider.vehicleID;
-
-      // Check if driver is in Driving status
-      if (driverProvider.driverStatus != 'Driving') {
-        debugPrint('Cannot increment: Driver is not in Driving status');
-        return false;
-      }
-
-      debugPrint('Manually incrementing standing capacity');
-
-      // Get current counts
-      final vehicleData = await supabase
-          .from('vehicleTable')
-          .select('passenger_capacity, standing_passenger, sitting_passenger')
-          .eq('vehicle_id', vehicleID)
-          .single();
-
-      int totalCapacity = vehicleData['passenger_capacity'] ?? 0;
-      int standingCount = vehicleData['standing_passenger'] ?? 0;
-
-      // Check maximum capacity for standing
-      if (standingCount >= MAX_STANDING_CAPACITY) {
-        debugPrint(
-            'Cannot increment: Maximum standing capacity reached (${MAX_STANDING_CAPACITY})');
-        return false;
-      }
-
-      // Increment counts
-      totalCapacity++;
-      standingCount++;
-
-      // Update the database
-      await supabase.from('vehicleTable').update({
-        'passenger_capacity': totalCapacity,
-        'standing_passenger': standingCount,
-      }).eq('vehicle_id', vehicleID);
-
-      // Update provider
-      driverProvider.setPassengerCapacity(totalCapacity);
-      driverProvider.setPassengerStandingCapacity(standingCount);
-
-      debugPrint(
-          'Standing capacity manually incremented. Total: $totalCapacity, Standing: $standingCount');
-      return true;
-    } catch (e) {
-      debugPrint('Error manually incrementing standing capacity: $e');
-      return false;
-    }
+  Future<CapacityOperationResult> manualIncrementStanding(
+      BuildContext context) async {
+    return await _atomicCapacityUpdate(context, 'increment', 'standing',
+        isManual: true);
   }
 
   /// Manually increment sitting capacity by 1
-  Future<bool> manualIncrementSitting(BuildContext context) async {
-    try {
-      final driverProvider =
-          Provider.of<DriverProvider>(context, listen: false);
-      final String vehicleID = driverProvider.vehicleID;
-
-      // Check if driver is in Driving status
-      if (driverProvider.driverStatus != 'Driving') {
-        debugPrint('Cannot increment: Driver is not in Driving status');
-        return false;
-      }
-
-      debugPrint('Manually incrementing sitting capacity');
-
-      // Get current counts
-      final vehicleData = await supabase
-          .from('vehicleTable')
-          .select('passenger_capacity, standing_passenger, sitting_passenger')
-          .eq('vehicle_id', vehicleID)
-          .single();
-
-      int totalCapacity = vehicleData['passenger_capacity'] ?? 0;
-      int sittingCount = vehicleData['sitting_passenger'] ?? 0;
-
-      // Check maximum capacity for sitting
-      if (sittingCount >= MAX_SITTING_CAPACITY) {
-        debugPrint(
-            'Cannot increment: Maximum sitting capacity reached (${MAX_SITTING_CAPACITY})');
-        return false;
-      }
-
-      // Increment counts
-      totalCapacity++;
-      sittingCount++;
-
-      // Update the database
-      await supabase.from('vehicleTable').update({
-        'passenger_capacity': totalCapacity,
-        'sitting_passenger': sittingCount,
-      }).eq('vehicle_id', vehicleID);
-
-      // Update provider
-      driverProvider.setPassengerCapacity(totalCapacity);
-      driverProvider.setPassengerSittingCapacity(sittingCount);
-
-      debugPrint(
-          'Sitting capacity manually incremented. Total: $totalCapacity, Sitting: $sittingCount');
-      return true;
-    } catch (e) {
-      debugPrint('Error manually incrementing sitting capacity: $e');
-      return false;
-    }
+  Future<CapacityOperationResult> manualIncrementSitting(
+      BuildContext context) async {
+    return await _atomicCapacityUpdate(context, 'increment', 'sitting',
+        isManual: true);
   }
 
   /// Manually decrement standing capacity by 1
-  Future<bool> manualDecrementStanding(BuildContext context) async {
-    try {
-      final driverProvider =
-          Provider.of<DriverProvider>(context, listen: false);
-      final String vehicleID = driverProvider.vehicleID;
-
-      // Check if driver is in Driving status
-      if (driverProvider.driverStatus != 'Driving') {
-        debugPrint('Cannot decrement: Driver is not in Driving status');
-        return false;
-      }
-
-      debugPrint('Manually decrementing standing capacity');
-
-      // Get current counts
-      final vehicleData = await supabase
-          .from('vehicleTable')
-          .select('passenger_capacity, standing_passenger, sitting_passenger')
-          .eq('vehicle_id', vehicleID)
-          .single();
-
-      int totalCapacity = vehicleData['passenger_capacity'] ?? 0;
-      int standingCount = vehicleData['standing_passenger'] ?? 0;
-
-      // Only decrement if values are greater than 0
-      if (totalCapacity > 0 && standingCount > 0) {
-        totalCapacity--;
-        standingCount--;
-
-        // Update the database
-        await supabase.from('vehicleTable').update({
-          'passenger_capacity': totalCapacity,
-          'standing_passenger': standingCount,
-        }).eq('vehicle_id', vehicleID);
-
-        // Update provider
-        driverProvider.setPassengerCapacity(totalCapacity);
-        driverProvider.setPassengerStandingCapacity(standingCount);
-
-        debugPrint(
-            'Standing capacity manually decremented. Total: $totalCapacity, Standing: $standingCount');
-        return true;
-      } else {
-        debugPrint('Cannot decrement: standing count is already 0');
-        return false;
-      }
-    } catch (e) {
-      debugPrint('Error manually decrementing standing capacity: $e');
-      return false;
-    }
+  Future<CapacityOperationResult> manualDecrementStanding(
+      BuildContext context) async {
+    return await _atomicCapacityUpdate(context, 'decrement', 'standing',
+        isManual: true);
   }
 
   /// Manually decrement sitting capacity by 1
-  Future<bool> manualDecrementSitting(BuildContext context) async {
+  Future<CapacityOperationResult> manualDecrementSitting(
+      BuildContext context) async {
+    return await _atomicCapacityUpdate(context, 'decrement', 'sitting',
+        isManual: true);
+  }
+
+  // Backward compatibility methods for existing code
+  /// Legacy method for increment capacity (returns bool for backward compatibility)
+  Future<bool> incrementCapacityLegacy(
+      BuildContext context, String seatType) async {
+    final result = await incrementCapacity(context, seatType);
+    return result.success;
+  }
+
+  /// Legacy method for decrement capacity (returns bool for backward compatibility)
+  Future<bool> decrementCapacityLegacy(
+      BuildContext context, String seatType) async {
+    final result = await decrementCapacity(context, seatType);
+    return result.success;
+  }
+
+  /// Legacy method for manual increment standing (returns bool for backward compatibility)
+  Future<bool> manualIncrementStandingLegacy(BuildContext context) async {
+    final result = await manualIncrementStanding(context);
+    return result.success;
+  }
+
+  /// Legacy method for manual increment sitting (returns bool for backward compatibility)
+  Future<bool> manualIncrementSittingLegacy(BuildContext context) async {
+    final result = await manualIncrementSitting(context);
+    return result.success;
+  }
+
+  /// Legacy method for manual decrement standing (returns bool for backward compatibility)
+  Future<bool> manualDecrementStandingLegacy(BuildContext context) async {
+    final result = await manualDecrementStanding(context);
+    return result.success;
+  }
+
+  /// Legacy method for manual decrement sitting (returns bool for backward compatibility)
+  Future<bool> manualDecrementSittingLegacy(BuildContext context) async {
+    final result = await manualDecrementSitting(context);
+    return result.success;
+  }
+
+  /// Reset all capacity to zero (utility method for error recovery)
+  Future<CapacityOperationResult> resetCapacityToZero(
+      BuildContext context) async {
     try {
       final driverProvider =
           Provider.of<DriverProvider>(context, listen: false);
       final String vehicleID = driverProvider.vehicleID;
 
-      // Check if driver is in Driving status
-      if (driverProvider.driverStatus != 'Driving') {
-        debugPrint('Cannot decrement: Driver is not in Driving status');
-        return false;
-      }
+      debugPrint('Resetting all capacity to zero');
 
-      debugPrint('Manually decrementing sitting capacity');
+      // Update database directly to zero
+      await supabase.from('vehicleTable').update({
+        'passenger_capacity': 0,
+        'standing_passenger': 0,
+        'sitting_passenger': 0,
+      }).eq('vehicle_id', vehicleID);
 
-      // Get current counts
-      final vehicleData = await supabase
-          .from('vehicleTable')
-          .select('passenger_capacity, standing_passenger, sitting_passenger')
-          .eq('vehicle_id', vehicleID)
-          .single();
+      // Update provider state
+      driverProvider.setPassengerCapacity(0);
+      driverProvider.setPassengerStandingCapacity(0);
+      driverProvider.setPassengerSittingCapacity(0);
 
-      int totalCapacity = vehicleData['passenger_capacity'] ?? 0;
-      int sittingCount = vehicleData['sitting_passenger'] ?? 0;
+      debugPrint('Capacity reset successful. All values set to 0');
 
-      // Only decrement if values are greater than 0
-      if (totalCapacity > 0 && sittingCount > 0) {
-        totalCapacity--;
-        sittingCount--;
-
-        // Update the database
-        await supabase.from('vehicleTable').update({
-          'passenger_capacity': totalCapacity,
-          'sitting_passenger': sittingCount,
-        }).eq('vehicle_id', vehicleID);
-
-        // Update provider
-        driverProvider.setPassengerCapacity(totalCapacity);
-        driverProvider.setPassengerSittingCapacity(sittingCount);
-
-        debugPrint(
-            'Sitting capacity manually decremented. Total: $totalCapacity, Sitting: $sittingCount');
-        return true;
-      } else {
-        debugPrint('Cannot decrement: sitting count is already 0');
-        return false;
-      }
+      return CapacityOperationResult(
+        success: true,
+        capacityData: {
+          'total': 0,
+          'standing': 0,
+          'sitting': 0,
+        },
+      );
     } catch (e) {
-      debugPrint('Error manually decrementing sitting capacity: $e');
-      return false;
+      debugPrint('Error resetting capacity: $e');
+      return CapacityOperationResult(
+        success: false,
+        errorType: ERROR_DATABASE_FAILED,
+        errorMessage: 'Failed to reset capacity: $e',
+      );
     }
   }
 }
