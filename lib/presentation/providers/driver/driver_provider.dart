@@ -1,8 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:pasada_driver_side/Database/auth_service.dart';
-import 'package:pasada_driver_side/Database/passenger_capacity.dart';
-// import 'package:pasada_driver_side/Database/map_provider.dart';
+import 'package:pasada_driver_side/Services/auth_service.dart';
+import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -45,6 +44,7 @@ class DriverProvider with ChangeNotifier {
   bool get isDriving => _isDriving;
   String? get driverFullName => _driverFullName;
   String get driverNumber => _driverNumber;
+
   // Setters
   void setDriverID(String value) {
     _driverID = value;
@@ -322,13 +322,4 @@ class DriverProvider with ChangeNotifier {
       _routeID = 0; // Set to default value on error
     }
   }
-
-  // LatLng? _parseLatLng(String? coordString) {
-  //   if (coordString == null) return null;
-  //   final parts = coordString.split(',');
-  //   if (parts.length != 2) return null;
-  //   final lat = double.tryParse(parts[0]);
-  //   final lng = double.tryParse(parts[1]);
-  //   return (lat != null && lng != null) ? LatLng(lat, lng) : null;
-  // }
 }

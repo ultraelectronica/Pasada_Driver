@@ -1,19 +1,20 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:pasada_driver_side/Config/app_config.dart';
-import 'booking_model.dart';
-import 'booking_exception.dart';
-import 'booking_constants.dart';
-import 'booking_repository_interface.dart';
 
-// ==================== REPOSITORIES ====================
+import 'package:pasada_driver_side/common/config/app_config.dart';
+import 'package:pasada_driver_side/data/models/booking_model.dart';
+import 'package:pasada_driver_side/common/exceptions/booking_exception.dart';
+import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 
-/// Repository to handle all database operations related to bookings
-class BookingRepository implements IBookingRepository {
+import 'booking_repository.dart';
+
+/// Concrete Supabase implementation of [BookingRepository].
+class SupabaseBookingRepository implements BookingRepository {
   final SupabaseClient _supabase;
 
-  BookingRepository({SupabaseClient? supabase})
+  SupabaseBookingRepository({SupabaseClient? supabase})
       : _supabase = supabase ?? Supabase.instance.client;
 
   @override
@@ -25,14 +26,12 @@ class BookingRepository implements IBookingRepository {
     );
   }
 
-  /// Internal implementation of fetchActiveBookings
   Future<List<Booking>> _fetchActiveBookingsInternal(String driverId) async {
     if (kDebugMode) {
       debugPrint('Fetching bookings for driver: $driverId');
     }
 
     try {
-      // Build the select query with all required fields
       const selectFields = '${BookingConstants.fieldBookingId}, '
           '${BookingConstants.fieldPassengerId}, '
           '${BookingConstants.fieldRideStatus}, '
@@ -42,7 +41,6 @@ class BookingRepository implements IBookingRepository {
           '${BookingConstants.fieldDropoffLng}, '
           '${BookingConstants.fieldSeatType}';
 
-      // Build the OR condition for active statuses
       const statusFilter =
           '${BookingConstants.fieldRideStatus}.eq.${BookingConstants.statusRequested},'
           '${BookingConstants.fieldRideStatus}.eq.${BookingConstants.statusAccepted},'
@@ -53,10 +51,11 @@ class BookingRepository implements IBookingRepository {
           .select(selectFields)
           .eq(BookingConstants.fieldDriverId, driverId)
           .or(statusFilter)
-          .timeout(Duration(seconds: AppConfig.databaseOperationTimeout),
-              onTimeout: () {
-        throw TimeoutException('Database operation timed out');
-      });
+          .timeout(
+            Duration(seconds: AppConfig.databaseOperationTimeout),
+            onTimeout: () =>
+                throw TimeoutException('Database operation timed out'),
+          );
 
       if (kDebugMode) {
         debugPrint('Retrieved ${response.length} active bookings');
@@ -64,7 +63,7 @@ class BookingRepository implements IBookingRepository {
 
       return List<Map<String, dynamic>>.from(response)
           .map((json) => Booking.fromJson(json))
-          .where((booking) => booking.isValid) // Additional validation
+          .where((booking) => booking.isValid)
           .toList();
     } on TimeoutException {
       if (kDebugMode) {
@@ -105,7 +104,6 @@ class BookingRepository implements IBookingRepository {
     );
   }
 
-  /// Internal implementation of fetchCompletedBookingsCount
   Future<int> _fetchCompletedBookingsCountInternal(String driverId) async {
     try {
       final response = await _supabase
@@ -114,10 +112,11 @@ class BookingRepository implements IBookingRepository {
           .eq(BookingConstants.fieldDriverId, driverId)
           .eq(BookingConstants.fieldRideStatus,
               BookingConstants.statusCompleted)
-          .timeout(Duration(seconds: AppConfig.databaseOperationTimeout),
-              onTimeout: () {
-        throw TimeoutException('Database operation timed out');
-      });
+          .timeout(
+            Duration(seconds: AppConfig.databaseOperationTimeout),
+            onTimeout: () =>
+                throw TimeoutException('Database operation timed out'),
+          );
 
       return response.length;
     } on TimeoutException {
@@ -152,7 +151,6 @@ class BookingRepository implements IBookingRepository {
     );
   }
 
-  /// Internal implementation of updateBookingStatus
   Future<bool> _updateBookingStatusInternal(
       String bookingId, String newStatus) async {
     try {
@@ -160,11 +158,11 @@ class BookingRepository implements IBookingRepository {
           .from('bookings')
           .update({BookingConstants.fieldRideStatus: newStatus})
           .eq(BookingConstants.fieldBookingId, bookingId)
-          .timeout(Duration(seconds: AppConfig.databaseOperationTimeout),
-              onTimeout: () {
-            throw TimeoutException('Database operation timed out');
-          });
-
+          .timeout(
+            Duration(seconds: AppConfig.databaseOperationTimeout),
+            onTimeout: () =>
+                throw TimeoutException('Database operation timed out'),
+          );
       if (kDebugMode) {
         debugPrint('Updated booking $bookingId status to $newStatus');
       }
@@ -192,72 +190,6 @@ class BookingRepository implements IBookingRepository {
     }
   }
 
-  /// Generic retry mechanism for repository methods
-  Future<T> _withRetry<T>(Future<T> Function() operation, String operationName,
-      {int maxRetries = 2,
-      Duration delayBetweenRetries = const Duration(seconds: 1)}) async {
-    int attempts = 0;
-    Exception? lastException;
-
-    while (true) {
-      try {
-        attempts++;
-        return await operation();
-      } on BookingException catch (e) {
-        lastException = e;
-
-        // Don't retry certain types of errors
-        if (e.type == BookingConstants.errorTypeDatabase) {
-          if (kDebugMode) {
-            debugPrint(
-                'Database error in $operationName, not retrying: ${e.message}');
-          }
-          rethrow;
-        }
-
-        if (attempts > maxRetries) {
-          if (kDebugMode) {
-            debugPrint('Max retries reached for $operationName');
-          }
-          rethrow;
-        }
-
-        if (kDebugMode) {
-          debugPrint(
-              'Attempt $attempts failed for $operationName: ${e.message}. Retrying...');
-        }
-
-        // Wait before retrying with progressive backoff
-        await Future.delayed(delayBetweenRetries * attempts);
-      } catch (e, stackTrace) {
-        lastException = e is Exception ? e : Exception(e.toString());
-
-        if (attempts > maxRetries) {
-          // If we've maxed out retries, rethrow the error
-          if (kDebugMode) {
-            debugPrint('Error in $operationName after $attempts attempts: $e');
-            debugPrint('Stack trace: $stackTrace');
-          }
-
-          throw BookingException(
-            message: e.toString(),
-            type: BookingConstants.errorTypeUnknown,
-            operation: operationName,
-            originalException: lastException,
-          );
-        }
-
-        if (kDebugMode) {
-          debugPrint(
-              'Attempt $attempts failed for $operationName: $e. Retrying...');
-        }
-
-        // Wait before retrying with progressive backoff
-        await Future.delayed(delayBetweenRetries * attempts);
-      }
-    }
-  }
-
   @override
   Stream<List<Booking>> activeBookingsStream(String driverId) {
     try {
@@ -266,7 +198,6 @@ class BookingRepository implements IBookingRepository {
           .stream(primaryKey: [BookingConstants.fieldBookingId])
           .eq(BookingConstants.fieldDriverId, driverId)
           .map((response) {
-            // Filter the response here since we can't use .or() in stream queries
             final data = List<Map<String, dynamic>>.from(response);
             final filteredData = data.where((booking) {
               final status =
@@ -275,17 +206,15 @@ class BookingRepository implements IBookingRepository {
                   status == BookingConstants.statusAccepted ||
                   status == BookingConstants.statusOngoing;
             }).toList();
-
             return filteredData
                 .map((json) => Booking.fromJson(json))
-                .where((booking) => booking.isValid) // Additional validation
+                .where((booking) => booking.isValid)
                 .toList();
           })
           .handleError((error) {
             if (kDebugMode) {
               debugPrint('Error in booking stream: $error');
             }
-            // Re-throw to allow subscribers to handle it
             throw BookingException(
               message: error.toString(),
               type: BookingConstants.errorTypeUnknown,
@@ -296,12 +225,45 @@ class BookingRepository implements IBookingRepository {
       if (kDebugMode) {
         debugPrint('Error setting up booking stream: $e');
       }
-      // Return an empty stream with error
       return Stream.error(BookingException(
         message: e.toString(),
         type: BookingConstants.errorTypeUnknown,
         operation: 'activeBookingsStream',
       ));
+    }
+  }
+
+  /// Generic retry helper
+  Future<T> _withRetry<T>(
+    Future<T> Function() operation,
+    String operationName, {
+    int maxRetries = 2,
+    Duration delayBetweenRetries = const Duration(seconds: 1),
+  }) async {
+    int attempts = 0;
+    Exception? lastException;
+
+    while (true) {
+      try {
+        attempts++;
+        return await operation();
+      } on BookingException catch (e) {
+        lastException = e;
+        if (e.type == BookingConstants.errorTypeDatabase) rethrow;
+        if (attempts > maxRetries) rethrow;
+        await Future.delayed(delayBetweenRetries * attempts);
+      } catch (e) {
+        lastException = e is Exception ? e : Exception(e.toString());
+        if (attempts > maxRetries) {
+          throw BookingException(
+            message: e.toString(),
+            type: BookingConstants.errorTypeUnknown,
+            operation: operationName,
+            originalException: lastException,
+          );
+        }
+        await Future.delayed(delayBetweenRetries * attempts);
+      }
     }
   }
 }

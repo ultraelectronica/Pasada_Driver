@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:pasada_driver_side/Database/driver_provider.dart';
-import 'package:pasada_driver_side/Database/passenger_provider.dart';
-import 'package:pasada_driver_side/Database/booking_model.dart';
-import 'package:pasada_driver_side/Database/booking_constants.dart';
+import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
+import 'package:pasada_driver_side/data/models/booking_model.dart';
+import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 import 'package:pasada_driver_side/UI/constants.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:provider/provider.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:provider/provider.dart';
-import 'package:pasada_driver_side/Database/driver_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 
 class PassengerCounter extends StatefulWidget {
   const PassengerCounter({super.key});

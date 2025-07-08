@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:pasada_driver_side/Database/auth_service.dart';
-import 'package:pasada_driver_side/Database/driver_provider.dart';
-import 'package:pasada_driver_side/Database/map_provider.dart';
+import 'package:pasada_driver_side/Services/auth_service.dart';
+import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:provider/provider.dart';
 
@@ -267,8 +267,7 @@ class ProfilePageState extends State<ProfilePage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       color: Colors.white,
       child: const Padding(
-        padding:
-            EdgeInsets.symmetric(vertical: 0), // Padding around the list
+        padding: EdgeInsets.symmetric(vertical: 0), // Padding around the list
         child: Column(
           children: [
             // _buildActionTile(

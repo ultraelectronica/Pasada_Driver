@@ -13,7 +13,5 @@ class BookingException implements Exception {
   });
 
   @override
-  String toString() {
-    return 'BookingException[$type] during $operation: $message';
-  }
+  String toString() => 'BookingException[$type] during $operation: $message';
 }
