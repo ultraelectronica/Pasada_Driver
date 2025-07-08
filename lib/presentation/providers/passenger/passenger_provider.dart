@@ -166,14 +166,8 @@ class PassengerProvider with ChangeNotifier {
         final pos = await Geolocator.getCurrentPosition(
                 locationSettings:
                     const LocationSettings(accuracy: LocationAccuracy.high))
-            .timeout(Duration(seconds: AppConfig.locationFetchTimeout));
+            .timeout(const Duration(seconds: AppConfig.locationFetchTimeout));
         currentLocation = LatLng(pos.latitude, pos.longitude);
-      }
-      if (currentLocation == null) {
-        _clearBookingData();
-        _isProcessingBookings = false;
-        notifyListeners();
-        return;
       }
 
       final active = await _repository.fetchActiveBookings(driverId);
@@ -223,7 +217,7 @@ class PassengerProvider with ChangeNotifier {
       final pos = await Geolocator.getCurrentPosition(
               locationSettings:
                   const LocationSettings(accuracy: LocationAccuracy.high))
-          .timeout(Duration(seconds: AppConfig.locationFetchTimeout));
+          .timeout(const Duration(seconds: AppConfig.locationFetchTimeout));
       final loc = LatLng(pos.latitude, pos.longitude);
       if (context.mounted) {
         context.read<MapProvider>().setCurrentLocation(loc);

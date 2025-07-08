@@ -37,11 +37,11 @@ class PassengerListWidget extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 5,
             spreadRadius: 1,
             offset: const Offset(0, 2),
@@ -124,7 +124,7 @@ class PassengerListWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -188,8 +188,8 @@ class PassengerListWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? (isPickup
-                  ? Colors.blue.withOpacity(0.05)
-                  : Colors.orange.withOpacity(0.05))
+                  ? Colors.blue.withValues(alpha: 0.05)
+                  : Colors.orange.withValues(alpha: 0.05))
               : Colors.transparent,
           border: Border(
             left: BorderSide(
@@ -198,7 +198,7 @@ class PassengerListWidget extends StatelessWidget {
                   : (isPickup ? Colors.blue : Colors.orange),
               width: isSelected ? 3 : 2,
             ),
-            bottom: BorderSide(color: Colors.grey.withOpacity(0.1), width: 1),
+            bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1), width: 1),
           ),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -207,7 +207,7 @@ class PassengerListWidget extends StatelessWidget {
             // Status icon
             Container(
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
+                color: statusColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               padding: const EdgeInsets.all(4),
@@ -229,7 +229,7 @@ class PassengerListWidget extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 4, vertical: 1),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
+                        color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -246,7 +246,7 @@ class PassengerListWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
+                color: statusColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(

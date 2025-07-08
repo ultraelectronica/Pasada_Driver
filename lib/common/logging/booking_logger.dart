@@ -52,8 +52,9 @@ class BookingLogger {
   static Future<void> logError(String m,
       {Object? error, StackTrace? stackTrace}) async {
     await log(error != null ? '$m: $error' : m, type: 'ERROR');
-    if (stackTrace != null && kDebugMode)
+    if (stackTrace != null && kDebugMode) {
       debugPrint('Stack trace: $stackTrace');
+    }
   }
 
   static Future<void> logInfo(String m) => log(m, type: 'INFO');

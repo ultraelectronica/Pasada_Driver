@@ -1,11 +1,9 @@
 // ignore_for_file: non_constant_identifier_names, constant_identifier_names
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
-import 'package:pasada_driver_side/data/models/booking_model.dart';
 import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 import 'package:pasada_driver_side/Map/google_map.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
@@ -22,8 +20,6 @@ import 'package:pasada_driver_side/presentation/pages/home/widgets/passenger_lis
 import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_message_button.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_status_switch.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_capacity.dart';
-import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
-import 'package:flutter/widgets.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/home_constants.dart';
 
 // Model to track passenger proximity status
@@ -249,11 +245,10 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
             } else if (closestPassenger.isNearDropoff) {
               // Arrived at dropoff
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content:
-                      const Text('You have arrived at a dropoff location!'),
+                const SnackBar(
+                  content: Text('You have arrived at a dropoff location!'),
                   backgroundColor: Colors.orange,
-                  duration: const Duration(seconds: 3),
+                  duration: Duration(seconds: 3),
                 ),
               );
             } else if (closestPassenger.isApproachingPickup) {
@@ -378,7 +373,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
         // Start proximity check timer using AppConfig interval
         _proximityCheckTimer = Timer.periodic(
-            Duration(seconds: AppConfig.proximityCheckInterval), (timer) {
+            const Duration(seconds: AppConfig.proximityCheckInterval), (timer) {
           if (mounted) {
             _checkProximity(context);
             // Update map markers after proximity check
@@ -388,7 +383,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
         // Start booking fetch timer using AppConfig interval
         _bookingFetchTimer = Timer.periodic(
-            Duration(seconds: AppConfig.periodicFetchInterval), (timer) {
+            const Duration(seconds: AppConfig.periodicFetchInterval), (timer) {
           if (mounted) {
             final driverProvider = context.read<DriverProvider>();
             if (driverProvider.driverStatus == 'Driving' &&
@@ -434,7 +429,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void _startTimers() {
     // Restart proximity and fetch timers if not already active
     _proximityCheckTimer ??= Timer.periodic(
-      Duration(seconds: AppConfig.proximityCheckInterval),
+      const Duration(seconds: AppConfig.proximityCheckInterval),
       (_) {
         if (mounted) {
           _checkProximity(context);
@@ -444,7 +439,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
 
     _bookingFetchTimer ??= Timer.periodic(
-      Duration(seconds: AppConfig.periodicFetchInterval),
+      const Duration(seconds: AppConfig.periodicFetchInterval),
       (_) {
         if (mounted) {
           final driverProvider = context.read<DriverProvider>();
@@ -597,10 +592,10 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
                 if (result.success) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Standing passenger added manually'),
+                    const SnackBar(
+                      content: Text('Standing passenger added manually'),
                       backgroundColor: Colors.blue,
-                      duration: const Duration(seconds: 2),
+                      duration: Duration(seconds: 2),
                     ),
                   );
                 } else {
@@ -643,11 +638,11 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
                 if (result.success) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
+                    const SnackBar(
                       content:
-                          const Text('Standing passenger removed manually'),
+                          Text('Standing passenger removed manually'),
                       backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 2),
+                      duration: Duration(seconds: 2),
                     ),
                   );
                 } else {
@@ -697,10 +692,10 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
                 if (result.success) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Sitting passenger added manually'),
+                    const SnackBar(
+                      content: Text('Sitting passenger added manually'),
                       backgroundColor: Colors.blue,
-                      duration: const Duration(seconds: 2),
+                      duration: Duration(seconds: 2),
                     ),
                   );
                 } else {
@@ -743,10 +738,10 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
                 if (result.success) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Sitting passenger removed manually'),
+                    const SnackBar(
+                      content: Text('Sitting passenger removed manually'),
                       backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 2),
+                      duration: Duration(seconds: 2),
                     ),
                   );
                 } else {
@@ -906,10 +901,10 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
                         if (capacityResult.success) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
+                            const SnackBar(
                               content: Text('Ride completed successfully'),
                               backgroundColor: Colors.green,
-                              duration: const Duration(seconds: 2),
+                              duration: Duration(seconds: 2),
                             ),
                           );
                         } else {
@@ -920,10 +915,10 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         }
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
+                          const SnackBar(
                             content: Text('Failed to complete ride'),
                             backgroundColor: Colors.red,
-                            duration: const Duration(seconds: 2),
+                            duration: Duration(seconds: 2),
                           ),
                         );
                       }
@@ -961,7 +956,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
             if (_isLoadingBookings)
               Positioned.fill(
                 child: Container(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   child: Center(
                     child: Container(
                       padding: const EdgeInsets.all(16),
@@ -970,7 +965,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 10,
                             spreadRadius: 1,
                           ),
@@ -1046,11 +1041,11 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
                         if (result.success) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text(
+                            const SnackBar(
+                              content: Text(
                                   'Capacity reset to zero successfully'),
                               backgroundColor: Colors.green,
-                              duration: const Duration(seconds: 2),
+                              duration: Duration(seconds: 2),
                             ),
                           );
                         } else {

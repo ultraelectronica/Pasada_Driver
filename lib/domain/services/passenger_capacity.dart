@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names
+
 import 'package:flutter/material.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:provider/provider.dart';
@@ -98,16 +100,18 @@ class PassengerCapacity {
 
       if (operation == 'increment') {
         newTotal++;
-        if (seatType == 'Standing')
+        if (seatType == 'Standing') {
           newStanding++;
-        else
+        } else {
           newSitting++;
+        }
       } else {
         newTotal--;
-        if (seatType == 'Standing')
+        if (seatType == 'Standing') {
           newStanding--;
-        else
+        } else {
           newSitting--;
+        }
       }
 
       if (!_validateCapacityLimits(newStanding, newSitting, operation)) {

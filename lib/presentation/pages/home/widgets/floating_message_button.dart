@@ -53,7 +53,7 @@ class FloatingMessageButton extends StatelessWidget {
                 (isDriving ? Colors.blue : Colors.grey).withAlpha(26),
             child: Center(
               child: isLoading
-                  ? SizedBox(
+                  ? const SizedBox(
                       width: 24,
                       height: 24,
                       child: CircularProgressIndicator(

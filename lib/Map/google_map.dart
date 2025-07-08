@@ -406,10 +406,12 @@ class MapScreenState extends State<MapScreen> {
           _initState == MapInitState.initialized &&
           _endingLocation != null) {
         List<LatLng> waypoints = [];
-        if (_intermediateLocation1 != null)
+        if (_intermediateLocation1 != null){
           waypoints.add(_intermediateLocation1!);
-        if (_intermediateLocation2 != null)
+        }
+        if (_intermediateLocation2 != null){
           waypoints.add(_intermediateLocation2!);
+        }
 
         // IMPORTANT: Use current location as start point for better user experience
         generatePolyline(newLatLng, _endingLocation!,
