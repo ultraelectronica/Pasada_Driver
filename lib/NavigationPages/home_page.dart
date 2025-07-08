@@ -3,20 +3,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:pasada_driver_side/Database/passenger_capacity.dart';
-import 'package:pasada_driver_side/Database/passenger_provider.dart';
-import 'package:pasada_driver_side/Database/booking_model.dart';
-import 'package:pasada_driver_side/Database/booking_constants.dart';
+import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
+import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
+import 'package:pasada_driver_side/data/models/booking_model.dart';
+import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 import 'package:pasada_driver_side/Map/google_map.dart';
-import 'package:pasada_driver_side/Database/driver_provider.dart';
-import 'package:pasada_driver_side/Database/map_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/UI/constants.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'package:flutter/scheduler.dart';
-import 'package:pasada_driver_side/Config/app_config.dart';
+import 'package:pasada_driver_side/common/config/app_config.dart';
 
 // Model to track passenger proximity status
 class PassengerStatus {
@@ -765,7 +765,7 @@ class HomePageState extends State<HomePage> {
                     onTap: () async {
                       // Get the booking seat type BEFORE marking it as ongoing
                       String seatType =
-                          'sitting'; // Default to 'sitting' if booking not found
+                          'Sitting'; // Default to 'sitting' if booking not found
 
                       try {
                         // Attempt to find the booking before any status changes
@@ -790,10 +790,10 @@ class HomePageState extends State<HomePage> {
 
                         if (capacityResult.success) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
+                            const SnackBar(
                               content: Text('Passenger picked up successfully'),
                               backgroundColor: Colors.green,
-                              duration: const Duration(seconds: 2),
+                              duration: Duration(seconds: 2),
                             ),
                           );
                         } else {
@@ -804,10 +804,10 @@ class HomePageState extends State<HomePage> {
                         }
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
+                          const SnackBar(
                             content: Text('Failed to confirm passenger pickup'),
                             backgroundColor: Colors.red,
-                            duration: const Duration(seconds: 2),
+                            duration: Duration(seconds: 2),
                           ),
                         );
                       }
@@ -855,7 +855,7 @@ class HomePageState extends State<HomePage> {
                       // Get the booking seat type BEFORE marking it as completed
                       // This prevents the "booking not found" error since bookings are removed after completion
                       String seatType =
-                          'sitting'; // Default to 'sitting' if booking not found
+                          'Sitting'; // Default to 'sitting' if booking not found
 
                       try {
                         // Attempt to find the booking before it's removed
@@ -1684,7 +1684,7 @@ class PassengerListWidget extends StatelessWidget {
             ),
           ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         child: Row(
           children: [
             // Status icon
@@ -1705,7 +1705,7 @@ class PassengerListWidget extends StatelessWidget {
                   Text(
                     '#${passenger.booking.id}',
                     style: Styles()
-                        .textStyle(12, Styles.w600Weight, Styles.customBlack),
+                        .textStyle(13, Styles.w600Weight, Styles.customBlack),
                   ),
                   if (isUrgent) ...[
                     const SizedBox(width: 4),
@@ -1736,7 +1736,7 @@ class PassengerListWidget extends StatelessWidget {
               ),
               child: Text(
                 formattedDistance,
-                style: Styles().textStyle(11, Styles.w600Weight, statusColor),
+                style: Styles().textStyle(14, Styles.w600Weight, statusColor),
               ),
             ),
           ],

@@ -25,7 +25,7 @@ class BookingConstants {
   static const String fieldSeatType = 'seat_type';
 
   // Default values
-  static const String defaultSeatType = 'sitting';
+  static const String defaultSeatType = 'Sitting';
   static const String defaultLogType = 'INFO';
   static const String logFileName = 'pasada_bookings.log';
 
@@ -36,6 +36,6 @@ class BookingConstants {
   static const int defaultMaxRetries = 2;
   static const Duration defaultRetryDelay = Duration(seconds: 1);
 
-  // Private constructor to prevent instantiation
+  // Private constructor
   BookingConstants._();
 }

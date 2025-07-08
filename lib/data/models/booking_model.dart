@@ -1,7 +1,5 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'booking_constants.dart';
-
-// ==================== MODELS ====================
+import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 
 /// Model representing a booking with all necessary details
 class Booking {

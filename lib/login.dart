@@ -1,16 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:pasada_driver_side/Database/auth_service.dart';
-import 'package:pasada_driver_side/Database/passenger_capacity.dart';
+import 'package:pasada_driver_side/Services/auth_service.dart';
+import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/Services/password_util.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/NavigationPages/main_page.dart';
-import 'package:pasada_driver_side/Database/driver_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:pasada_driver_side/Database/map_provider.dart';
-import 'package:pasada_driver_side/Database/passenger_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 
 class LogIn extends StatefulWidget {
   final PageController? pageController;
