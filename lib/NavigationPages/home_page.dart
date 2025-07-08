@@ -1,11 +1,9 @@
 // ignore_for_file: non_constant_identifier_names, constant_identifier_names
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
-import 'package:pasada_driver_side/data/models/booking_model.dart';
 import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 import 'package:pasada_driver_side/Map/google_map.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
@@ -17,43 +15,14 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 import 'package:flutter/scheduler.dart';
 import 'package:pasada_driver_side/common/config/app_config.dart';
+import 'package:pasada_driver_side/presentation/pages/home/models/passenger_status.dart';
+import 'package:pasada_driver_side/presentation/pages/home/widgets/passenger_list_widget.dart';
+import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_message_button.dart';
+import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_status_switch.dart';
+import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_capacity.dart';
+import 'package:pasada_driver_side/presentation/pages/home/utils/home_constants.dart';
 
 // Model to track passenger proximity status
-class PassengerStatus {
-  final Booking booking;
-  final double distance;
-  final bool isNearPickup;
-  final bool isNearDropoff;
-  final bool isApproachingPickup;
-  final bool isApproachingDropoff;
-
-  const PassengerStatus({
-    required this.booking,
-    required this.distance,
-    this.isNearPickup = false,
-    this.isNearDropoff = false,
-    this.isApproachingPickup = false,
-    this.isApproachingDropoff = false,
-  });
-
-  PassengerStatus copyWith({
-    Booking? booking,
-    double? distance,
-    bool? isNearPickup,
-    bool? isNearDropoff,
-    bool? isApproachingPickup,
-    bool? isApproachingDropoff,
-  }) {
-    return PassengerStatus(
-      booking: booking ?? this.booking,
-      distance: distance ?? this.distance,
-      isNearPickup: isNearPickup ?? this.isNearPickup,
-      isNearDropoff: isNearDropoff ?? this.isNearDropoff,
-      isApproachingPickup: isApproachingPickup ?? this.isApproachingPickup,
-      isApproachingDropoff: isApproachingDropoff ?? this.isApproachingDropoff,
-    );
-  }
-}
 
 void main() => runApp(const HomeScreen());
 
@@ -86,7 +55,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => HomePageState();
 }
 
-class HomePageState extends State<HomePage> {
+class HomePageState extends State<HomePage> with WidgetsBindingObserver {
   late GoogleMapController mapController;
   // LocationData? _currentLocation;
   // late Location _location;
@@ -122,6 +91,9 @@ class HomePageState extends State<HomePage> {
 
   // Loading state for bookings fetch
   bool _isLoadingBookings = false;
+
+  // Flag to track if booking stream has started
+  bool _bookingStreamStarted = false;
 
   Future<void> getPassengerCapacity() async {
     // get the passenger capacity from the DB
@@ -234,15 +206,17 @@ class HomePageState extends State<HomePage> {
     // Sort simply by distance - the closest booking is the most important
     passengerStatuses.sort((a, b) => a.distance.compareTo(b.distance));
 
-    // Keep only the 3 nearest passengers
-    if (passengerStatuses.length > 3) {
-      passengerStatuses = passengerStatuses.sublist(0, 3);
+    // Keep only the nearest passengers (configurable)
+    if (passengerStatuses.length > HomeConstants.maxNearbyPassengers) {
+      passengerStatuses =
+          passengerStatuses.sublist(0, HomeConstants.maxNearbyPassengers);
     }
 
     // Determine if any notifications should be shown (not more often than every 15 seconds)
     final now = DateTime.now();
     final canShowNotification = _lastProximityNotificationTime == null ||
-        now.difference(_lastProximityNotificationTime!).inSeconds > 15;
+        now.difference(_lastProximityNotificationTime!).inSeconds >
+            HomeConstants.proximityNotificationCooldownSeconds;
 
     if (canShowNotification && passengerStatuses.isNotEmpty) {
       // Just use the closest booking for notification
@@ -271,11 +245,10 @@ class HomePageState extends State<HomePage> {
             } else if (closestPassenger.isNearDropoff) {
               // Arrived at dropoff
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content:
-                      const Text('You have arrived at a dropoff location!'),
+                const SnackBar(
+                  content: Text('You have arrived at a dropoff location!'),
                   backgroundColor: Colors.orange,
-                  duration: const Duration(seconds: 3),
+                  duration: Duration(seconds: 3),
                 ),
               );
             } else if (closestPassenger.isApproachingPickup) {
@@ -367,7 +340,10 @@ class HomePageState extends State<HomePage> {
         // Use the direct startBookingStream call if possible
         final driverId = driverProvider.driverID;
         if (driverId.isNotEmpty) {
-          passengerProvider.startBookingStream(driverId);
+          if (!_bookingStreamStarted) {
+            passengerProvider.startBookingStream(driverId);
+            _bookingStreamStarted = true;
+          }
         }
 
         // Use context-less call to avoid disposed widget issues
@@ -386,6 +362,9 @@ class HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
 
+    // Observe app lifecycle to pause/resume timers
+    WidgetsBinding.instance.addObserver(this);
+
     // Delay timer start to ensure context is fully ready
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -394,7 +373,7 @@ class HomePageState extends State<HomePage> {
 
         // Start proximity check timer using AppConfig interval
         _proximityCheckTimer = Timer.periodic(
-            Duration(seconds: AppConfig.proximityCheckInterval), (timer) {
+            const Duration(seconds: AppConfig.proximityCheckInterval), (timer) {
           if (mounted) {
             _checkProximity(context);
             // Update map markers after proximity check
@@ -404,7 +383,7 @@ class HomePageState extends State<HomePage> {
 
         // Start booking fetch timer using AppConfig interval
         _bookingFetchTimer = Timer.periodic(
-            Duration(seconds: AppConfig.periodicFetchInterval), (timer) {
+            const Duration(seconds: AppConfig.periodicFetchInterval), (timer) {
           if (mounted) {
             final driverProvider = context.read<DriverProvider>();
             if (driverProvider.driverStatus == 'Driving' &&
@@ -425,10 +404,51 @@ class HomePageState extends State<HomePage> {
         if (driverProvider.driverStatus == 'Driving') {
           fetchBookings(context);
           final passengerProvider = context.read<PassengerProvider>();
-          passengerProvider.startBookingStream(driverProvider.driverID);
+          if (!_bookingStreamStarted) {
+            passengerProvider.startBookingStream(driverProvider.driverID);
+            _bookingStreamStarted = true;
+          }
         }
       }
     });
+  }
+
+  /// App lifecycle changes
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _proximityCheckTimer?.cancel();
+      _bookingFetchTimer?.cancel();
+    } else if (state == AppLifecycleState.resumed) {
+      _startTimers();
+    }
+    super.didChangeAppLifecycleState(state);
+  }
+
+  void _startTimers() {
+    // Restart proximity and fetch timers if not already active
+    _proximityCheckTimer ??= Timer.periodic(
+      const Duration(seconds: AppConfig.proximityCheckInterval),
+      (_) {
+        if (mounted) {
+          _checkProximity(context);
+          _updateMapMarkers();
+        }
+      },
+    );
+
+    _bookingFetchTimer ??= Timer.periodic(
+      const Duration(seconds: AppConfig.periodicFetchInterval),
+      (_) {
+        if (mounted) {
+          final driverProvider = context.read<DriverProvider>();
+          if (driverProvider.driverStatus == 'Driving' && !_isLoadingBookings) {
+            fetchBookings(context);
+          }
+        }
+      },
+    );
   }
 
   @override
@@ -450,6 +470,8 @@ class HomePageState extends State<HomePage> {
     // Cancel timers when widget is disposed
     _proximityCheckTimer?.cancel();
     _bookingFetchTimer?.cancel();
+
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -538,7 +560,7 @@ class HomePageState extends State<HomePage> {
 
             // PASSENGER CAPACITY (TOTAL) - Just refreshes data
             FloatingCapacity(
-              Provider: driverProvider,
+              driverProvider: driverProvider,
               passengerCapacity: PassengerCapacity(),
               screenHeight: screenHeight,
               screenWidth: screenWidth,
@@ -555,7 +577,7 @@ class HomePageState extends State<HomePage> {
 
             // PASSENGER STANDING CAPACITY - Can be incremented manually
             FloatingCapacity(
-              Provider: driverProvider,
+              driverProvider: driverProvider,
               passengerCapacity: PassengerCapacity(),
               screenHeight: screenHeight,
               screenWidth: screenWidth,
@@ -570,10 +592,10 @@ class HomePageState extends State<HomePage> {
 
                 if (result.success) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Standing passenger added manually'),
+                    const SnackBar(
+                      content: Text('Standing passenger added manually'),
                       backgroundColor: Colors.blue,
-                      duration: const Duration(seconds: 2),
+                      duration: Duration(seconds: 2),
                     ),
                   );
                 } else {
@@ -616,11 +638,11 @@ class HomePageState extends State<HomePage> {
 
                 if (result.success) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
+                    const SnackBar(
                       content:
-                          const Text('Standing passenger removed manually'),
+                          Text('Standing passenger removed manually'),
                       backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 2),
+                      duration: Duration(seconds: 2),
                     ),
                   );
                 } else {
@@ -655,7 +677,7 @@ class HomePageState extends State<HomePage> {
 
             // PASSENGER SITTING CAPACITY - Can be incremented manually
             FloatingCapacity(
-              Provider: driverProvider,
+              driverProvider: driverProvider,
               passengerCapacity: PassengerCapacity(),
               screenHeight: screenHeight,
               screenWidth: screenWidth,
@@ -670,10 +692,10 @@ class HomePageState extends State<HomePage> {
 
                 if (result.success) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Sitting passenger added manually'),
+                    const SnackBar(
+                      content: Text('Sitting passenger added manually'),
                       backgroundColor: Colors.blue,
-                      duration: const Duration(seconds: 2),
+                      duration: Duration(seconds: 2),
                     ),
                   );
                 } else {
@@ -716,10 +738,10 @@ class HomePageState extends State<HomePage> {
 
                 if (result.success) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Sitting passenger removed manually'),
+                    const SnackBar(
+                      content: Text('Sitting passenger removed manually'),
                       backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 2),
+                      duration: Duration(seconds: 2),
                     ),
                   );
                 } else {
@@ -879,10 +901,10 @@ class HomePageState extends State<HomePage> {
 
                         if (capacityResult.success) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
+                            const SnackBar(
                               content: Text('Ride completed successfully'),
                               backgroundColor: Colors.green,
-                              duration: const Duration(seconds: 2),
+                              duration: Duration(seconds: 2),
                             ),
                           );
                         } else {
@@ -893,10 +915,10 @@ class HomePageState extends State<HomePage> {
                         }
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
+                          const SnackBar(
                             content: Text('Failed to complete ride'),
                             backgroundColor: Colors.red,
-                            duration: const Duration(seconds: 2),
+                            duration: Duration(seconds: 2),
                           ),
                         );
                       }
@@ -934,7 +956,7 @@ class HomePageState extends State<HomePage> {
             if (_isLoadingBookings)
               Positioned.fill(
                 child: Container(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   child: Center(
                     child: Container(
                       padding: const EdgeInsets.all(16),
@@ -943,7 +965,7 @@ class HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 10,
                             spreadRadius: 1,
                           ),
@@ -1019,11 +1041,11 @@ class HomePageState extends State<HomePage> {
 
                         if (result.success) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text(
+                            const SnackBar(
+                              content: Text(
                                   'Capacity reset to zero successfully'),
                               backgroundColor: Colors.green,
-                              duration: const Duration(seconds: 2),
+                              duration: Duration(seconds: 2),
                             ),
                           );
                         } else {
@@ -1151,607 +1173,6 @@ class HomePageState extends State<HomePage> {
           zIndex: zIndex,
         );
       }
-    }
-  }
-}
-
-class FloatingMessageButton extends StatelessWidget {
-  const FloatingMessageButton({
-    super.key,
-    required this.screenHeight,
-    required this.screenWidth,
-    required this.isLoading,
-    required this.onRefresh,
-  });
-
-  final double screenHeight;
-  final double screenWidth;
-  final bool isLoading;
-  final VoidCallback onRefresh;
-
-  @override
-  Widget build(BuildContext context) {
-    final driverProvider = context.watch<DriverProvider>();
-    final bool isDriving = driverProvider.driverStatus == 'Driving';
-
-    return Positioned(
-      bottom: screenHeight * 0.04,
-      left: screenWidth * 0.05,
-      child: SizedBox(
-        width: 50,
-        height: 50,
-        child: Material(
-          color: isDriving ? Colors.white : Colors.grey[300],
-          elevation: isDriving ? 4 : 2,
-          borderRadius: BorderRadius.circular(15),
-          child: InkWell(
-            onTap: () {
-              if (isDriving) {
-                // Manual refresh of bookings
-                if (!isLoading) {
-                  onRefresh();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Refreshing booking requests...'),
-                      backgroundColor: Constants.GREEN_COLOR,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                }
-              } else {
-                // Prompt to start driving with snackbar instead of dialog
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content:
-                        const Text('To get bookings, switch to "Driving" mode'),
-                    backgroundColor: Colors.orange,
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-            borderRadius: BorderRadius.circular(15),
-            splashColor: isDriving
-                ? Colors.blue.withAlpha(77)
-                : Colors.grey.withAlpha(77),
-            highlightColor: isDriving
-                ? Colors.blue.withAlpha(26)
-                : Colors.grey.withAlpha(26),
-            child: Center(
-              child: isLoading
-                  ? SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                            isDriving ? Colors.blue : Colors.grey),
-                      ),
-                    )
-                  : Icon(
-                      isDriving ? Icons.refresh : Icons.directions_car,
-                      color: isDriving ? Colors.blue : Colors.grey,
-                      size: 24,
-                    ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class FloatingStatusSwitch extends StatelessWidget {
-  const FloatingStatusSwitch({
-    super.key,
-    required this.screenHeight,
-    required this.screenWidth,
-  });
-
-  final double screenHeight;
-  final double screenWidth;
-
-  @override
-  Widget build(BuildContext context) {
-    final driverProvider = context.watch<DriverProvider>();
-    final bool isDriving = driverProvider.driverStatus == 'Driving';
-    // Calculate total passengers (standing + sitting)
-    final int totalPassengers = driverProvider.passengerStandingCapacity +
-        driverProvider.passengerSittingCapacity;
-
-    return Positioned(
-      bottom: screenHeight * 0.115, // Position just above the refresh button
-      left: screenWidth * 0.05,
-      child: SizedBox(
-        width: 135, // Wider to fit the text and switch
-        height: 50,
-        child: Material(
-          color: Colors.white,
-          elevation: 4,
-          borderRadius: BorderRadius.circular(15),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Status text
-                Text(
-                  isDriving ? 'Driving' : 'Online',
-                  style: Styles().textStyle(
-                    14,
-                    Styles.w600Weight,
-                    isDriving ? Constants.GREEN_COLOR : Colors.grey[700]!,
-                  ),
-                ),
-
-                // Toggle switch
-                Switch(
-                  value: isDriving,
-                  activeColor: Constants.GREEN_COLOR,
-                  onChanged: (value) {
-                    if (value) {
-                      // Switch to Driving mode - always allowed
-                      driverProvider.updateStatusToDB('Driving', context);
-                      driverProvider.setDriverStatus('Driving');
-                      driverProvider.setIsDriving(true);
-
-                      // Also fetch bookings when switching to driving mode
-                      context
-                          .read<PassengerProvider>()
-                          .getBookingRequestsID(context);
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Status set to Driving'),
-                          backgroundColor: Constants.GREEN_COLOR,
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    } else {
-                      // Switching to Online mode - check if there are passengers first
-                      if (totalPassengers > 0) {
-                        // Show warning if there are still passengers
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                'Cannot go Online: Vehicle still has $totalPassengers passenger${totalPassengers > 1 ? "s" : ""}'),
-                            backgroundColor: Colors.red,
-                            duration: const Duration(seconds: 3),
-                          ),
-                        );
-                      } else {
-                        // No passengers, safe to go Online
-                        driverProvider.updateStatusToDB('Online', context);
-                        driverProvider.setDriverStatus('Online');
-                        driverProvider.setIsDriving(false);
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Status set to Online'),
-                            backgroundColor: Colors.grey[700],
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      }
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class FloatingCapacity extends StatelessWidget {
-  const FloatingCapacity(
-      {super.key,
-      required this.screenHeight,
-      required this.screenWidth,
-      required this.bottomPosition,
-      required this.rightPosition,
-      required this.Provider,
-      required this.passengerCapacity,
-      required this.icon,
-      required this.text,
-      required this.onTap,
-      this.canIncrement = false,
-      this.onDecrementTap});
-
-  final double screenHeight;
-  final double screenWidth;
-  final double bottomPosition;
-  final double rightPosition;
-  final DriverProvider Provider;
-  final PassengerCapacity passengerCapacity;
-  final String icon;
-  final String text;
-  final VoidCallback onTap;
-  final bool canIncrement; // Whether this capacity can be incremented
-  final VoidCallback? onDecrementTap; // Callback for decrement button
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      bottom: bottomPosition,
-      right: rightPosition,
-      child: Row(
-        children: [
-          // Decrement button (only shown for standing and sitting capacity)
-          if (canIncrement && onDecrementTap != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Material(
-                color: Colors.white,
-                elevation: 4,
-                borderRadius: BorderRadius.circular(15),
-                child: InkWell(
-                  onTap: onDecrementTap,
-                  borderRadius: BorderRadius.circular(15),
-                  splashColor: Colors.red.withAlpha(77),
-                  highlightColor: Colors.red.withAlpha(26),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: Colors.red, width: 2),
-                    ),
-                    padding: const EdgeInsets.all(8),
-                    child: const Icon(
-                      Icons.remove_circle_outline,
-                      color: Colors.red,
-                      size: 22,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-          // Main capacity indicator
-          Material(
-            color: Colors.white,
-            elevation: 4,
-            borderRadius: BorderRadius.circular(15),
-            child: InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(15),
-              splashColor: Constants.GREEN_COLOR.withAlpha(77), // ~0.3 opacity
-              highlightColor:
-                  Constants.GREEN_COLOR.withAlpha(26), // ~0.1 opacity
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(
-                      color: canIncrement ? Colors.blue : Constants.GREEN_COLOR,
-                      width: 2),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SvgPicture.asset(
-                      icon,
-                      colorFilter: ColorFilter.mode(
-                        canIncrement ? Colors.blue : Constants.GREEN_COLOR,
-                        BlendMode.srcIn,
-                      ),
-                      height: 30,
-                      width: 30,
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      text,
-                      style: Styles()
-                          .textStyle(22, Styles.w600Weight, Styles.customBlack),
-                    ),
-                    if (canIncrement) ...[
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.add_circle_outline,
-                        color: Colors.blue,
-                        size: 20,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Widget to display the list of nearby passengers
-class PassengerListWidget extends StatelessWidget {
-  final List<PassengerStatus> passengers;
-  final String? selectedPassengerId;
-  final Function(String) onSelected;
-
-  const PassengerListWidget({
-    Key? key,
-    required this.passengers,
-    this.selectedPassengerId,
-    required this.onSelected,
-  }) : super(key: key);
-
-  // Helper to determine priority level (1-4)
-  int _getPriorityLevel(PassengerStatus passenger) {
-    if (passenger.isNearPickup || passenger.isNearDropoff)
-      return 1; // Highest priority - ready for action
-    if (passenger.isApproachingPickup || passenger.isApproachingDropoff)
-      return 2; // High priority - approaching
-    if (passenger.booking.rideStatus == BookingConstants.statusOngoing)
-      return 3; // Medium priority - ongoing rides
-    return 4; // Normal priority - accepted rides
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Create a combined sorted list
-    final List<PassengerStatus> sortedPassengers = List.from(passengers);
-
-    // Sort by absolute distance only
-    sortedPassengers.sort((a, b) => a.distance.compareTo(b.distance));
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            child: Row(
-              children: [
-                Text(
-                  'Booking Operations',
-                  style: Styles()
-                      .textStyle(14, Styles.w600Weight, Styles.customBlack),
-                ),
-                const Spacer(),
-                Icon(Icons.swipe_down_alt, size: 16, color: Colors.grey[500]),
-              ],
-            ),
-          ),
-          const Divider(height: 1, thickness: 1, indent: 0, endIndent: 0),
-
-          // Build the summary section showing pickup and dropoff counts
-          _buildListSummary(context, sortedPassengers),
-
-          // COMBINED LIST
-          if (sortedPassengers.isNotEmpty)
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: sortedPassengers.length,
-              itemBuilder: (context, index) =>
-                  _buildCompactPassengerItem(context, sortedPassengers[index]),
-            ),
-
-          // Show empty state if no bookings
-          if (passengers.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.not_listed_location, size: 16, color: Colors.grey),
-                  const SizedBox(width: 6),
-                  Text(
-                    'No active bookings',
-                    style:
-                        Styles().textStyle(12, Styles.w500Weight, Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  // Build the summary section showing pickup and dropoff counts
-  Widget _buildListSummary(
-      BuildContext context, List<PassengerStatus> passengers) {
-    final pickupCount = passengers
-        .where((p) => p.booking.rideStatus == BookingConstants.statusAccepted)
-        .length;
-
-    final dropoffCount = passengers
-        .where((p) => p.booking.rideStatus == BookingConstants.statusOngoing)
-        .length;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      child: Row(
-        children: [
-          // Pickup count
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.person_pin_circle, color: Colors.blue, size: 12),
-                const SizedBox(width: 4),
-                Text(
-                  'PICKUPS: $pickupCount',
-                  style: Styles().textStyle(10, Styles.w700Weight, Colors.blue),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(width: 8),
-
-          // Dropoff count
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.location_on, color: Colors.orange, size: 12),
-                const SizedBox(width: 4),
-                Text(
-                  'DROPOFFS: $dropoffCount',
-                  style:
-                      Styles().textStyle(10, Styles.w700Weight, Colors.orange),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Compact passenger item - significantly reduced size
-  Widget _buildCompactPassengerItem(
-      BuildContext context, PassengerStatus passenger) {
-    final isSelected = passenger.booking.id == selectedPassengerId;
-    final isPickup =
-        passenger.booking.rideStatus == BookingConstants.statusAccepted;
-
-    // Determine status icon and color
-    IconData statusIcon;
-    Color statusColor;
-
-    if (isPickup) {
-      if (passenger.isNearPickup) {
-        statusIcon = Icons.place;
-        statusColor = Constants.GREEN_COLOR;
-      } else {
-        statusIcon = Icons.directions_car;
-        statusColor = Colors.blue;
-      }
-    } else {
-      if (passenger.isNearDropoff) {
-        statusIcon = Icons.place;
-        statusColor = Colors.orange;
-      } else {
-        statusIcon = Icons.directions_car;
-        statusColor = Colors.orange;
-      }
-    }
-
-    final priorityLevel = _getPriorityLevel(passenger);
-    final isUrgent = priorityLevel == 1;
-
-    // Format distance with km/m units
-    final formattedDistance = _formatDistance(passenger.distance);
-
-    return InkWell(
-      onTap: () => onSelected(passenger.booking.id),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (isPickup
-                  ? Colors.blue.withOpacity(0.05)
-                  : Colors.orange.withOpacity(0.05))
-              : Colors.transparent,
-          border: Border(
-            left: BorderSide(
-              color: isSelected
-                  ? statusColor
-                  : (isPickup ? Colors.blue : Colors.orange),
-              width: isSelected ? 3 : 2,
-            ),
-            bottom: BorderSide(
-              color: Colors.grey.withOpacity(0.1),
-              width: 1,
-            ),
-          ),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Row(
-          children: [
-            // Status icon
-            Container(
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              padding: const EdgeInsets.all(4),
-              child: Icon(statusIcon, color: statusColor, size: 14),
-            ),
-            const SizedBox(width: 8),
-
-            // Booking info
-            Expanded(
-              child: Row(
-                children: [
-                  Text(
-                    '#${passenger.booking.id}',
-                    style: Styles()
-                        .textStyle(13, Styles.w600Weight, Styles.customBlack),
-                  ),
-                  if (isUrgent) ...[
-                    const SizedBox(width: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'URGENT',
-                        style: Styles()
-                            .textStyle(9, Styles.w700Weight, Colors.red),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            // Distance
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                formattedDistance,
-                style: Styles().textStyle(14, Styles.w600Weight, statusColor),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Format distance with appropriate units
-  String _formatDistance(double distanceMeters) {
-    if (distanceMeters < 1000) {
-      return '${distanceMeters.toInt()} m';
-    } else {
-      final km = distanceMeters / 1000;
-      return '${km.toStringAsFixed(1)} km';
     }
   }
 }

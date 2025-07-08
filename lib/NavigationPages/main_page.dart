@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-// import 'package:pasada_driver_side/NavigationPages/passenger_counter.dart';
 import 'package:pasada_driver_side/UI/constants.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/NavigationPages/activity_page.dart';
@@ -12,7 +11,6 @@ import 'package:pasada_driver_side/presentation/providers/driver/driver_provider
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/foundation.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});

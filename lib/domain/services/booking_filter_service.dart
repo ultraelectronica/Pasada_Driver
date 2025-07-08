@@ -1,9 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pasada_driver_side/common/config/app_config.dart';
 import 'package:pasada_driver_side/data/models/booking_model.dart';
 import 'package:pasada_driver_side/common/geo/location_service.dart';
-import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 
 /// Service to filter bookings based on various criteria
 class BookingFilterService {
@@ -18,7 +16,9 @@ class BookingFilterService {
     try {
       if (bookings.isEmpty) return [];
       if (!LocationService.isValidLocation(driverLocation) ||
-          !LocationService.isValidLocation(destinationLocation)) return [];
+          !LocationService.isValidLocation(destinationLocation)){
+            return [];
+          }
 
       final requested = bookings
           .where((b) => b.rideStatus == requiredStatus && b.isValid)

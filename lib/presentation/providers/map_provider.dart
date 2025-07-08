@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
@@ -47,7 +46,9 @@ class RouteData {
     if (origin == null ||
         destination == null ||
         other.origin == null ||
-        other.destination == null) return false;
+        other.destination == null) {
+      return false;
+    }
     return _isLocationSimilar(origin!, other.destination!) &&
         _isLocationSimilar(destination!, other.origin!);
   }
@@ -231,13 +232,13 @@ class MapProvider with ChangeNotifier {
     }
   }
 
-  bool _isReversedRoutePair(int a, int b) =>
-      (a == 1 && b == 2) ||
-      (a == 2 && b == 1) ||
-      (a == 3 && b == 4) ||
-      (a == 4 && b == 3) ||
-      (a == 5 && b == 6) ||
-      (a == 6 && b == 5);
+  // bool _isReversedRoutePair(int a, int b) =>
+  //     (a == 1 && b == 2) ||
+  //     (a == 2 && b == 1) ||
+  //     (a == 3 && b == 4) ||
+  //     (a == 4 && b == 3) ||
+  //     (a == 5 && b == 6) ||
+  //     (a == 6 && b == 5);
 
   void clearCache() {
     _routeCache.clear();

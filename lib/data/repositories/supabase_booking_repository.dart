@@ -52,7 +52,7 @@ class SupabaseBookingRepository implements BookingRepository {
           .eq(BookingConstants.fieldDriverId, driverId)
           .or(statusFilter)
           .timeout(
-            Duration(seconds: AppConfig.databaseOperationTimeout),
+            const Duration(seconds: AppConfig.databaseOperationTimeout),
             onTimeout: () =>
                 throw TimeoutException('Database operation timed out'),
           );
@@ -113,7 +113,7 @@ class SupabaseBookingRepository implements BookingRepository {
           .eq(BookingConstants.fieldRideStatus,
               BookingConstants.statusCompleted)
           .timeout(
-            Duration(seconds: AppConfig.databaseOperationTimeout),
+            const Duration(seconds: AppConfig.databaseOperationTimeout),
             onTimeout: () =>
                 throw TimeoutException('Database operation timed out'),
           );
@@ -159,7 +159,7 @@ class SupabaseBookingRepository implements BookingRepository {
           .update({BookingConstants.fieldRideStatus: newStatus})
           .eq(BookingConstants.fieldBookingId, bookingId)
           .timeout(
-            Duration(seconds: AppConfig.databaseOperationTimeout),
+            const Duration(seconds: AppConfig.databaseOperationTimeout),
             onTimeout: () =>
                 throw TimeoutException('Database operation timed out'),
           );

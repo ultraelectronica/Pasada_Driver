@@ -174,9 +174,9 @@ class ActivityPageState extends State<ActivityPage> {
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.1),
+        color: Colors.red.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.red.withOpacity(0.3)),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -234,7 +234,7 @@ class ActivityPageState extends State<ActivityPage> {
       builder: (context, passengerProvider, driverProvider, child) {
         final bookings = passengerProvider.bookings;
         final completedBooking = passengerProvider.completedBooking;
-        final bookingCapacity = driverProvider.passengerCapacity;
+        // final bookingCapacity = driverProvider.passengerCapacity;
 
         // Calculate different booking counts
         final requestedCount = bookings
@@ -400,7 +400,7 @@ class ActivityPageState extends State<ActivityPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -411,7 +411,7 @@ class ActivityPageState extends State<ActivityPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
+              color: statusColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(statusIcon, color: statusColor, size: 24),
@@ -452,9 +452,9 @@ class ActivityPageState extends State<ActivityPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         status.toUpperCase(),
