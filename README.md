@@ -4,11 +4,11 @@ PasadaDriverSide
 
 ## Getting Started
 
-Pasada Driver is an application built for drivers on modern jeepneys
+Pasada Driver is an application built for drivers of modern jeepneys.
 
 # Features
-- Real time location tracking
-- Driver status(online, offline, idling, driving)
-- Passenger Booking Manager(Accepts, Pick up, Drop off passenger booking)
-- Manual Overriding of Vehicle Capacity(for non Pasada App user)
-- Displays real-time and urgent bookings assigned on the driver
+- Real-time location tracking.  
+- Driver status (online, offline, idling, driving).  
+- Passenger Booking Manager (accepts, picks up, drops off passenger bookings).  
+- Manual override of vehicle capacity (for non-Pasada App users).  
+- Displays real-time and urgent bookings assigned to the driver.
