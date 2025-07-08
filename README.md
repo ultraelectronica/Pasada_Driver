@@ -4,13 +4,11 @@ PasadaDriverSide
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+Pasada Driver is an application built for drivers on modern jeepneys
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+# Features
+- Real time location tracking
+- Driver status(online, offline, idling, driving)
+- Passenger Booking Manager(Accepts, Pick up, Drop off passenger booking)
+- Manual Overriding of Vehicle Capacity(for non Pasada App user)
+- Displays real-time and urgent bookings assigned on the driver
