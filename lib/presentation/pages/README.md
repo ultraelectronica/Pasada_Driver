@@ -5,10 +5,10 @@ This document outlines the comprehensive improvements made to the navigation pag
 ## File Structure
 
 ```
-lib/NavigationPages/
-├── activity_page.dart      # Enhanced driver activity dashboard
-├── home_page.dart         # Enhanced main home page with booking operations
-└── README.md              # This documentation file
+lib/presentation/pages/
+├── activity/activity_page.dart   # Enhanced driver activity dashboard
+├── home/home_page.dart           # Enhanced main home page with booking operations
+└── README.md                     # This documentation file (you are here)
 ```
 
 ## Major Improvements Made

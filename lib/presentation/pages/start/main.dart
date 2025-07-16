@@ -7,7 +7,7 @@ import 'package:pasada_driver_side/Services/auth_service.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
-import 'package:pasada_driver_side/NavigationPages/main_page.dart';
+import 'package:pasada_driver_side/presentation/pages/main/main_page.dart';
 import 'package:pasada_driver_side/Services/permissions.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';

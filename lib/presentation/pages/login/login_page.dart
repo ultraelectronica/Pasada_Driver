@@ -5,7 +5,7 @@ import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/Services/password_util.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/UI/message.dart';
-import 'package:pasada_driver_side/NavigationPages/main_page.dart';
+import 'package:pasada_driver_side/presentation/pages/main/main_page.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
