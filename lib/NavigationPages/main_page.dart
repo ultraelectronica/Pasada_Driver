@@ -108,29 +108,6 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     });
   }
 
-  void isDriving(DriverProvider driverProvider) {
-    // We're no longer showing the dialog prompt as we're replacing it with a switch
-    // Just set hasShownDrivingPrompt to true to avoid showing the dialog
-    hasShownDrivingPrompt = true;
-
-    // Old logic disabled:
-    /*
-    if (driverProvider.isDriving == false &&
-        _currentIndex == 0 &&
-        !hasShownDrivingPrompt) {
-      if (!isDialogShown) {
-        isDialogShown = true; // Set flag before showing dialog
-        SchedulerBinding.instance.addPostFrameCallback((_) async {
-          // Make callback async
-          await _showStartDrivingDialog(); // Await the dialog
-          // Mark that we've shown the prompt already
-          hasShownDrivingPrompt = true;
-        });
-      }
-    }
-    */
-  }
-
   // // START DRIVING DIALOG
   // Future<void> _showStartDrivingDialog() async {
   //   bool isStartingDrive = false;
@@ -289,10 +266,6 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final driverProvider = context.watch<DriverProvider>();
-
-    isDriving(driverProvider);
-
     return Scaffold(
       backgroundColor: Constants.WHITE_COLOR,
       body: IndexedStack(
@@ -302,6 +275,24 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
       bottomNavigationBar: _buildBottomNavBar(),
     );
   }
+
+  Map<int, Map<String, String>> navigation = {
+    0: {
+      'Label': 'Home',
+      'SelectedIcon': 'homefilled.svg',
+      'UnselectedIcon': 'home.svg',
+    },
+    1: {
+      'Label': 'Activity',
+      'SelectedIcon': 'recentfilled.svg',
+      'UnselectedIcon': 'recent.svg',
+    },
+    2: {
+      'Label': 'Profile',
+      'SelectedIcon': 'profilefilled.svg',
+      'UnselectedIcon': 'profile.svg',
+    },
+  };
 
   BottomNavigationBar _buildBottomNavBar() {
     return BottomNavigationBar(
@@ -316,21 +307,12 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
           Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
       selectedItemColor: Constants.GREEN_COLOR,
       type: BottomNavigationBarType.fixed,
-      items: [
-        _buildNavItem(0, 'Home', 'homefilled.svg', 'home.svg'),
-        // _buildNavItem(1, 'Counter', 'listfilled.svg', 'list.svg'),
-        _buildNavItem(1, 'Activity', 'recentfilled.svg', 'recent.svg'),
-        _buildNavItem(2, 'Profile', 'profilefilled.svg', 'profile.svg'),
-      ],
 
-      // Old icons
-      // items: [
-      //   _buildNavItem(0, 'Home', 'homeSelectedIcon.svg', 'homeIcon.svg'),
-      //   _buildNavItem(
-      //       1, 'Activity', 'activitySelectedIcon.svg', 'activityIcon.svg'),
-      //   _buildNavItem(
-      //       2, 'Profile', 'accountSelectedIcon.svg', 'profileIcon.svg'),
-      // ],
+      // display navigation items
+      items: navigation.entries
+          .map((entry) => _buildNavItem(entry.key, entry.value['Label']!,
+              entry.value['SelectedIcon']!, entry.value['UnselectedIcon']!))
+          .toList(),
     );
   }
 

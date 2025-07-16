@@ -24,8 +24,6 @@ class LogIn extends StatefulWidget {
 class _LogInState extends State<LogIn> {
   final inputDriverIDController = TextEditingController();
   final inputPasswordController = TextEditingController();
-  final String passwordSample = '';
-  final String emailSample = '';
   bool isPasswordVisible = false;
   String errorMessage = '';
   final bool _loading = false;
@@ -290,19 +288,6 @@ class _LogInState extends State<LogIn> {
       ),
     );
   }
-
-  // Container _buildForgotPasswordButton() {
-  //   return Container(
-  //     alignment: Alignment.centerRight,
-  //     child: TextButton(
-  //       onPressed: () {},
-  //       child: Text(
-  //         'Forgot Password?',
-  //         style: Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
-  //       ),
-  //     ),
-  //   );
-  // }
 
   SizedBox _buildPasswordInput(double inputFieldHeight) {
     return SizedBox(
