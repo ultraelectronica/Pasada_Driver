@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
+import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart';
 
 class LogIn extends StatefulWidget {
   final PageController? pageController;
@@ -26,7 +27,7 @@ class _LogInState extends State<LogIn> {
   final inputPasswordController = TextEditingController();
   bool isPasswordVisible = false;
   String errorMessage = '';
-  final bool _loading = false;
+  // Loading/error handled by DriverProvider now
 
   @override
   void dispose() {
@@ -36,6 +37,10 @@ class _LogInState extends State<LogIn> {
   }
 
   Future<void> _logIn() async {
+    final driverProv = context.read<DriverProvider>();
+    driverProv.setError(null);
+    driverProv.setLoading(true);
+
     final enteredDriverID = inputDriverIDController.text.trim();
     final enteredPassword = inputPasswordController.text.trim();
 
@@ -80,8 +85,11 @@ class _LogInState extends State<LogIn> {
         if (kDebugMode) {
           print('Vehicle ID: ${response['vehicle_id']}');
         }
+        driverProv.setLoading(false);
       }
     } catch (e, stackTrace) {
+      driverProv.setError('Login failed: $e');
+      driverProv.setLoading(false);
       if (kDebugMode) {
         print('Error during login: $e');
         print('Error Login, Stack Trace: $stackTrace');
@@ -211,47 +219,40 @@ class _LogInState extends State<LogIn> {
     // Define relative padding
     final horizontalPadding = screenWidth * 0.1;
 
-    return Scaffold(
-      body: LayoutBuilder(
+    final isLoading = context.select<DriverProvider, bool>((p) => p.isLoading);
+    final errorMsg = context.select<DriverProvider, String?>((p) => p.error);
+
+    Widget content;
+    if (isLoading) {
+      content = const Center(child: CircularProgressIndicator());
+    } else if (errorMsg != null) {
+      content = ErrorRetryWidget(message: errorMsg, onRetry: _logIn);
+    } else {
+      content = LayoutBuilder(
         // Use LayoutBuilder to get constraints for centering
         builder: (context, constraints) {
           return SingleChildScrollView(
             child: ConstrainedBox(
-              // Ensure the content area tries to fill the viewport height
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight,
-              ),
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: Center(
-                // Center the content vertically
                 child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: horizontalPadding,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Use screenHeight/Width directly for spacing and sizing
                       SizedBox(height: screenHeight * 0.15),
-
-                      _buildHeader(screenHeight * 0.15, screenHeight * 0.0),
+                      _buildHeader(screenHeight * 0.15, 0),
                       SizedBox(height: screenHeight * 0.1),
-
                       _buildDriverIDText(),
                       SizedBox(height: screenHeight * 0.01),
-
                       _buildDriverIDInput(screenHeight * 0.06),
                       SizedBox(height: screenHeight * 0.02),
-
                       _buildPasswordText(),
                       SizedBox(height: screenHeight * 0.01),
-
                       _buildPasswordInput(screenHeight * 0.06),
-
-                      // _buildForgotPasswordButton(),
                       SizedBox(height: screenHeight * 0.15),
-
-                      _buildLogInButton(screenHeight * 0.06),
+                      _buildLogInButton(screenHeight * 0.06, isLoading),
                       SizedBox(height: screenHeight * 0.1),
                     ],
                   ),
@@ -260,11 +261,13 @@ class _LogInState extends State<LogIn> {
             ),
           );
         },
-      ),
-    );
+      );
+    }
+
+    return Scaffold(body: content);
   }
 
-  Widget _buildLogInButton(double buttonHeight) {
+  Widget _buildLogInButton(double buttonHeight, bool isLoading) {
     return SizedBox(
       width: double.infinity,
       height: buttonHeight,
@@ -278,7 +281,7 @@ class _LogInState extends State<LogIn> {
             borderRadius: BorderRadius.circular(15.0),
           ),
         ),
-        child: _loading
+        child: isLoading
             ? const CircularProgressIndicator(color: Colors.white)
             : Text(
                 'Log in',

@@ -21,8 +21,8 @@ class FloatingMessageButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final driverProvider = context.watch<DriverProvider>();
-    final bool isDriving = driverProvider.driverStatus == 'Driving';
+    final bool isDriving = context
+        .select<DriverProvider, bool>((p) => p.driverStatus == 'Driving');
 
     return Positioned(
       bottom: screenHeight * 0.04,

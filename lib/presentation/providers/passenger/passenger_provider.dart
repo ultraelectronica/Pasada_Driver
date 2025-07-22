@@ -56,6 +56,9 @@ class PassengerProvider with ChangeNotifier {
   String? get error => _error;
   String? get errorType => _errorType;
 
+  // 3-state loading alias
+  bool get isLoading => _isProcessingBookings;
+
   // ───────────────────────── ctor / dispose ─────────────────────────
   PassengerProvider({BookingRepository? repository})
       : _repository = repository ?? SupabaseBookingRepository() {

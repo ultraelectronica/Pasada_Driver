@@ -15,6 +15,7 @@ import 'package:pasada_driver_side/presentation/pages/login/login_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/UI/constants.dart';
+import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart';
 
 // Future for assets preloading
 late final Future<List<AssetImage>> _preloadedAssets;
@@ -275,6 +276,11 @@ class _MyAppState extends State<MyApp> {
       // Don't reset session here as it could be a temporary network issue
       // Just show an error message
       ShowMessage().showToast('Error loading data. Please restart the app.');
+
+      // expose to provider for UI
+      if (mounted) {
+        context.read<DriverProvider>().setError('Failed to load data: $e');
+      }
     }
   }
 
@@ -296,10 +302,19 @@ class _MyAppState extends State<MyApp> {
   }
 
   Widget _buildHome() {
+    final driverError = context.select<DriverProvider, String?>((p) => p.error);
     if (_isLoading) {
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    if (driverError != null) {
+      return Scaffold(
+        body: ErrorRetryWidget(
+          message: driverError,
+          onRetry: _loadUserData,
         ),
       );
     }

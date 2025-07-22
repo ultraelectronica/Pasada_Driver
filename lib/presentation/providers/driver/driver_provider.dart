@@ -23,6 +23,10 @@ class DriverProvider with ChangeNotifier {
   String? _lastDriverStatus;
   bool _isDriving = false;
 
+  // Loading & Error state (for 3-state UI)
+  bool _isLoading = false;
+  String? _error;
+
   // Passenger capacity
   int _passengerCapacity = 0;
   int _passengerStandingCapacity = 0;
@@ -44,6 +48,10 @@ class DriverProvider with ChangeNotifier {
   bool get isDriving => _isDriving;
   String? get driverFullName => _driverFullName;
   String get driverNumber => _driverNumber;
+
+  // Loading & error getters
+  bool get isLoading => _isLoading;
+  String? get error => _error;
 
   // Setters
   void setDriverID(String value) {
@@ -99,6 +107,17 @@ class DriverProvider with ChangeNotifier {
 
   void setIsDriving(bool value) {
     _isDriving = value;
+    notifyListeners();
+  }
+
+  // ───────────────────────── network-state helpers ─────────────────────────
+  void setLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
+  }
+
+  void setError(String? message) {
+    _error = message;
     notifyListeners();
   }
 

@@ -6,6 +6,8 @@ import 'package:pasada_driver_side/presentation/providers/driver/driver_provider
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:provider/provider.dart';
+import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart';
+import 'package:pasada_driver_side/presentation/pages/profile/utils/profile_constants.dart';
 
 // --- Custom Clipper for Background Shape ---
 class ProfileBackgroundClipper extends CustomClipper<Path> {
@@ -62,28 +64,62 @@ class ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     // final double paddingValue = MediaQuery.of(context).size.width * 0.05; // Use specific padding values
-    final double profilePictureSize = MediaQuery.of(context).size.width * 0.25;
-    final driverProvider = context.watch<DriverProvider>();
-    final mapProvider = context.watch<MapProvider>();
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
+    final double profilePictureSize = MediaQuery.of(context).size.width *
+        ProfileConstants.profilePictureFraction;
+
+    // Provider reactive values
+    final driverName =
+        context.select<DriverProvider, String?>((p) => p.driverFullName);
+    final driverStatus =
+        context.select<DriverProvider, String>((p) => p.driverStatus);
+    final driverNumber =
+        context.select<DriverProvider, String>((p) => p.driverNumber);
+    final plateNumber =
+        context.select<DriverProvider, String>((p) => p.plateNumber);
+    final vehicleId =
+        context.select<DriverProvider, String>((p) => p.vehicleID);
+    final routeId = context.select<DriverProvider, int>((p) => p.routeID);
+    final routeNameDrv =
+        context.select<DriverProvider, String>((p) => p.routeName);
+
+    final mapRouteName =
+        context.select<MapProvider, String?>((m) => m.routeName);
+    final mapRouteId = context.select<MapProvider, int>((m) => m.routeID);
+
+    final isLoading = context.select<DriverProvider, bool>((p) => p.isLoading);
+    final errorMsg = context.select<DriverProvider, String?>((p) => p.error);
+
+    // Derive colors and display strings
+    final Color statusColor = statusColors[driverStatus] ?? Colors.grey;
+    final String routeDisplay = _composeRouteDisplay(
+      mapRouteName: mapRouteName,
+      mapRouteId: mapRouteId,
+      driverRouteName: routeNameDrv,
+      driverRouteId: routeId,
+    );
 
     // Define colors based on the image
     const Color primaryColor = Color(0xff067837);
-    final Color statusColor =
-        statusColors[driverProvider.driverStatus] ?? Colors.grey;
 
-    return Scaffold(
-      backgroundColor: Styles.customWhite,
-      body: Stack(
+    // 3-state rendering
+    Widget bodyContent;
+    if (isLoading) {
+      bodyContent = const Center(child: CircularProgressIndicator());
+    } else if (errorMsg != null) {
+      bodyContent = ErrorRetryWidget(
+        message: errorMsg!,
+        onRetry: _refreshProfile,
+      );
+    } else {
+      bodyContent = Stack(
         children: [
           // --- Top Gradient Background ---
           ClipPath(
             // Wrap the container with ClipPath
             clipper: ProfileBackgroundClipper(), // Apply the custom clipper
             child: Container(
-              height:
-                  screenHeight * 0.42, // Adjust height if needed for the curve
+              height: MediaQuery.of(context).size.height *
+                  ProfileConstants.headerHeightFraction, // header height
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [primaryColor, primaryColor],
@@ -99,26 +135,35 @@ class ProfilePageState extends State<ProfilePage> {
           SafeArea(
             child: SingleChildScrollView(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.of(context).size.width *
+                        ProfileConstants.horizontalPaddingFraction),
                 child: Column(
                   children: [
-                    SizedBox(height: screenHeight * 0.08), // Space from top
+                    SizedBox(
+                        height: MediaQuery.of(context).size.height *
+                            ProfileConstants.topSpacerFraction), // top spacer
 
                     // --- Profile Picture ---
                     _buildProfilePicture(profilePictureSize),
                     const SizedBox(height: 12),
 
                     // --- Driver Name ---
-                    _buildDriverName(driverProvider),
+                    _buildDriverName(driverName ?? ''),
                     const SizedBox(height: 8),
 
                     // --- Driver Status Button ---
-                    _buildStatusChip(driverProvider, statusColor),
-                    SizedBox(height: screenHeight * 0.09),
+                    _buildStatusChip(driverStatus, statusColor),
+                    SizedBox(
+                        height: MediaQuery.of(context).size.height *
+                            ProfileConstants.statusSpacerFraction),
 
                     // --- Driver Info Card ---
-                    _buildInfoCard(driverProvider, mapProvider),
-                    SizedBox(height: screenHeight * 0.02),
+                    _buildInfoCard(
+                        driverNumber, plateNumber, vehicleId, routeDisplay),
+                    SizedBox(
+                        height: MediaQuery.of(context).size.height *
+                            ProfileConstants.infoCardSpacerFraction),
 
                     // --- Actions Card ---
                     _buildActionsCard(),
@@ -132,21 +177,23 @@ class ProfilePageState extends State<ProfilePage> {
             ),
           ),
         ],
-      ),
-    );
+      );
+    }
+
+    return Scaffold(backgroundColor: Styles.customWhite, body: bodyContent);
   }
 
   // --- Helper Widgets ---
 
-  Widget _buildDriverName(DriverProvider driverProvider) {
+  Widget _buildDriverName(String driverName) {
     return Text(
-      '${driverProvider.driverFullName}',
+      driverName,
       style: Styles().textStyle(22, Styles.w700Weight, Styles.customWhite),
       textAlign: TextAlign.center,
     );
   }
 
-  Widget _buildStatusChip(DriverProvider driverProvider, Color statusColor) {
+  Widget _buildStatusChip(String driverStatus, Color statusColor) {
     return InkWell(
       onTap: () => _showStatusOption(),
       borderRadius: BorderRadius.circular(20), // Make it pill-shaped
@@ -176,7 +223,7 @@ class ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(width: 8),
             Text(
-              driverProvider.driverStatus,
+              driverStatus,
               style: Styles().textStyle(14, Styles.w500Weight,
                   Styles.customBlack // Dark text for status
                   ),
@@ -187,8 +234,8 @@ class ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildInfoCard(
-      DriverProvider driverProvider, MapProvider mapProvider) {
+  Widget _buildInfoCard(String driverNumber, String plateNumber,
+      String vehicleID, String routeDisplay) {
     return Card(
       elevation: 4,
       shadowColor: Colors.black38,
@@ -200,20 +247,19 @@ class ProfilePageState extends State<ProfilePage> {
           children: [
             _buildInfoRow(
               icon: Icons.phone_android, // Use Material Icons
-              text: driverProvider.driverNumber.isNotEmpty
-                  ? 'Phone: \t\t\t\t${driverProvider.driverNumber}'
+              text: driverNumber.isNotEmpty
+                  ? 'Phone: \t\t\t\t$driverNumber'
                   : 'No phone number', // Handle empty number
             ),
             const SizedBox(height: 15),
             _buildInfoRow(
               icon: Icons.directions_car, // Use Material Icons
-              text:
-                  'Vehicle:\t\t\t${driverProvider.plateNumber} | ${driverProvider.vehicleID}',
+              text: 'Vehicle:\t\t\t$plateNumber | $vehicleID',
             ),
             const SizedBox(height: 15),
             _buildInfoRow(
               icon: Icons.route_outlined,
-              text: _getRouteDisplayText(driverProvider, mapProvider),
+              text: routeDisplay,
             ),
           ],
         ),
@@ -221,26 +267,34 @@ class ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // Helper method to get route display text with proper handling for null values
-  String _getRouteDisplayText(
-      DriverProvider driverProvider, MapProvider mapProvider) {
-    // If route name is available in MapProvider, use it
-    if (mapProvider.routeName != null && mapProvider.routeName!.isNotEmpty) {
-      return 'Route: \t\t\t\t\t${mapProvider.routeName} | ${mapProvider.routeID}';
+  // Compose route label from provided values
+  String _composeRouteDisplay({
+    String? mapRouteName,
+    int? mapRouteId,
+    String? driverRouteName,
+    int? driverRouteId,
+  }) {
+    if (mapRouteName != null && mapRouteName.isNotEmpty) {
+      return 'Route: \t\t\t\t$mapRouteName | $mapRouteId';
     }
-
-    // If route name is available in DriverProvider, use it
-    if (driverProvider.routeName != 'N/A' && driverProvider.routeID > 0) {
-      return 'Route: \t\t\t\t\t${driverProvider.routeName} | ${driverProvider.routeID}';
+    if (driverRouteName != null &&
+        driverRouteName != 'N/A' &&
+        (driverRouteId ?? 0) > 0) {
+      return 'Route: \t\t\t\t$driverRouteName | $driverRouteId';
     }
-
-    // If route ID is available but no name
-    if (driverProvider.routeID > 0) {
-      return 'Route: \t\t\t\t\tRoute #${driverProvider.routeID}';
+    if ((driverRouteId ?? 0) > 0) {
+      return 'Route: \t\t\t\tRoute #$driverRouteId';
     }
+    return 'Route: \t\t\t\tNot assigned';
+  }
 
-    // Fallback for when no route data is available
-    return 'Route: \t\t\t\t\tNot assigned';
+  // Trigger a manual refresh of driver data
+  Future<void> _refreshProfile() async {
+    final prov = context.read<DriverProvider>();
+    prov.setError(null);
+    prov.setLoading(true);
+    await prov.loadFromSecureStorage(context);
+    prov.setLoading(false);
   }
 
   Widget _buildInfoRow({required IconData icon, required String text}) {
@@ -451,15 +505,13 @@ class ProfilePageState extends State<ProfilePage> {
       title: Text(status,
           style: Styles().textStyle(16, Styles.w500Weight, Styles.customBlack)),
       onTap: () {
-        setState(() {
-          if (status != 'Driving') {
-            context.read<DriverProvider>().setIsDriving(false);
-            // ShowMessage()
-            //     .showToast(context.read<DriverProvider>().isDriving.toString());
-          }
-          context.read<DriverProvider>().updateStatusToDB(status, context);
-          context.read<DriverProvider>().setDriverStatus(status);
-        });
+        if (status != 'Driving') {
+          context.read<DriverProvider>().setIsDriving(false);
+          // ShowMessage()
+          //     .showToast(context.read<DriverProvider>().isDriving.toString());
+        }
+        context.read<DriverProvider>().updateStatusToDB(status, context);
+        context.read<DriverProvider>().setDriverStatus(status);
 
         Navigator.of(context).pop();
       },

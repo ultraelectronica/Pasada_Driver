@@ -167,8 +167,18 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    final driverProvider = context.watch<DriverProvider>();
-    final passengerProvider = context.watch<PassengerProvider>();
+    final driverProvider = context.read<DriverProvider>();
+    final passengerProvider = context.read<PassengerProvider>();
+
+    // Reactive values (small granular rebuilds)
+    final passengerCapacity =
+        context.select<DriverProvider, int>((p) => p.passengerCapacity);
+    final passengerStanding =
+        context.select<DriverProvider, int>((p) => p.passengerStandingCapacity);
+    final passengerSitting =
+        context.select<DriverProvider, int>((p) => p.passengerSittingCapacity);
+    final driverStatus =
+        context.select<DriverProvider, String>((p) => p.driverStatus);
 
     return Scaffold(
       body: SizedBox(
@@ -257,7 +267,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
               rightPosition:
                   screenWidth * HomeConstants.sideButtonRightFraction,
               icon: 'assets/svg/people.svg',
-              text: driverProvider.passengerCapacity.toString(),
+              text: passengerCapacity.toString(),
               onTap: () {
                 PassengerCapacity().getPassengerCapacityToDB(context);
               },
@@ -276,7 +286,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
               rightPosition:
                   screenWidth * HomeConstants.sideButtonRightFraction,
               icon: 'assets/svg/standing.svg',
-              text: driverProvider.passengerStandingCapacity.toString(),
+              text: passengerStanding.toString(),
               onTap: () async {
                 // Increment standing capacity by 1 when tapped
                 final result =
@@ -377,7 +387,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
               rightPosition:
                   screenWidth * HomeConstants.sideButtonRightFraction,
               icon: 'assets/svg/sitting.svg',
-              text: driverProvider.passengerSittingCapacity.toString(),
+              text: passengerSitting.toString(),
               onTap: () async {
                 // Increment sitting capacity by 1 when tapped
                 final result =
@@ -579,16 +589,16 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
               ),
 
             ResetCapacityButton(
-              isVisible: driverProvider.passengerCapacity > 0 &&
+              isVisible: passengerCapacity > 0 &&
                   _nearbyPassengers.isEmpty &&
-                  driverProvider.driverStatus == 'Driving',
+                  driverStatus == 'Driving',
               onTap: () async {
                 final shouldReset = await showDialog<bool>(
                   context: context,
                   builder: (_) => AlertDialog(
                     title: const Text('Reset Capacity'),
                     content: Text(
-                      'Current capacity: ${driverProvider.passengerCapacity} passengers\n\nThis will reset all passenger counts to zero. Only use this if you have no passengers on board and the system is out of sync.',
+                      'Current capacity: $passengerCapacity passengers\n\nThis will reset all passenger counts to zero. Only use this if you have no passengers on board and the system is out of sync.',
                     ),
                     actions: [
                       TextButton(

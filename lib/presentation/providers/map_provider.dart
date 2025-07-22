@@ -76,6 +76,10 @@ class MapProvider with ChangeNotifier {
   RouteState get routeState => _routeState;
   String? get errorMessage => _errorMessage;
 
+  // Convenience getters for 3-state UI pattern
+  bool get isLoading => _routeState == RouteState.loading;
+  String? get error => _errorMessage;
+
   // Route getters
   LatLng? get originLocation => _routeData.origin;
   LatLng? get intermediateLoc1 => _routeData.intermediatePoints.isNotEmpty
