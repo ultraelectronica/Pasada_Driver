@@ -4,6 +4,7 @@ import 'package:pasada_driver_side/Services/auth_service.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pasada_driver_side/common/utils/result.dart';
 
 // this class is used to store values just like a global variable
 class DriverProvider with ChangeNotifier {
@@ -25,7 +26,7 @@ class DriverProvider with ChangeNotifier {
 
   // Loading & Error state (for 3-state UI)
   bool _isLoading = false;
-  String? _error;
+  Failure? _error;
 
   // Passenger capacity
   int _passengerCapacity = 0;
@@ -51,7 +52,8 @@ class DriverProvider with ChangeNotifier {
 
   // Loading & error getters
   bool get isLoading => _isLoading;
-  String? get error => _error;
+  Failure? get error => _error;
+  String? get errorMessage => _error?.message;
 
   // Setters
   void setDriverID(String value) {
@@ -116,8 +118,13 @@ class DriverProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setError(String? message) {
-    _error = message;
+  void setError(Failure? failure) {
+    _error = failure;
+    notifyListeners();
+  }
+
+  void clearError() {
+    _error = null;
     notifyListeners();
   }
 

@@ -17,6 +17,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class MapScreen extends StatefulWidget {
   final LatLng? initialLocation, finalLocation, currentLocation;
@@ -87,6 +88,9 @@ class MapScreenState extends State<MapScreen> {
   // Flag to prevent redundant route coordinate fetches
   bool _routeCoordinatesLoaded = false;
 
+  // Dark mode map style (loaded from asset once)
+  String? _darkMapStyle;
+
   @override
   void initState() {
     super.initState();
@@ -124,6 +128,16 @@ class MapScreenState extends State<MapScreen> {
 
       // Initialization complete
       _updateInitState(MapInitState.initialized);
+
+      // Preload dark map style
+      rootBundle.loadString('assets/map_style/map_style.json').then((string) {
+        if (!mounted) return;
+        setState(() {
+          _darkMapStyle = string;
+        });
+      }).catchError((_) {
+        debugPrint("error loading dark map style");
+      });
 
       if (kDebugMode) {
         debugPrint('MapScreen: Initialization sequence completed successfully');
@@ -406,10 +420,10 @@ class MapScreenState extends State<MapScreen> {
           _initState == MapInitState.initialized &&
           _endingLocation != null) {
         List<LatLng> waypoints = [];
-        if (_intermediateLocation1 != null){
+        if (_intermediateLocation1 != null) {
           waypoints.add(_intermediateLocation1!);
         }
-        if (_intermediateLocation2 != null){
+        if (_intermediateLocation2 != null) {
           waypoints.add(_intermediateLocation2!);
         }
 
@@ -989,6 +1003,11 @@ class MapScreenState extends State<MapScreen> {
                 zoom: 15,
                 tilt: 45.0,
               ),
+              // Apply dark style if in dark theme
+              style: Theme.of(context).brightness == Brightness.dark
+                  ? _darkMapStyle
+                  : null,
+
               markers: markers,
               polylines: Set<Polyline>.of(polylines.values),
               mapType: MapType.normal,

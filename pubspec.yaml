@@ -46,9 +46,8 @@ dependencies:
   provider: ^6.1.1
   http: ^0.13.5
   flutter_polyline_points: ^1.0.0
-  bcrypt: ^1.1.3
-  
-
+  bcrypt: ^1.1.3  # password hashing
+  wakelock_plus: ^1.3.2 # always on display
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -119,6 +118,8 @@ flutter:
     - assets/svg/standing.svg
     - assets/svg/people.svg
     - .env
+
+    - assets/map_style/map_style.json # dark mode map style
 
   # To add assets to your application, add an assets section, like this:
   # assets:

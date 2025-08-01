@@ -21,7 +21,8 @@ State-management conventions
 Every provider **must** expose these two fields so widgets can implement a "3-state" UI (loading ▸ error ▸ data):
 
 * `bool isLoading`    – `true` while an async operation is in flight.
-* `String? error`    – `null` when healthy, otherwise a user-friendly description.
+* `Failure? error`   – `null` when healthy, otherwise a rich error object containing `message`, `type`, and optional exception.
+  * Use `error?.message` when you need the display string.
 
 Widget skeleton:
 ```dart

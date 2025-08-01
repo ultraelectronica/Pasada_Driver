@@ -12,6 +12,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart';
+import 'package:pasada_driver_side/common/utils/result.dart';
 
 class LogIn extends StatefulWidget {
   final PageController? pageController;
@@ -38,7 +39,7 @@ class _LogInState extends State<LogIn> {
 
   Future<void> _logIn() async {
     final driverProv = context.read<DriverProvider>();
-    driverProv.setError(null);
+    driverProv.clearError();
     driverProv.setLoading(true);
 
     final enteredDriverID = inputDriverIDController.text.trim();
@@ -88,7 +89,7 @@ class _LogInState extends State<LogIn> {
         driverProv.setLoading(false);
       }
     } catch (e, stackTrace) {
-      driverProv.setError('Login failed: $e');
+      driverProv.setError(Failure(message: 'Login failed: $e', type: 'login'));
       driverProv.setLoading(false);
       if (kDebugMode) {
         print('Error during login: $e');
@@ -220,7 +221,8 @@ class _LogInState extends State<LogIn> {
     final horizontalPadding = screenWidth * 0.1;
 
     final isLoading = context.select<DriverProvider, bool>((p) => p.isLoading);
-    final errorMsg = context.select<DriverProvider, String?>((p) => p.error);
+    final errorMsg =
+        context.select<DriverProvider, String?>((p) => p.error?.message);
 
     Widget content;
     if (isLoading) {

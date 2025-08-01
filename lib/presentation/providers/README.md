@@ -8,7 +8,7 @@ Every provider must implement:
 
 ```
 bool get isLoading;   // true while an async task is running
-String? get error;    // null on success; human-readable message on failure
+Failure? get error;   // null on success; use `error?.message` to show text
 ```
 
 and call `notifyListeners()` whenever public state changes.

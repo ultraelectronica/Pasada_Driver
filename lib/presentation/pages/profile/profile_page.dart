@@ -87,7 +87,8 @@ class ProfilePageState extends State<ProfilePage> {
     final mapRouteId = context.select<MapProvider, int>((m) => m.routeID);
 
     final isLoading = context.select<DriverProvider, bool>((p) => p.isLoading);
-    final errorMsg = context.select<DriverProvider, String?>((p) => p.error);
+    final errorMsg =
+        context.select<DriverProvider, String?>((p) => p.error?.message);
 
     // Derive colors and display strings
     final Color statusColor = statusColors[driverStatus] ?? Colors.grey;
@@ -107,7 +108,7 @@ class ProfilePageState extends State<ProfilePage> {
       bodyContent = const Center(child: CircularProgressIndicator());
     } else if (errorMsg != null) {
       bodyContent = ErrorRetryWidget(
-        message: errorMsg!,
+        message: errorMsg,
         onRetry: _refreshProfile,
       );
     } else {
@@ -291,7 +292,7 @@ class ProfilePageState extends State<ProfilePage> {
   // Trigger a manual refresh of driver data
   Future<void> _refreshProfile() async {
     final prov = context.read<DriverProvider>();
-    prov.setError(null);
+    prov.clearError();
     prov.setLoading(true);
     await prov.loadFromSecureStorage(context);
     prov.setLoading(false);
