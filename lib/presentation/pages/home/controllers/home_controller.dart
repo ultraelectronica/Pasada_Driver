@@ -61,7 +61,7 @@ class HomeController extends ChangeNotifier {
   //--------------------------------------------------------------------------
   // Private
   //--------------------------------------------------------------------------
-  DateTime? _lastProximityNotificationTime;
+  // DateTime? _lastProximityNotificationTime;
   Timer? _proximityCheckTimer;
   Timer? _bookingFetchTimer;
   bool _bookingStreamStarted = false;

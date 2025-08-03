@@ -1,9 +1,13 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
+import 'package:location/location.dart';
+import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import 'package:pasada_driver_side/domain/services/route_service.dart';
 
 // Define clear state for route data
 enum RouteState { initial, loading, loaded, error }
@@ -70,6 +74,21 @@ class MapProvider with ChangeNotifier {
   LatLng? _currentLocation;
   LatLng? _pickupLocation;
 
+  // ───────────────────────── marker state ─────────────────────────
+  Set<Marker> _markers = {};
+  final Set<String> _passengerMarkerIds = {}; // track passenger-related markers
+
+  Set<Marker> get markers => _markers;
+
+  // ───────────────────────── polyline state ─────────────────────────
+  bool _polylineLoading = false;
+  String? _polylineError;
+  List<LatLng> _polylineCoords = [];
+
+  bool get isPolylineLoading => _polylineLoading;
+  String? get polylineError => _polylineError;
+  List<LatLng> get polylineCoords => _polylineCoords;
+
   final Map<int, RouteData> _routeCache = {};
   final SupabaseClient supabase = Supabase.instance.client;
 
@@ -99,12 +118,14 @@ class MapProvider with ChangeNotifier {
   void setCurrentLocation(LatLng loc) {
     if (loc.latitude == 0 && loc.longitude == 0) return;
     _currentLocation = loc;
+    _refreshMarkers();
     notifyListeners();
   }
 
   void setPickUpLocation(LatLng loc) {
     if (loc.latitude == 0 && loc.longitude == 0) return;
     _pickupLocation = loc;
+    _refreshMarkers();
     notifyListeners();
   }
 
@@ -198,7 +219,12 @@ class MapProvider with ChangeNotifier {
 
   void _handleError(String msg) => _updateState(RouteState.error, msg);
 
+  @visibleForTesting
+  void setRouteDataDebug(RouteData d) => _setRouteData(d);
+
   void _setRouteData(RouteData d) {
+    // update and then refresh markers
+
     if (_routeData.isValid &&
         d.isValid &&
         _routeData.routeId == d.routeId &&
@@ -215,6 +241,7 @@ class MapProvider with ChangeNotifier {
       _routeData = d;
     }
     _updateState(RouteState.loaded, null);
+    _refreshMarkers();
   }
 
   int _determineNewRouteID(int id) {
@@ -243,6 +270,175 @@ class MapProvider with ChangeNotifier {
   //     (a == 4 && b == 3) ||
   //     (a == 5 && b == 6) ||
   //     (a == 6 && b == 5);
+
+  // ───────────────────────── initialization ─────────────────────────
+  Future<void> initialize(BuildContext context) async {
+    try {
+      final location = Location();
+      final locData = await location.getLocation();
+      if (locData.latitude != null && locData.longitude != null) {
+        setCurrentLocation(LatLng(locData.latitude!, locData.longitude!));
+      }
+
+      // Route
+      final driverProv = context.read<DriverProvider>();
+      await getRouteCoordinates(driverProv.routeID);
+
+      // Generate initial polyline
+      if (_currentLocation != null && endingLocation != null) {
+        final waypoints = <LatLng>[];
+        if (intermediateLoc1 != null) waypoints.add(intermediateLoc1!);
+        if (intermediateLoc2 != null) waypoints.add(intermediateLoc2!);
+        await generatePolyline(
+            start: _currentLocation!,
+            end: endingLocation!,
+            waypoints: waypoints.isEmpty ? null : waypoints);
+      }
+
+      // Pickup data – relies on PassengerProvider to load and then MapProvider.setPickUpLocation is called elsewhere.
+      await context.read<PassengerProvider>().getBookingRequestsID(context);
+    } catch (e) {
+      _handleError('Initialization error: $e');
+    }
+  }
+
+  // ───────────────────────── polyline generation ─────────────────────────
+  Future<void> generatePolyline({
+    required LatLng start,
+    required LatLng end,
+    List<LatLng>? waypoints,
+  }) async {
+    _setPolylineState(loading: true);
+    try {
+      final coords = await RouteService.fetchRoute(
+          origin: start, destination: end, waypoints: waypoints);
+      _polylineCoords = coords;
+      _setPolylineState(loading: false);
+    } catch (e) {
+      _setPolylineState(loading: false, error: e.toString());
+    }
+  }
+
+  void _setPolylineState({required bool loading, String? error}) {
+    _polylineLoading = loading;
+    _polylineError = error;
+    notifyListeners();
+  }
+
+  // ───────────────────────── marker helpers ─────────────────────────
+  Marker _createMarker(
+          {required String id,
+          required LatLng pos,
+          required BitmapDescriptor icon,
+          required String title,
+          double zIndex = 1,
+          double alpha = 1}) =>
+      Marker(
+        markerId: MarkerId(id),
+        position: pos,
+        icon: icon,
+        infoWindow: InfoWindow(title: title),
+        zIndex: zIndex,
+        alpha: alpha,
+      );
+
+  // Force rebuild of marker set (call when external data changes)
+  void rebuildMarkers() {
+    _refreshMarkers();
+    notifyListeners();
+  }
+
+  void _refreshMarkers() {
+    final m = <Marker>{};
+
+    // Current location
+    if (_currentLocation != null) {
+      m.add(_createMarker(
+        id: 'CurrentLocation',
+        pos: _currentLocation!,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
+        title: 'Current Location',
+        zIndex: 2,
+      ));
+    }
+
+    // Route markers
+    if (originLocation != null) {
+      m.add(_createMarker(
+          id: 'StartingLocation',
+          pos: originLocation!,
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+          title: 'Starting Point'));
+    }
+    if (endingLocation != null) {
+      m.add(_createMarker(
+          id: 'EndingLocation',
+          pos: endingLocation!,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          title: 'Destination'));
+    }
+    if (intermediateLoc1 != null) {
+      m.add(_createMarker(
+          id: 'Intermediate1',
+          pos: intermediateLoc1!,
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
+          title: 'Waypoint 1'));
+    }
+    if (intermediateLoc2 != null) {
+      m.add(_createMarker(
+          id: 'Intermediate2',
+          pos: intermediateLoc2!,
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
+          title: 'Waypoint 2'));
+    }
+
+    // Pickup
+    if (_pickupLocation != null) {
+      m.add(_createMarker(
+          id: 'Pickup',
+          pos: _pickupLocation!,
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+          title: 'Pickup Location',
+          zIndex: 3));
+    }
+
+    // keep passenger markers
+    for (final marker in _markers) {
+      if (_passengerMarkerIds.contains(marker.markerId.value)) {
+        m.add(marker);
+      }
+    }
+
+    _markers = m;
+  }
+
+  void addPassengerMarker(
+      {required String id,
+      required LatLng pos,
+      required BitmapDescriptor icon,
+      String title = 'Passenger',
+      double zIndex = 1,
+      double alpha = 1}) {
+    _passengerMarkerIds.add(id);
+    _markers.add(_createMarker(
+        id: id,
+        pos: pos,
+        icon: icon,
+        title: title,
+        zIndex: zIndex,
+        alpha: alpha));
+    notifyListeners();
+  }
+
+  void clearPassengerMarkers() {
+    _markers.removeWhere((m) => _passengerMarkerIds.contains(m.markerId.value));
+    _passengerMarkerIds.clear();
+    notifyListeners();
+  }
 
   void clearCache() {
     _routeCache.clear();

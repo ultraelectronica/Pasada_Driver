@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pasada_driver_side/Services/auth_service.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
+import 'package:location/location.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/common/utils/result.dart';
@@ -110,6 +111,27 @@ class DriverProvider with ChangeNotifier {
   void setIsDriving(bool value) {
     _isDriving = value;
     notifyListeners();
+  }
+
+  // ───────────────────────── location update ─────────────────────────
+  Future<void> updateCurrentLocation(LocationData newLocation) async {
+    try {
+      final wktPoint =
+          'POINT(${newLocation.longitude} ${newLocation.latitude})';
+      final response = await supabase
+          .from('driverTable')
+          .update({'current_location': wktPoint})
+          .eq('driver_id', _driverID)
+          .select('current_location');
+
+      if (kDebugMode) {
+        debugPrint(
+            'DriverProvider: location updated ${response[0]['current_location']}');
+      }
+    } catch (e) {
+      debugPrint('DriverProvider: error updating location $e');
+      ShowMessage().showToast('Error updating location to DB: $e');
+    }
   }
 
   // ───────────────────────── network-state helpers ─────────────────────────

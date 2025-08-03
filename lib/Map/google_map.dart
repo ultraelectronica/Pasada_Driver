@@ -10,6 +10,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
+import 'package:pasada_driver_side/domain/services/location_tracker.dart';
 import 'package:pasada_driver_side/Map/network_utility.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/UI/message.dart';
@@ -54,16 +55,14 @@ class MapScreenState extends State<MapScreen> {
 
   LatLng? currentLocation;
   LocationData? locationData;
-  final Location location = Location();
+  // Location tracking handled by domain service
   LatLng? _lastPolylineUpdateLocation;
   final GlobalKey<MapScreenState> mapScreenKey = GlobalKey<MapScreenState>();
 
   // <<-- POLYLINES -->>
   Map<PolylineId, Polyline> polylines = {};
 
-  // <<-- MARKERS -->>
-  Set<Marker> markers = {};
-  Set<String> _passengerMarkerIds = {}; // Track passenger-related marker IDs
+  // <<-- MARKERS handled by MapProvider >>
 
   // Route locations
   LatLng? _startingLocation;
@@ -81,6 +80,8 @@ class MapScreenState extends State<MapScreen> {
 
   // animation ng location to kapag pinindot yung custom my location button
   bool isAnimatingLocation = false;
+
+  StreamSubscription<LocationData>? _locationSub;
 
   // Minimum distance in meters to update polyline
   final double _minDistanceForPolylineUpdate = 10;
@@ -102,49 +103,28 @@ class MapScreenState extends State<MapScreen> {
     _initializeMap();
   }
 
-  // Single controlled initialization flow
+  // Single controlled initialization flow – now delegated to MapProvider
   Future<void> _initializeMap() async {
     try {
-      // Step 1: Get current location
       _updateInitState(MapInitState.loadingLocation);
-      await _getCurrentLocation();
 
-      // Step 2: Load route data
-      _updateInitState(MapInitState.loadingRouteData);
-      await _loadRouteData();
+      // Delegate heavy work to provider
+      await context.read<MapProvider>().initialize(context);
 
-      // Step 3: Initialize markers
-      await _initializeMarkers();
-
-      // Step 4: Generate initial polyline
-      await _generateInitialPolyline();
-
-      // Step 5: Load pickup data
-      _updateInitState(MapInitState.loadingPickupData);
-      await _loadPickupData();
-
-      // Step 6: Start location tracking
+      // Start location tracking once provider has data
       _startLocationTracking();
 
-      // Initialization complete
-      _updateInitState(MapInitState.initialized);
-
-      // Preload dark map style
+      // Load dark map style
       rootBundle.loadString('assets/map_style/map_style.json').then((string) {
         if (!mounted) return;
         setState(() {
           _darkMapStyle = string;
         });
-      }).catchError((_) {
-        debugPrint("error loading dark map style");
       });
 
-      if (kDebugMode) {
-        debugPrint('MapScreen: Initialization sequence completed successfully');
-      }
+      _updateInitState(MapInitState.initialized);
     } catch (e) {
       _updateInitState(MapInitState.error, errorMessage: e.toString());
-      ShowMessage().showToast('Error initializing map: ${e.toString()}');
     }
   }
 
@@ -166,13 +146,15 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // Step 1: Get current location once
+  // ignore: unused_element
   Future<void> _getCurrentLocation() async {
     try {
       if (kDebugMode) {
         debugPrint('MapScreen: Getting current location');
       }
 
-      LocationData locationData = await location.getLocation();
+      final loc = Location();
+      LocationData locationData = await loc.getLocation();
 
       if (!mounted) return;
 
@@ -197,6 +179,7 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // Step 2: Load route data once
+  // ignore: unused_element
   Future<void> _loadRouteData() async {
     try {
       if (kDebugMode) {
@@ -242,7 +225,10 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // Step 3: Initialize markers once with complete data
+  // ignore: unused_element
   Future<void> _initializeMarkers() async {
+    // Legacy method kept for backward compatibility – not used in new flow.
+    final Set<Marker> markers = {};
     if (!mounted || currentLocation == null) return;
 
     if (kDebugMode) {
@@ -311,6 +297,7 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // Step 4: Generate initial polyline
+  // ignore: unused_element
   Future<void> _generateInitialPolyline() async {
     if (_startingLocation != null &&
         _endingLocation != null &&
@@ -331,7 +318,9 @@ class MapScreenState extends State<MapScreen> {
       }
 
       // Use current location as start point instead of original route start
-      await generatePolyline(currentLocation!, _endingLocation!,
+      await context.read<MapProvider>().generatePolyline(
+          start: currentLocation!,
+          end: _endingLocation!,
           waypoints: waypoints.isNotEmpty ? waypoints : null);
 
       _lastPolylineUpdateLocation = currentLocation;
@@ -339,6 +328,7 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // Step 5: Load pickup data
+  // ignore: unused_element
   Future<void> _loadPickupData() async {
     try {
       if (kDebugMode) {
@@ -357,16 +347,8 @@ class MapScreenState extends State<MapScreen> {
           debugPrint('MapScreen: Pickup location loaded: $_pickupLocation');
         }
 
-        setState(() {
-          markers.add(createMarker(
-            id: 'Pickup',
-            position: _pickupLocation!,
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueViolet),
-            title: 'Pickup Location',
-            zIndex: 3.0,
-          ));
-        });
+        // Let provider rebuild markers to include pickup
+        context.read<MapProvider>().setPickUpLocation(_pickupLocation!);
       } else {
         if (kDebugMode) {
           debugPrint('MapScreen: No pickup location available');
@@ -386,33 +368,22 @@ class MapScreenState extends State<MapScreen> {
       debugPrint('MapScreen: Starting location tracking');
     }
 
-    location.onLocationChanged.listen((LocationData newLocation) {
+    LocationTracker.instance.locationStream.listen((LocationData newLocation) {
       if (!mounted) return;
       if (newLocation.latitude == null || newLocation.longitude == null) return;
 
       final newLatLng = LatLng(newLocation.latitude!, newLocation.longitude!);
 
       // Update driver location in database
-      final String driverId = context.read<DriverProvider>().driverID;
-      _updateDriverLocationToDB(driverId, newLocation);
+      context.read<DriverProvider>().updateCurrentLocation(newLocation);
 
       // Update UI if moved significantly
       if (_shouldUpdateUI(newLatLng)) {
         setState(() {
           currentLocation = newLatLng;
-
-          // Update current location marker
-          markers.removeWhere(
-              (marker) => marker.markerId == const MarkerId('CurrentLocation'));
-          markers.add(createMarker(
-            id: 'CurrentLocation',
-            position: newLatLng,
-            icon:
-                BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
-            title: 'Current Location',
-            zIndex: 2.0,
-          ));
         });
+        // Update provider so marker set refreshes automatically
+        context.read<MapProvider>().setCurrentLocation(newLatLng);
       }
 
       // Only update polyline if moved significantly AND we're initialized
@@ -428,7 +399,9 @@ class MapScreenState extends State<MapScreen> {
         }
 
         // IMPORTANT: Use current location as start point for better user experience
-        generatePolyline(newLatLng, _endingLocation!,
+        context.read<MapProvider>().generatePolyline(
+            start: newLatLng,
+            end: _endingLocation!,
             waypoints: waypoints.isNotEmpty ? waypoints : null);
 
         _lastPolylineUpdateLocation = newLatLng;
@@ -474,7 +447,7 @@ class MapScreenState extends State<MapScreen> {
               debugPrint('Pickup location changed, updating UI');
             }
             setState(() {});
-            _initializeMarkers();
+            context.read<MapProvider>().rebuildMarkers();
           }
         } else {
           if (kDebugMode) {
@@ -491,7 +464,7 @@ class MapScreenState extends State<MapScreen> {
 
           // Still update UI in case other markers need to be refreshed
           setState(() {});
-          _initializeMarkers();
+          context.read<MapProvider>().rebuildMarkers();
         }
       }
     });
@@ -600,7 +573,7 @@ class MapScreenState extends State<MapScreen> {
       }
 
       // Initialize markers with all locations
-      _initializeMarkers();
+      context.read<MapProvider>().rebuildMarkers();
 
       // Generate polyline based on available waypoints
       if (_startingLocation != null && _endingLocation != null) {
@@ -617,7 +590,9 @@ class MapScreenState extends State<MapScreen> {
 
         // Use consolidated polyline generator - always from start to end (not current location)
         // This ensures route direction is consistent
-        await generatePolyline(_startingLocation!, _endingLocation!,
+        await context.read<MapProvider>().generatePolyline(
+            start: _startingLocation!,
+            end: _endingLocation!,
             waypoints: waypoints.isNotEmpty ? waypoints : null);
 
         _lastPolylineUpdateLocation = currentLocation;
@@ -674,7 +649,8 @@ class MapScreenState extends State<MapScreen> {
     }
   }
 
-  // <<-- UPDATE LOCATION TO DATABASE -->>
+  // <<-- UPDATE LOCATION TO DATABASE -->
+  // ignore: unused_element
   Future<void> _updateDriverLocationToDB(
       String driverId, LocationData newLocation) async {
     try {
@@ -906,7 +882,7 @@ class MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     // Clean up resources
-    location.onLocationChanged.drain();
+    _locationSub?.cancel();
     super.dispose();
   }
 
@@ -1008,8 +984,8 @@ class MapScreenState extends State<MapScreen> {
                   ? _darkMapStyle
                   : null,
 
-              markers: markers,
-              polylines: Set<Polyline>.of(polylines.values),
+              markers: context.watch<MapProvider>().markers,
+              polylines: _buildPolylines(context),
               mapType: MapType.normal,
               //buildings
               buildingsEnabled: true,
@@ -1114,6 +1090,20 @@ class MapScreenState extends State<MapScreen> {
     return distanceMoved > 2;
   }
 
+  // Build polylines from provider state
+  Set<Polyline> _buildPolylines(BuildContext context) {
+    final coords = context.watch<MapProvider>().polylineCoords;
+    if (coords.isEmpty) return {};
+    return {
+      Polyline(
+        polylineId: const PolylineId('route'),
+        points: coords,
+        color: const Color.fromARGB(255, 255, 35, 35),
+        width: 8,
+      )
+    };
+  }
+
   // Helper method to decide if polyline needs updating
   bool _shouldUpdatePolyline(LatLng newLocation) {
     if (_lastPolylineUpdateLocation == null) return true;
@@ -1136,37 +1126,22 @@ class MapScreenState extends State<MapScreen> {
     required BitmapDescriptor icon,
     required String title,
     double zIndex = 1.0,
-    double alpha =
-        1.0, // Transparency (1.0 = fully opaque, 0.0 = fully transparent)
+    double alpha = 1.0,
   }) {
     if (!mounted) return;
-
-    setState(() {
-      // Add ID to passenger marker tracking set
-      _passengerMarkerIds.add(id);
-
-      // Add marker to the set
-      markers.add(Marker(
-        markerId: MarkerId(id),
-        position: position,
-        icon: icon,
-        infoWindow: InfoWindow(title: title),
-        zIndex: zIndex,
-        alpha: alpha,
-      ));
-    });
+    context.read<MapProvider>().addPassengerMarker(
+          id: id,
+          pos: position,
+          icon: icon,
+          title: title,
+          zIndex: zIndex,
+          alpha: alpha,
+        );
   }
 
   // Clear all passenger-related markers (preserves route markers)
   void clearPassengerMarkers() {
     if (!mounted) return;
-
-    setState(() {
-      // Remove all markers with IDs in the passenger tracking set
-      markers.removeWhere(
-          (marker) => _passengerMarkerIds.contains(marker.markerId.value));
-      // Clear the tracking set
-      _passengerMarkerIds.clear();
-    });
+    context.read<MapProvider>().clearPassengerMarkers();
   }
 }

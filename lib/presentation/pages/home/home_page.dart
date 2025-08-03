@@ -595,7 +595,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
               onTap: () async {
                 final shouldReset = await showDialog<bool>(
                   context: context,
-                  builder: (_) => AlertDialog(
+                  builder: (dialogContext) => AlertDialog(
                     title: const Text('Reset Capacity'),
                     content: Text(
                       'Current capacity: $passengerCapacity passengers\n\nThis will reset all passenger counts to zero. Only use this if you have no passengers on board and the system is out of sync.',
@@ -603,7 +603,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     actions: [
                       TextButton(
                         child: const Text('Cancel'),
-                        onPressed: () => Navigator.of(context).pop(false),
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
@@ -611,7 +611,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           foregroundColor: Colors.white,
                         ),
                         child: const Text('Reset'),
-                        onPressed: () => Navigator.of(context).pop(true),
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
                       ),
                     ],
                   ),
