@@ -20,10 +20,11 @@ class FloatingStatusSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final driverProvider = context.watch<DriverProvider>();
-    final bool isDriving = driverProvider.driverStatus == 'Driving';
-    final int totalPassengers = driverProvider.passengerStandingCapacity +
-        driverProvider.passengerSittingCapacity;
+    final bool isDriving = context
+        .select<DriverProvider, bool>((p) => p.driverStatus == 'Driving');
+    final int totalPassengers = context.select<DriverProvider, int>(
+        (p) => p.passengerStandingCapacity + p.passengerSittingCapacity);
+    final driverProvider = context.read<DriverProvider>();
 
     return Positioned(
       bottom: screenHeight * 0.115,

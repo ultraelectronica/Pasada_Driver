@@ -66,7 +66,7 @@ class PassengerCapacity {
     String seatType, {
     bool isManual = false,
   }) async {
-    final driverProvider = Provider.of<DriverProvider>(context, listen: false);
+    final driverProvider = context.read<DriverProvider>();
     final String vehicleID = driverProvider.vehicleID;
 
     // Backup for rollback
@@ -165,8 +165,7 @@ class PassengerCapacity {
 
   Future<void> initializeCapacity(BuildContext context) async {
     try {
-      final driverProvider =
-          Provider.of<DriverProvider>(context, listen: false);
+      final driverProvider = context.read<DriverProvider>();
       final vehicleID = driverProvider.vehicleID;
       final response = await supabase
           .from('vehicleTable')
@@ -191,8 +190,7 @@ class PassengerCapacity {
 
   Future<void> getPassengerCapacityToDB(BuildContext context) async {
     try {
-      final driverProvider =
-          Provider.of<DriverProvider>(context, listen: false);
+      final driverProvider = context.read<DriverProvider>();
       final vehicleID = driverProvider.vehicleID;
       final response = await supabase
           .from('vehicleTable')
@@ -235,8 +233,7 @@ class PassengerCapacity {
   Future<CapacityOperationResult> resetCapacityToZero(
       BuildContext context) async {
     try {
-      final driverProvider =
-          Provider.of<DriverProvider>(context, listen: false);
+      final driverProvider = context.read<DriverProvider>();
       final vehicleID = driverProvider.vehicleID;
       await supabase.from('vehicleTable').update({
         'passenger_capacity': 0,

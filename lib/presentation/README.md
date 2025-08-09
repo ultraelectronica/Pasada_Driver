@@ -1,13 +1,44 @@
-# `lib/presentation`
+# lib/presentation
 
-Glue between UI widgets and business logic.
+UI widgets and state-management layer for the Pasada Driver app. Everything that touches Flutter’s `BuildContext` lives here; lower layers (`domain`, `data`, `common`) stay framework-agnostic.
 
-* `providers/` – `ChangeNotifier` classes and related helpers
-  * `driver/` – driver profile & status
-  * `passenger/` – booking stream and processing
-  * `map_provider.dart` – live route/location
-* Screens still live in `NavigationPages/`; they listen to these providers.
+Directory map
+-------------
+```
+lib/presentation/
+├── providers/   # ChangeNotifier classes (pure logic – no UI)
+├── pages/       # Feature modules (one folder per screen)
+│   ├── home/
+│   ├── activity/
+│   ├── profile/
+│   ├── login/
+│   └── start/
+└── widgets/     # Cross-feature reusable UI atoms (e.g. ErrorRetryWidget)
+```
 
-Rules
-1. May import Flutter and lower layers (`domain`, `data`, `common`).
-2. Keep providers/widget code separate to keep providers testable without UI. 
+State-management conventions
+----------------------------
+Every provider **must** expose these two fields so widgets can implement a "3-state" UI (loading ▸ error ▸ data):
+
+* `bool isLoading`    – `true` while an async operation is in flight.
+* `Failure? error`   – `null` when healthy, otherwise a rich error object containing `message`, `type`, and optional exception.
+  * Use `error?.message` when you need the display string.
+
+Widget skeleton:
+```dart
+if (provider.isLoading) {
+  return const Center(child: CircularProgressIndicator());
+}
+if (provider.error != null) {
+  return ErrorRetryWidget(message: provider.error!, onRetry: () {...});
+}
+return DataView();
+```
+
+Performance rules
+-----------------
+1. Use `context.select`, `Selector`, or `Consumer` to listen only to the fields you actually need.
+2. Use `context.read` for mutations.
+3. Never store a `BuildContext` across an `await` boundary.
+
+See the READMEs inside `pages/` and `providers/` for page-specific notes. 
