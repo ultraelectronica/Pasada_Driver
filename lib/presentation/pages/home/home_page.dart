@@ -6,7 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 import 'package:pasada_driver_side/common/constants/booking_constants.dart';
-import 'package:pasada_driver_side/Map/google_map.dart';
+import 'package:pasada_driver_side/presentation/pages/map/map_page.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/UI/constants.dart';
@@ -43,7 +43,7 @@ class HomeScreen extends StatelessWidget {
       ),
       home: const HomePage(title: 'Pasada'),
       routes: <String, WidgetBuilder>{
-        'map': (BuildContext context) => const MapScreen(),
+        'map': (BuildContext context) => const MapPage(),
       },
     );
   }
@@ -62,8 +62,8 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
   // LocationData? _currentLocation;
   // late Location _location;
 
-  //used to access MapScreenState
-  final GlobalKey<MapScreenState> mapScreenKey = GlobalKey<MapScreenState>();
+  //used to access MapPage
+  final GlobalKey<MapPageState> mapScreenKey = GlobalKey<MapPageState>();
 
   final GlobalKey containerKey = GlobalKey();
   double containerHeight = 0;
@@ -184,8 +184,8 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
       body: SizedBox(
         child: Stack(
           children: [
-            // Update the MapScreen widget in the HomePage's build method
-            MapScreen(
+            // Update to use the new MapPage
+            MapPage(
               key: mapScreenKey,
               // initialLocation: StartingLocation,
               // finalLocation: EndingLocation,

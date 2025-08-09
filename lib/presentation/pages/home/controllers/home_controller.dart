@@ -9,7 +9,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
-import 'package:pasada_driver_side/Map/google_map.dart';
+import 'package:pasada_driver_side/presentation/pages/map/map_page.dart';
 import 'package:flutter/material.dart';
 
 /// Encapsulates **non-UI** logic for the Home page: proximity checks, periodic
@@ -34,7 +34,7 @@ class HomeController extends ChangeNotifier {
   final DriverProvider driverProvider;
   final MapProvider mapProvider;
   final PassengerProvider passengerProvider;
-  final GlobalKey<MapScreenState> mapScreenKey;
+  final GlobalKey<MapPageState> mapScreenKey;
 
   //--------------------------------------------------------------------------
   // Public reactive fields (read-only outside)

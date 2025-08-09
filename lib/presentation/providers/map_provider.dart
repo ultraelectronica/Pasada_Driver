@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/domain/services/route_service.dart';
+import 'package:pasada_driver_side/domain/services/polyline_service.dart';
 
 // Define clear state for route data
 enum RouteState { initial, loading, loaded, error }
@@ -310,9 +311,14 @@ class MapProvider with ChangeNotifier {
   }) async {
     _setPolylineState(loading: true);
     try {
-      final coords = await RouteService.fetchRoute(
-          origin: start, destination: end, waypoints: waypoints);
-      _polylineCoords = coords;
+      // Use the new PolylineService for route generation
+      final polylineService = PolylineService();
+      final coords = await polylineService.generatePolyline(
+        start: start,
+        end: end,
+        waypoints: waypoints,
+      );
+      _polylineCoords = coords ?? [];
       _setPolylineState(loading: false);
     } catch (e) {
       _setPolylineState(loading: false, error: e.toString());
@@ -323,6 +329,12 @@ class MapProvider with ChangeNotifier {
     _polylineLoading = loading;
     _polylineError = error;
     notifyListeners();
+  }
+
+  /// Update polyline coordinates directly (used by refactored MapPage)
+  void updatePolylineCoords(List<LatLng> coords) {
+    _polylineCoords = coords;
+    _setPolylineState(loading: false);
   }
 
   // ───────────────────────── marker helpers ─────────────────────────
