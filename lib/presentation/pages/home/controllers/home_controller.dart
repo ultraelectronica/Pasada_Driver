@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:pasada_driver_side/common/config/app_config.dart';
 import 'package:pasada_driver_side/presentation/pages/home/models/passenger_status.dart';
