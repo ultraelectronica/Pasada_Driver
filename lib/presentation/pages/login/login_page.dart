@@ -188,7 +188,7 @@ class _LogInState extends State<LogIn> {
 
   void _updateStatusToDB() {
     context.read<DriverProvider>().setDriverStatus('Online');
-    context.read<DriverProvider>().updateStatusToDB('Online', context);
+    context.read<DriverProvider>().updateStatusToDB('Online');
   }
 
   Future<void> _setDriverCreds() async {

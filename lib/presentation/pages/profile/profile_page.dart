@@ -511,7 +511,7 @@ class ProfilePageState extends State<ProfilePage> {
           // ShowMessage()
           //     .showToast(context.read<DriverProvider>().isDriving.toString());
         }
-        context.read<DriverProvider>().updateStatusToDB(status, context);
+        context.read<DriverProvider>().updateStatusToDB(status);
         context.read<DriverProvider>().setDriverStatus(status);
 
         Navigator.of(context).pop();

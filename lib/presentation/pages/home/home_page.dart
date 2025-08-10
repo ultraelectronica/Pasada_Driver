@@ -24,28 +24,14 @@ import 'package:pasada_driver_side/presentation/pages/home/widgets/confirm_picku
 import 'package:pasada_driver_side/presentation/pages/home/widgets/complete_ride_button.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/reset_capacity_button.dart';
 
-// Model to track passenger proximity status
-
-void main() => runApp(const HomeScreen());
-
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Pasada',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFFF2F2F2),
-        fontFamily: 'Inter',
-        useMaterial3: true,
-      ),
-      home: const HomePage(title: 'Pasada'),
-      routes: <String, WidgetBuilder>{
-        'map': (BuildContext context) => const MapPage(),
-      },
-    );
+    // Avoid nesting a MaterialApp inside the main app. This widget simply
+    // returns the HomePage used by the top-level app shell.
+    return const HomePage(title: 'Pasada');
   }
 }
 
@@ -57,16 +43,9 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => HomePageState();
 }
 
-class HomePageState extends State<HomePage> with WidgetsBindingObserver {
-  late GoogleMapController mapController;
-  // LocationData? _currentLocation;
-  // late Location _location;
-
+class HomePageState extends State<HomePage> {
   //used to access MapPage
   final GlobalKey<MapPageState> mapScreenKey = GlobalKey<MapPageState>();
-
-  final GlobalKey containerKey = GlobalKey();
-  double containerHeight = 0;
 
   // List of nearby passengers with their status
   List<PassengerStatus> _nearbyPassengers = [];
@@ -88,11 +67,6 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
   // New: centralised controller holding timers & logic
   late HomeController _controller;
 
-  Future<void> getPassengerCapacity() async {
-    // get the passenger capacity from the DB
-    await PassengerCapacity().getPassengerCapacityToDB(context);
-  }
-
   // _checkProximity removed – logic lives in HomeController
 
   // Method to fetch bookings with loading indicator
@@ -113,9 +87,6 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
       mapScreenKey: mapScreenKey,
     )..addListener(_onControllerUpdate);
 
-    // Observe app lifecycle to pause/resume timers
-    WidgetsBinding.instance.addObserver(this);
-
     // Delay timer start to ensure context is fully ready
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -126,26 +97,9 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
     });
   }
 
-  // App lifecycle timer handling removed – HomeController manages timers
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // We'll let the timers handle fetches instead of doing it here
-  }
-
-  // Only listen for status changes from non-driving to driving
-  @override
-  void didUpdateWidget(covariant HomePage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    // We'll let the timers handle fetches instead of doing it here
-  }
-
   @override
   void dispose() {
     _controller.dispose();
-    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -179,6 +133,23 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
         context.select<DriverProvider, int>((p) => p.passengerSittingCapacity);
     final driverStatus =
         context.select<DriverProvider, String>((p) => p.driverStatus);
+
+    // Calculate manual removable capacities (exclude booked/ongoing)
+    final bookedStanding = passengerProvider.bookings
+        .where((b) =>
+            b.rideStatus == BookingConstants.statusOngoing &&
+            b.seatType == 'Standing')
+        .length;
+    final bookedSitting = passengerProvider.bookings
+        .where((b) =>
+            b.rideStatus == BookingConstants.statusOngoing &&
+            b.seatType == 'Sitting')
+        .length;
+
+    final manualStanding =
+        (passengerStanding - bookedStanding).clamp(0, passengerStanding);
+    final manualSitting =
+        (passengerSitting - bookedSitting).clamp(0, passengerSitting);
 
     return Scaffold(
       body: SizedBox(
@@ -333,47 +304,56 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 }
               },
               canIncrement: true, // Standing capacity can be incremented
-              onDecrementTap: () async {
-                // Decrement standing capacity by 1 when decrement button is tapped
-                final result =
-                    await PassengerCapacity().manualDecrementStanding(context);
+              onDecrementTap: manualStanding > 0
+                  ? () async {
+                      // Decrement standing capacity by 1 when decrement button is tapped
+                      final result = await PassengerCapacity()
+                          .manualDecrementStanding(context);
 
-                if (result.success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Standing passenger removed manually'),
-                      backgroundColor: Colors.red,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                } else {
-                  // Show specific error message based on error type
-                  String errorMessage = 'Failed to remove passenger';
-                  Color errorColor = Colors.red;
+                      if (result.success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content:
+                                Text('Standing passenger removed manually'),
+                            backgroundColor: Colors.red,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      } else {
+                        // Show specific error message based on error type
+                        String errorMessage = 'Failed to remove passenger';
+                        Color errorColor = Colors.red;
 
-                  switch (result.errorType) {
-                    case PassengerCapacity.ERROR_DRIVER_NOT_DRIVING:
-                      errorMessage =
-                          'Cannot remove passenger: Driver is not in Driving status';
-                      break;
-                    case PassengerCapacity.ERROR_NEGATIVE_VALUES:
-                      errorMessage = 'Cannot remove: No standing passengers';
-                      errorColor = Colors.grey;
-                      break;
-                    default:
-                      errorMessage =
-                          result.errorMessage ?? 'Unknown error occurred';
-                  }
+                        switch (result.errorType) {
+                          case PassengerCapacity.ERROR_DRIVER_NOT_DRIVING:
+                            errorMessage =
+                                'Cannot remove passenger: Driver is not in Driving status';
+                            break;
+                          case PassengerCapacity.ERROR_MANUAL_FORBIDDEN:
+                            errorMessage =
+                                'Cannot remove: passenger was added via booking';
+                            errorColor = Colors.orange;
+                            break;
+                          case PassengerCapacity.ERROR_NEGATIVE_VALUES:
+                            errorMessage =
+                                'Cannot remove: No standing passengers';
+                            errorColor = Colors.grey;
+                            break;
+                          default:
+                            errorMessage =
+                                result.errorMessage ?? 'Unknown error occurred';
+                        }
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(errorMessage),
-                      backgroundColor: errorColor,
-                      duration: const Duration(seconds: 3),
-                    ),
-                  );
-                }
-              },
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(errorMessage),
+                            backgroundColor: errorColor,
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                      }
+                    }
+                  : null,
             ),
 
             // PASSENGER SITTING CAPACITY - Can be incremented manually
@@ -434,47 +414,55 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 }
               },
               canIncrement: true, // Sitting capacity can be incremented
-              onDecrementTap: () async {
-                // Decrement sitting capacity by 1 when decrement button is tapped
-                final result =
-                    await PassengerCapacity().manualDecrementSitting(context);
+              onDecrementTap: manualSitting > 0
+                  ? () async {
+                      // Decrement sitting capacity by 1 when decrement button is tapped
+                      final result = await PassengerCapacity()
+                          .manualDecrementSitting(context);
 
-                if (result.success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Sitting passenger removed manually'),
-                      backgroundColor: Colors.red,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                } else {
-                  // Show specific error message based on error type
-                  String errorMessage = 'Failed to remove passenger';
-                  Color errorColor = Colors.red;
+                      if (result.success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Sitting passenger removed manually'),
+                            backgroundColor: Colors.red,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      } else {
+                        // Show specific error message based on error type
+                        String errorMessage = 'Failed to remove passenger';
+                        Color errorColor = Colors.red;
 
-                  switch (result.errorType) {
-                    case PassengerCapacity.ERROR_DRIVER_NOT_DRIVING:
-                      errorMessage =
-                          'Cannot remove passenger: Driver is not in Driving status';
-                      break;
-                    case PassengerCapacity.ERROR_NEGATIVE_VALUES:
-                      errorMessage = 'Cannot remove: No sitting passengers';
-                      errorColor = Colors.grey;
-                      break;
-                    default:
-                      errorMessage =
-                          result.errorMessage ?? 'Unknown error occurred';
-                  }
+                        switch (result.errorType) {
+                          case PassengerCapacity.ERROR_DRIVER_NOT_DRIVING:
+                            errorMessage =
+                                'Cannot remove passenger: Driver is not in Driving status';
+                            break;
+                          case PassengerCapacity.ERROR_MANUAL_FORBIDDEN:
+                            errorMessage =
+                                'Cannot remove: passenger was added via booking';
+                            errorColor = Colors.orange;
+                            break;
+                          case PassengerCapacity.ERROR_NEGATIVE_VALUES:
+                            errorMessage =
+                                'Cannot remove: No sitting passengers';
+                            errorColor = Colors.grey;
+                            break;
+                          default:
+                            errorMessage =
+                                result.errorMessage ?? 'Unknown error occurred';
+                        }
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(errorMessage),
-                      backgroundColor: errorColor,
-                      duration: const Duration(seconds: 3),
-                    ),
-                  );
-                }
-              },
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(errorMessage),
+                            backgroundColor: errorColor,
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                      }
+                    }
+                  : null,
             ),
 
             ConfirmPickupButton(

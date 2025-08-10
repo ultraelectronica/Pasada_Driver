@@ -13,12 +13,16 @@ class GoogleMapView extends StatefulWidget {
   final LatLng initialLocation;
   final double bottomPadding;
   final Function(GoogleMapController)? onMapCreated;
+  final VoidCallback? onCameraMoveStarted;
+  final VoidCallback? onCameraIdle;
 
   const GoogleMapView({
     super.key,
     required this.initialLocation,
     this.bottomPadding = MapConstants.bottomPaddingDefault,
     this.onMapCreated,
+    this.onCameraMoveStarted,
+    this.onCameraIdle,
   });
 
   @override
@@ -54,6 +58,8 @@ class _GoogleMapViewState extends State<GoogleMapView> {
           _mapControllerCompleter.complete(controller);
           widget.onMapCreated?.call(controller);
         },
+        onCameraMoveStarted: widget.onCameraMoveStarted,
+        onCameraIdle: widget.onCameraIdle,
         initialCameraPosition: CameraPosition(
           target: widget.initialLocation,
           zoom: MapConstants.defaultZoom,

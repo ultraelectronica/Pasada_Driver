@@ -2,7 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Result class for capacity operations
@@ -23,6 +25,7 @@ class CapacityOperationResult {
 /// PassengerCapacity manages the current vehicle occupancy.
 class PassengerCapacity {
   final SupabaseClient supabase = Supabase.instance.client;
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   // Maximum capacity limits
   static const int MAX_SITTING_CAPACITY = 23;
@@ -36,6 +39,7 @@ class PassengerCapacity {
   static const String ERROR_NEGATIVE_VALUES = 'negative_values';
   static const String ERROR_DATABASE_FAILED = 'database_failed';
   static const String ERROR_VALIDATION_FAILED = 'validation_failed';
+  static const String ERROR_MANUAL_FORBIDDEN = 'manual_forbidden';
 
   bool _validateDriverStatus(DriverProvider driverProvider) =>
       driverProvider.driverStatus == 'Driving';
@@ -67,6 +71,7 @@ class PassengerCapacity {
     bool isManual = false,
   }) async {
     final driverProvider = context.read<DriverProvider>();
+    final passengerProvider = context.read<PassengerProvider>();
     final String vehicleID = driverProvider.vehicleID;
 
     // Backup for rollback
@@ -114,6 +119,45 @@ class PassengerCapacity {
         }
       }
 
+      // For manual decrement, ensure we're not removing booked capacity
+      if (isManual && operation == 'decrement') {
+        int bookedStanding = passengerProvider.bookings
+            .where((b) => b.rideStatus == 'Ongoing' && b.seatType == 'Standing')
+            .length;
+        int bookedSitting = passengerProvider.bookings
+            .where((b) => b.rideStatus == 'Ongoing' && b.seatType == 'Sitting')
+            .length;
+
+        int manualStanding =
+            (standingCount - bookedStanding).clamp(0, standingCount);
+        int manualSitting =
+            (sittingCount - bookedSitting).clamp(0, sittingCount);
+
+        // If bookings list is empty (e.g., after app restart), fall back to persisted manual counts
+        if (passengerProvider.bookings.isEmpty) {
+          final stored = await _loadManualCounts(vehicleID);
+          manualStanding = stored.$1;
+          manualSitting = stored.$2;
+        }
+
+        if (seatType == 'Standing' && manualStanding <= 0) {
+          return CapacityOperationResult(
+            success: false,
+            errorType: ERROR_MANUAL_FORBIDDEN,
+            errorMessage:
+                'Cannot remove standing passenger: capacity was added via booking',
+          );
+        }
+        if (seatType == 'Sitting' && manualSitting <= 0) {
+          return CapacityOperationResult(
+            success: false,
+            errorType: ERROR_MANUAL_FORBIDDEN,
+            errorMessage:
+                'Cannot remove sitting passenger: capacity was added via booking',
+          );
+        }
+      }
+
       if (!_validateCapacityLimits(newStanding, newSitting, operation)) {
         return CapacityOperationResult(
           success: false,
@@ -145,6 +189,15 @@ class PassengerCapacity {
       driverProvider.setPassengerCapacity(newTotal);
       driverProvider.setPassengerStandingCapacity(newStanding);
       driverProvider.setPassengerSittingCapacity(newSitting);
+
+      // Track manual adjustments locally so we can enforce rules after app restarts
+      if (isManual) {
+        await _adjustAndSaveManualCounts(
+          vehicleID: vehicleID,
+          seatType: seatType,
+          delta: operation == 'increment' ? 1 : -1,
+        );
+      }
 
       return CapacityOperationResult(success: true, capacityData: {
         'total': newTotal,
@@ -255,5 +308,49 @@ class PassengerCapacity {
         errorMessage: 'Failed to reset capacity: $e',
       );
     }
+  }
+}
+
+// ───────────────────────── Manual count persistence helpers ─────────────────────────
+extension _ManualCapacityStorage on PassengerCapacity {
+  String _standingKey(String vehicleID) => 'manual_standing:$vehicleID';
+  String _sittingKey(String vehicleID) => 'manual_sitting:$vehicleID';
+
+  Future<(int, int)> _loadManualCounts(String vehicleID) async {
+    try {
+      final s = await PassengerCapacity._secureStorage
+          .read(key: _standingKey(vehicleID));
+      final t = await PassengerCapacity._secureStorage
+          .read(key: _sittingKey(vehicleID));
+      final standing = int.tryParse(s ?? '0') ?? 0;
+      final sitting = int.tryParse(t ?? '0') ?? 0;
+      return (standing, sitting);
+    } catch (_) {
+      return (0, 0);
+    }
+  }
+
+  Future<void> _saveManualCounts(
+      String vehicleID, int standing, int sitting) async {
+    await PassengerCapacity._secureStorage
+        .write(key: _standingKey(vehicleID), value: standing.toString());
+    await PassengerCapacity._secureStorage
+        .write(key: _sittingKey(vehicleID), value: sitting.toString());
+  }
+
+  Future<void> _adjustAndSaveManualCounts({
+    required String vehicleID,
+    required String seatType,
+    required int delta,
+  }) async {
+    final current = await _loadManualCounts(vehicleID);
+    int standing = current.$1;
+    int sitting = current.$2;
+    if (seatType == 'Standing') {
+      standing = (standing + delta).clamp(0, 1 << 30);
+    } else {
+      sitting = (sitting + delta).clamp(0, 1 << 30);
+    }
+    await _saveManualCounts(vehicleID, standing, sitting);
   }
 }

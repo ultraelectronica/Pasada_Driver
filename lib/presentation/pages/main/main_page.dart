@@ -49,7 +49,9 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     super.didChangeAppLifecycleState(state);
     final driverProv = context.read<DriverProvider>();
     if (state == AppLifecycleState.resumed) {
-      driverProv.updateStatusToDB(driverProv.lastDriverStatus!, context);
+      final String statusToRestore =
+          driverProv.lastDriverStatus ?? driverProv.driverStatus;
+      driverProv.updateStatusToDB(statusToRestore);
       ShowMessage().showToast('App resumed');
       if (driverProv.lastDriverStatus == 'Driving') {
         SchedulerBinding.instance.addPostFrameCallback((_) {
@@ -62,7 +64,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
       }
     } else if (state == AppLifecycleState.paused) {
       driverProv.setLastDriverStatus(driverProv.driverStatus);
-      driverProv.updateStatusToDB('Idling', context);
+      driverProv.updateStatusToDB('Idling');
       if (driverProv.driverStatus == 'Driving') {
         hasShownDrivingPrompt = false;
       }

@@ -14,9 +14,13 @@ class MapConstants {
   static const double defaultTilt = 45.0;
 
   // Location tracking thresholds
-  static const double minDistanceForPolylineUpdate = 10.0; // meters
+  static const double minDistanceForPolylineUpdate = 20.0; // meters
   static const double minDistanceForUIUpdate = 2.0; // meters
   static const double destinationReachedThreshold = 40.0; // meters
+
+  // Throttling intervals
+  static const Duration polylineUpdateMinInterval = Duration(seconds: 15);
+  static const Duration dbLocationUpdateMinInterval = Duration(seconds: 5);
 
   // UI positioning
   static const double bottomPaddingDefault = 0.13;
@@ -110,21 +114,22 @@ class MapUtils {
     return distance < MapConstants.destinationReachedThreshold;
   }
 
-  /// Simple distance calculation using Haversine formula approximation
+  /// Simple distance calculation using the Haversine formula
   static double _calculateDistance(
       double lat1, double lon1, double lat2, double lon2) {
     const double earthRadius = 6371000; // meters
 
-    double dLat = (lat2 - lat1) * (3.14159 / 180);
-    double dLon = (lon2 - lon1) * (3.14159 / 180);
+    final double toRad = 3.1415926535897932 / 180.0;
+    final double dLat = (lat2 - lat1) * toRad;
+    final double dLon = (lon2 - lon1) * toRad;
+    final double rLat1 = lat1 * toRad;
+    final double rLat2 = lat2 * toRad;
 
-    double a = (dLat / 2).abs() * (dLat / 2).abs() +
-        cos(lat1 * 3.14159 / 180) *
-            cos(lat2 * 3.14159 / 180) *
-            (dLon / 2).abs() *
-            (dLon / 2).abs();
-
-    double c = 2 * asin(sqrt(a));
+    final double sinDLat = sin(dLat / 2);
+    final double sinDLon = sin(dLon / 2);
+    final double a =
+        sinDLat * sinDLat + cos(rLat1) * cos(rLat2) * sinDLon * sinDLon;
+    final double c = 2 * atan2(sqrt(a), sqrt(1 - a));
 
     return earthRadius * c;
   }
