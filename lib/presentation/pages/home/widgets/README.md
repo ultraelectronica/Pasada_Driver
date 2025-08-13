@@ -7,8 +7,10 @@ Key widgets:
 - `seat_capacity_control.dart` – Standing/Sitting capacity with manual vs booked safety checks
 - `total_capacity_indicator.dart` – Total capacity display with refresh
 - `confirm_pickup_control.dart`, `complete_ride_control.dart` – Booking action wrappers using providers and mounted checks
+- `confirm_pickup_control.dart`, `complete_ride_control.dart` – Booking action wrappers using providers and mounted checks; now stateful to drive button `isLoading`/`isEnabled`.
 - Floating buttons (message/status), reset button
 
 Guidelines:
 - Stateless where possible
 - No business logic: call controller/providers instead
+- Expose `isLoading`/`isEnabled` signals on action buttons to give immediate feedback and prevent rapid double taps

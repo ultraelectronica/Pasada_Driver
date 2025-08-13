@@ -12,7 +12,7 @@ This directory contains the refactored Home feature for the Pasada driver app.
   - `passenger_list_widget.dart`: Nearby/active bookings list
   - `seat_capacity_control.dart`: Encapsulated Standing/Sitting capacity control (manual vs booked-safe decrement)
   - `total_capacity_indicator.dart`: Total capacity display and refresh
-  - `confirm_pickup_control.dart`, `complete_ride_control.dart`: Booking action wrappers with mounted checks
+  - `confirm_pickup_control.dart`, `complete_ride_control.dart`: Booking action wrappers with mounted checks, button-level loading/disable state
   - Floating buttons and status switch components
 - `utils/`
   - `home_constants.dart`: Layout multipliers (positions/z-index)
@@ -40,3 +40,7 @@ final error = context.select<PassengerProvider,String?>((p) => p.error);
 
 ### Map integration
 `HomeController` owns selection, focusing the map, and rebuilding passenger markers via the `MapPageState` key.
+
+### Recent changes
+- React to booking stream changes immediately to refresh the passenger list without timer delay.
+- Buttons show processing state and prevent double taps while booking mutations are in-flight.
