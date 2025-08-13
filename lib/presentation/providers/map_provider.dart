@@ -271,7 +271,7 @@ class MapProvider with ChangeNotifier {
   //     (a == 6 && b == 5);
 
   // ───────────────────────── initialization ─────────────────────────
-  Future<void> initialize(BuildContext context) async {
+  Future<bool> initialize(BuildContext context) async {
     try {
       final location = Location();
       final locData = await location.getLocation();
@@ -296,8 +296,10 @@ class MapProvider with ChangeNotifier {
 
       // Pickup data – relies on PassengerProvider to load and then MapProvider.setPickUpLocation is called elsewhere.
       await context.read<PassengerProvider>().getBookingRequestsID(context);
+      return true;
     } catch (e) {
       _handleError('Initialization error: $e');
+      return false;
     }
   }
 

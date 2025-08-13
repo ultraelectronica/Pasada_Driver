@@ -1,9 +1,11 @@
 ### Utils
- 
-Stateless helper functions shared inside the Home module (e.g. snackbar helper). 
+
+Stateless helpers for the Home module.
 
 Files:
-* `home_constants.dart` – All layout multipliers, durations, and z-indexes for the Home module.
-* `snackbar_utils.dart` – Single helper to show colored SnackBars with consistent styling.
+- `home_constants.dart` – All layout multipliers, durations, and z-indexes for the Home module
+- `snackbar_utils.dart` – Helpers to show colored SnackBars (success/warning/error, manual add/remove)
 
-Keep this folder **logic-free** – pure functions/constants only. 
+Guidelines:
+- Pure functions/constants only
+- No provider access here

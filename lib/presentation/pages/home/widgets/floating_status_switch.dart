@@ -70,7 +70,7 @@ class FloatingStatusSwitch extends StatelessWidget {
   }
 
   void _switchToDriving(BuildContext context, DriverProvider driverProvider) {
-    driverProvider.updateStatusToDB('Driving', context);
+    driverProvider.updateStatusToDB('Driving');
     driverProvider.setDriverStatus('Driving');
     driverProvider.setIsDriving(true);
 
@@ -92,7 +92,7 @@ class FloatingStatusSwitch extends StatelessWidget {
       return;
     }
 
-    driverProvider.updateStatusToDB('Online', context);
+    driverProvider.updateStatusToDB('Online');
     driverProvider.setDriverStatus('Online');
     driverProvider.setIsDriving(false);
 

@@ -2,8 +2,13 @@
 
 Reusable UI components that compose the Home screen.
 
-Examples:
-* Floating buttons
-* Passenger list item / list
+Key widgets:
+- `passenger_list_widget.dart` – Top of screen list for nearest/active bookings
+- `seat_capacity_control.dart` – Standing/Sitting capacity with manual vs booked safety checks
+- `total_capacity_indicator.dart` – Total capacity display with refresh
+- `confirm_pickup_control.dart`, `complete_ride_control.dart` – Booking action wrappers using providers and mounted checks
+- Floating buttons (message/status), reset button
 
-Widgets should be stateless where possible and free of business logic. 
+Guidelines:
+- Stateless where possible
+- No business logic: call controller/providers instead

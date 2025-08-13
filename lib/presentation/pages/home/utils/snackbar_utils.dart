@@ -15,4 +15,25 @@ class SnackBarUtils {
       );
     }
   }
+
+  // Capacity-specific helpers
+  static void showManualAdded(BuildContext ctx, String seatType) {
+    show(ctx, '$seatType passenger added manually', Colors.blue);
+  }
+
+  static void showManualRemoved(BuildContext ctx, String seatType) {
+    show(ctx, '$seatType passenger removed manually', Colors.red);
+  }
+
+  static void showSuccess(BuildContext ctx, String message) {
+    show(ctx, message, Colors.green);
+  }
+
+  static void showWarning(BuildContext ctx, String message) {
+    show(ctx, message, Colors.orange);
+  }
+
+  static void showError(BuildContext ctx, String message) {
+    show(ctx, message, Colors.red);
+  }
 }

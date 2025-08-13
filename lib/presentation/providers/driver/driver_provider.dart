@@ -161,26 +161,68 @@ class DriverProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateStatusToDB(String newStatus, BuildContext context) async {
+  Future<void> updateStatusToDB(String newStatus) async {
     try {
+      // Guard: require driver id
+      if (_driverID.isEmpty) {
+        if (kDebugMode) debugPrint('updateStatusToDB: missing driverID');
+        return;
+      }
+
+      // Normalize and validate status
+      final String? normalized = _normalizeStatus(newStatus);
+      if (normalized == null) {
+        ShowMessage().showToast('Invalid status');
+        return;
+      }
+
+      // Skip redundant updates
+      if (_driverStatus.toLowerCase() == normalized) {
+        return;
+      }
+
       final response = await supabase
           .from('driverTable')
-          .update({'driving_status': newStatus.toLowerCase()})
-          .eq('driver_id', driverID)
-          .select()
+          .update({'driving_status': normalized})
+          .eq('driver_id', _driverID)
+          .select('driving_status')
           .single();
 
       if (kDebugMode) {
-        print('Updated status: ${response['driving_status']}');
-        ShowMessage()
-            .showToast('Updated status: ${response['driving_status']}');
+        final updated = response['driving_status'];
+        debugPrint('Updated status: $updated');
+        ShowMessage().showToast('Updated status: $updated');
       }
 
       _lastDriverStatus = _driverStatus;
-      _driverStatus = newStatus;
+      _driverStatus = _toTitleCase(normalized);
+      notifyListeners();
     } catch (e) {
       debugPrint('Error updating status: $e');
       ShowMessage().showToast('Error updating status: $e');
+    }
+  }
+
+  String? _normalizeStatus(String status) {
+    final trimmed = status.trim();
+    if (trimmed.isEmpty) return null;
+    final lower = trimmed.toLowerCase();
+    // Allow only known statuses
+    const allowed = {'online', 'driving', 'idling'};
+    if (!allowed.contains(lower)) return null;
+    return lower;
+  }
+
+  String _toTitleCase(String lower) {
+    switch (lower) {
+      case 'online':
+        return 'Online';
+      case 'driving':
+        return 'Driving';
+      case 'idling':
+        return 'Idling';
+      default:
+        return lower;
     }
   }
 

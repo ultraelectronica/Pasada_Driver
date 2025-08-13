@@ -5,7 +5,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/domain/services/location_tracker.dart';
-import 'package:pasada_driver_side/domain/services/polyline_service.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 
@@ -42,15 +41,16 @@ class MapPageState extends State<MapPage> {
   // Clean state management using the MapState model
   MapState _mapState = const MapState();
 
-  // Services
-  final PolylineService _polylineService = PolylineService();
-
   // Location tracking
   StreamSubscription<LocationData>? _locationSubscription;
   LatLng? _lastPolylineUpdateLocation;
 
   // Map controller for camera animations
   GoogleMapController? _mapController;
+
+  // Throttling helpers
+  DateTime? _lastPolylineUpdateAt;
+  DateTime? _lastDbLocationUpdateAt;
 
   @override
   void initState() {
@@ -75,7 +75,10 @@ class MapPageState extends State<MapPage> {
       ));
 
       // Delegate heavy work to provider
-      await context.read<MapProvider>().initialize(context);
+      final ok = await context.read<MapProvider>().initialize(context);
+      if (!ok) {
+        throw Exception('Error: MapProvider initialization failed');
+      }
 
       // Start location tracking once provider has data
       _startLocationTracking();
@@ -127,8 +130,15 @@ class MapPageState extends State<MapPage> {
 
   /// Handle location updates with clean separation of concerns
   void _handleLocationUpdate(LatLng newLatLng, LocationData locationData) {
-    // Update driver location in database via provider
-    context.read<DriverProvider>().updateCurrentLocation(locationData);
+    // Update driver location in database via provider (throttled)
+    final now = DateTime.now();
+    final bool canWriteDb = _lastDbLocationUpdateAt == null ||
+        now.difference(_lastDbLocationUpdateAt!) >=
+            MapConstants.dbLocationUpdateMinInterval;
+    if (canWriteDb) {
+      context.read<DriverProvider>().updateCurrentLocation(locationData);
+      _lastDbLocationUpdateAt = now;
+    }
 
     // Update UI if moved significantly
     if (MapUtils.shouldUpdateUI(_mapState.currentLocation, newLatLng)) {
@@ -137,10 +147,17 @@ class MapPageState extends State<MapPage> {
     }
 
     // Update polyline if needed and map is initialized
-    if (MapUtils.shouldUpdatePolyline(_lastPolylineUpdateLocation, newLatLng) &&
-        _mapState.isInitialized &&
-        _mapState.endingLocation != null) {
-      _updatePolylineForCurrentLocation(newLatLng);
+    if (_mapState.isInitialized &&
+        context.read<MapProvider>().endingLocation != null) {
+      final bool movedEnough =
+          MapUtils.shouldUpdatePolyline(_lastPolylineUpdateLocation, newLatLng);
+      final bool intervalPassed = _lastPolylineUpdateAt == null ||
+          now.difference(_lastPolylineUpdateAt!) >=
+              MapConstants.polylineUpdateMinInterval;
+      if (movedEnough && intervalPassed) {
+        _updatePolylineForCurrentLocation(newLatLng);
+        _lastPolylineUpdateAt = now;
+      }
     }
 
     // Animate camera if not manually positioned
@@ -149,28 +166,30 @@ class MapPageState extends State<MapPage> {
     }
 
     // Check if destination reached
-    if (_mapState.endingLocation != null) {
+    if (context.read<MapProvider>().endingLocation != null) {
       _checkDestinationReached(newLatLng);
     }
   }
 
   /// Update polyline based on current location
   Future<void> _updatePolylineForCurrentLocation(LatLng currentLocation) async {
-    if (_mapState.endingLocation == null) return;
+    final mapProv = context.read<MapProvider>();
+    final end = mapProv.endingLocation;
+    if (end == null) return;
 
-    final waypoints = _mapState.waypoints;
+    final List<LatLng> waypoints = [];
+    if (mapProv.intermediateLoc1 != null)
+      waypoints.add(mapProv.intermediateLoc1!);
+    if (mapProv.intermediateLoc2 != null)
+      waypoints.add(mapProv.intermediateLoc2!);
 
-    // Use polyline service for route generation
-    final polylineCoords = await _polylineService.generatePolyline(
+    await mapProv.generatePolyline(
       start: currentLocation,
-      end: _mapState.endingLocation!,
-      waypoints: waypoints.isNotEmpty ? waypoints : null,
+      end: end,
+      waypoints: waypoints.isEmpty ? null : waypoints,
     );
 
-    if (polylineCoords != null && mounted) {
-      context.read<MapProvider>().updatePolylineCoords(polylineCoords);
-      _lastPolylineUpdateLocation = currentLocation;
-    }
+    _lastPolylineUpdateLocation = currentLocation;
   }
 
   /// Animate camera to specified location
@@ -189,9 +208,10 @@ class MapPageState extends State<MapPage> {
 
   /// Check if user has reached the destination
   void _checkDestinationReached(LatLng currentPos) {
-    if (_mapState.endingLocation == null) return;
+    final end = context.read<MapProvider>().endingLocation;
+    if (end == null) return;
 
-    if (MapUtils.hasReachedDestination(currentPos, _mapState.endingLocation!)) {
+    if (MapUtils.hasReachedDestination(currentPos, end)) {
       if (kDebugMode) {
         debugPrint('MapPage: Destination reached');
       }
@@ -204,7 +224,7 @@ class MapPageState extends State<MapPage> {
           // Update driver status
           final driverProvider = context.read<DriverProvider>();
           driverProvider.setIsDriving(false);
-          driverProvider.updateStatusToDB('Online', context);
+          driverProvider.updateStatusToDB('Online');
           driverProvider.setDriverStatus('Online');
         }
       });
@@ -223,6 +243,18 @@ class MapPageState extends State<MapPage> {
     _mapController = controller;
     if (kDebugMode) {
       debugPrint('MapPage: Google Map created');
+    }
+  }
+
+  void _onCameraMoveStarted() {
+    if (!_mapState.isAnimatingLocation) {
+      _updateMapState(_mapState.copyWith(isAnimatingLocation: true));
+    }
+  }
+
+  void _onCameraIdle() {
+    if (_mapState.isAnimatingLocation) {
+      _updateMapState(_mapState.copyWith(isAnimatingLocation: false));
     }
   }
 
@@ -279,6 +311,8 @@ class MapPageState extends State<MapPage> {
               initialLocation: _mapState.currentLocation!,
               bottomPadding: widget.bottomPadding,
               onMapCreated: _onMapCreated,
+              onCameraMoveStarted: _onCameraMoveStarted,
+              onCameraIdle: _onCameraIdle,
             ),
 
           // Custom location button

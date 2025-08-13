@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
+// import 'package:pasada_driver_side/presentation/providers/theme_provider.dart';
 
 import 'package:pasada_driver_side/presentation/pages/map/utils/map_constants.dart';
 
@@ -13,12 +14,18 @@ class GoogleMapView extends StatefulWidget {
   final LatLng initialLocation;
   final double bottomPadding;
   final Function(GoogleMapController)? onMapCreated;
+  final VoidCallback? onCameraMoveStarted;
+  final VoidCallback? onCameraIdle;
+  final bool applyMapStyle;
 
   const GoogleMapView({
     super.key,
     required this.initialLocation,
     this.bottomPadding = MapConstants.bottomPaddingDefault,
     this.onMapCreated,
+    this.onCameraMoveStarted,
+    this.onCameraIdle,
+    this.applyMapStyle = true,
   });
 
   @override
@@ -54,15 +61,14 @@ class _GoogleMapViewState extends State<GoogleMapView> {
           _mapControllerCompleter.complete(controller);
           widget.onMapCreated?.call(controller);
         },
+        onCameraMoveStarted: widget.onCameraMoveStarted,
+        onCameraIdle: widget.onCameraIdle,
         initialCameraPosition: CameraPosition(
           target: widget.initialLocation,
           zoom: MapConstants.defaultZoom,
           tilt: MapConstants.defaultTilt,
         ),
-        // Apply dark style if in dark theme
-        style: Theme.of(context).brightness == Brightness.dark
-            ? _darkMapStyle
-            : null,
+        style: _darkMapStyle,
         markers: context.watch<MapProvider>().markers,
         polylines: _buildPolylines(context),
         mapType: MapType.normal,
@@ -96,7 +102,7 @@ class _GoogleMapViewState extends State<GoogleMapView> {
       Polyline(
         polylineId: const PolylineId('route'),
         points: coords,
-        color: const Color.fromARGB(255, 255, 35, 35),
+        color: const Color.fromARGB(255, 250, 242, 2),
         width: 8,
       )
     };
