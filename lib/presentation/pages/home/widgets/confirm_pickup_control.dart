@@ -5,7 +5,7 @@ import 'package:pasada_driver_side/presentation/providers/passenger/passenger_pr
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
 
-class ConfirmPickupControl extends StatelessWidget {
+class ConfirmPickupControl extends StatefulWidget {
   const ConfirmPickupControl({
     super.key,
     required this.isVisible,
@@ -16,11 +16,24 @@ class ConfirmPickupControl extends StatelessWidget {
   final String? nearestBookingId;
 
   @override
+  State<ConfirmPickupControl> createState() => _ConfirmPickupControlState();
+}
+
+class _ConfirmPickupControlState extends State<ConfirmPickupControl> {
+  bool _isProcessing = false;
+
+  @override
   Widget build(BuildContext context) {
+    final isMutating =
+        context.select<PassengerProvider, bool>((p) => p.isMutatingBooking);
     return ConfirmPickupButton(
-      isVisible: isVisible && nearestBookingId != null,
+      isVisible: widget.isVisible && widget.nearestBookingId != null,
+      isEnabled: !_isProcessing && !isMutating,
+      isLoading: _isProcessing || isMutating,
       onTap: () async {
-        if (nearestBookingId == null) return;
+        if (widget.nearestBookingId == null || _isProcessing) return;
+
+        setState(() => _isProcessing = true);
 
         String seatType = 'Sitting';
         final passengerProvider =
@@ -30,24 +43,25 @@ class ConfirmPickupControl extends StatelessWidget {
           // Determine seat type from current booking if available
           try {
             final booking = passengerProvider.bookings
-                .firstWhere((b) => b.id == nearestBookingId);
+                .firstWhere((b) => b.id == widget.nearestBookingId);
             seatType = booking.seatType;
           } catch (_) {}
 
-          final success =
-              await passengerProvider.markBookingAsOngoing(nearestBookingId!);
-          if (!context.mounted) return;
+          final success = await passengerProvider
+              .markBookingAsOngoing(widget.nearestBookingId!);
+          if (!mounted) return;
 
           if (success) {
             final capacityResult =
                 await PassengerCapacity().incrementCapacity(context, seatType);
-            if (!context.mounted) return;
+            if (!mounted) return;
             if (capacityResult.success) {
               SnackBarUtils.showSuccess(
                   context, 'Passenger picked up successfully');
             } else {
               // rollback booking status if capacity update failed
-              await passengerProvider.markBookingAsAccepted(nearestBookingId!);
+              await passengerProvider
+                  .markBookingAsAccepted(widget.nearestBookingId!);
               SnackBarUtils.showError(context,
                   capacityResult.errorMessage ?? 'Capacity update failed');
             }
@@ -56,9 +70,11 @@ class ConfirmPickupControl extends StatelessWidget {
                 context, 'Failed to confirm passenger pickup');
           }
         } catch (_) {
-          if (!context.mounted) return;
+          if (!mounted) return;
           SnackBarUtils.showError(
               context, 'Failed to confirm passenger pickup');
+        } finally {
+          if (mounted) setState(() => _isProcessing = false);
         }
       },
     );

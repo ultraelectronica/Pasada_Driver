@@ -51,6 +51,8 @@ class PassengerProvider with ChangeNotifier {
   int get completedBooking => _completedBooking;
   List<Booking> get bookings => List.unmodifiable(_bookings);
   bool get isProcessingBookings => _isProcessingBookings;
+  bool _isMutatingBooking = false;
+  bool get isMutatingBooking => _isMutatingBooking;
   DateTime? get lastFetchTime => _lastFetchTime;
   Stream<List<Booking>> get bookingsStream => _bookingsStreamController.stream;
   String? get error => _error;
@@ -243,16 +245,13 @@ class PassengerProvider with ChangeNotifier {
     bool optimistic = true,
   }) async {
     try {
-      final booking = _bookings.firstWhere(
-        (b) => b.id == bookingId,
-        orElse: () => throw BookingException(
-          message: 'Booking not found in local state',
-          type: BookingConstants.errorTypeUnknown,
-          operation: 'setBookingStatus',
-        ),
-      );
+      _isMutatingBooking = true;
+      notifyListeners();
+      final int existingIndex = _bookings.indexWhere((b) => b.id == bookingId);
+      final Booking? booking =
+          existingIndex >= 0 ? _bookings[existingIndex] : null;
 
-      if (booking.distanceToDriver != null) {
+      if (booking != null && booking.distanceToDriver != null) {
         BookingLogger.log(
             'Distance metric available: \\${booking.distanceToDriver!.toStringAsFixed(2)}m',
             type: 'DISTANCE');
@@ -260,7 +259,7 @@ class PassengerProvider with ChangeNotifier {
 
       final previous = List<Booking>.from(_bookings);
 
-      if (optimistic && !_isDisposed) {
+      if (optimistic && !_isDisposed && booking != null) {
         if (removeOnSuccess) {
           final optimisticList =
               _bookings.where((b) => b.id != bookingId).toList();
@@ -290,6 +289,11 @@ class PassengerProvider with ChangeNotifier {
             setBookings(updated);
           }
         }
+        // If we didn't have the booking locally (e.g., after optimistic removal),
+        // refresh the list to reflect the backend state.
+        if (booking == null && !_isDisposed) {
+          await getBookingRequestsID(null);
+        }
         return true;
       } else {
         if (optimistic && !_isDisposed) {
@@ -312,6 +316,11 @@ class PassengerProvider with ChangeNotifier {
         notifyListeners();
       }
       return false;
+    } finally {
+      if (!_isDisposed) {
+        _isMutatingBooking = false;
+        notifyListeners();
+      }
     }
   }
 
