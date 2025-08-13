@@ -42,6 +42,11 @@ class CompleteRideControl extends StatelessWidget {
             if (!context.mounted) return;
             if (capacityResult.success) {
               SnackBarUtils.showSuccess(context, 'Ride completed successfully');
+            } else {
+              // rollback booking status if capacity update failed
+              await passengerProvider.markBookingAsAccepted(ongoingBookingId!);
+              SnackBarUtils.showError(context,
+                  capacityResult.errorMessage ?? 'Capacity update failed');
             }
           } else {
             SnackBarUtils.showError(context, 'Failed to complete ride');

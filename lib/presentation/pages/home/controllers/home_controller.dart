@@ -64,6 +64,7 @@ class HomeController extends ChangeNotifier {
   Timer? _proximityCheckTimer;
   Timer? _bookingFetchTimer;
   bool _bookingStreamStarted = false;
+  Timer? _recalcDebounceTimer;
 
   void _init() {
     // Start timers.
@@ -84,6 +85,9 @@ class HomeController extends ChangeNotifier {
     // Immediate first run.
     _checkProximity();
     fetchBookings();
+
+    // React immediately to booking list changes to avoid UI lag
+    passengerProvider.addListener(_onBookingsChanged);
   }
 
   //--------------------------------------------------------------------------
@@ -337,6 +341,18 @@ class HomeController extends ChangeNotifier {
   void dispose() {
     _proximityCheckTimer?.cancel();
     _bookingFetchTimer?.cancel();
+    _recalcDebounceTimer?.cancel();
+    passengerProvider.removeListener(_onBookingsChanged);
     super.dispose();
+  }
+}
+
+extension _HomeControllerReactivity on HomeController {
+  void _onBookingsChanged() {
+    // Debounce rapid successive updates
+    _recalcDebounceTimer?.cancel();
+    _recalcDebounceTimer = Timer(const Duration(milliseconds: 60), () {
+      _checkProximity();
+    });
   }
 }

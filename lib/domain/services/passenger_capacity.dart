@@ -6,6 +6,7 @@ import 'package:pasada_driver_side/presentation/providers/passenger/passenger_pr
 import 'package:provider/provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 
 /// Result class for capacity operations
 class CapacityOperationResult {
@@ -122,10 +123,14 @@ class PassengerCapacity {
       // For manual decrement, ensure we're not removing booked capacity
       if (isManual && operation == 'decrement') {
         int bookedStanding = passengerProvider.bookings
-            .where((b) => b.rideStatus == 'Ongoing' && b.seatType == 'Standing')
+            .where((b) =>
+                b.rideStatus == BookingConstants.statusOngoing &&
+                b.seatType == 'Standing')
             .length;
         int bookedSitting = passengerProvider.bookings
-            .where((b) => b.rideStatus == 'Ongoing' && b.seatType == 'Sitting')
+            .where((b) =>
+                b.rideStatus == BookingConstants.statusOngoing &&
+                b.seatType == 'Sitting')
             .length;
 
         int manualStanding =
