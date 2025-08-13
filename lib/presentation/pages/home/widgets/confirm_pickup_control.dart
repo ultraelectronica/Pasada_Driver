@@ -45,6 +45,11 @@ class ConfirmPickupControl extends StatelessWidget {
             if (capacityResult.success) {
               SnackBarUtils.showSuccess(
                   context, 'Passenger picked up successfully');
+            } else {
+              // rollback booking status if capacity update failed
+              await passengerProvider.markBookingAsAccepted(nearestBookingId!);
+              SnackBarUtils.showError(context,
+                  capacityResult.errorMessage ?? 'Capacity update failed');
             }
           } else {
             SnackBarUtils.showError(

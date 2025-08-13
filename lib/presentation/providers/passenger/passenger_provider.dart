@@ -236,59 +236,71 @@ class PassengerProvider with ChangeNotifier {
     setBookings([]);
   }
 
-  /// Mark a booking as ongoing when driver is near pickup location
-  Future<bool> markBookingAsOngoing(String bookingId) async {
-    BookingLogger.log('Attempting to mark booking $bookingId as ongoing',
-        type: 'ACTION');
-
+  Future<bool> _setBookingStatus({
+    required String bookingId,
+    required String newStatus,
+    bool removeOnSuccess = false,
+    bool optimistic = true,
+  }) async {
     try {
       final booking = _bookings.firstWhere(
         (b) => b.id == bookingId,
         orElse: () => throw BookingException(
           message: 'Booking not found in local state',
           type: BookingConstants.errorTypeUnknown,
-          operation: 'markBookingAsOngoing',
+          operation: 'setBookingStatus',
         ),
       );
 
       if (booking.distanceToDriver != null) {
         BookingLogger.log(
-            'Distance to pickup location: \\${booking.distanceToDriver!.toStringAsFixed(2)}m',
+            'Distance metric available: \\${booking.distanceToDriver!.toStringAsFixed(2)}m',
             type: 'DISTANCE');
       }
 
-      final success = await _repository.updateBookingStatus(
-          bookingId, BookingConstants.statusOngoing);
+      final previous = List<Booking>.from(_bookings);
 
-      if (success && !_isDisposed) {
-        final updatedBookings = _bookings.map((b) {
-          if (b.id == bookingId) {
-            return b.copyWith(rideStatus: BookingConstants.statusOngoing);
+      if (optimistic && !_isDisposed) {
+        if (removeOnSuccess) {
+          final optimisticList =
+              _bookings.where((b) => b.id != bookingId).toList();
+          setBookings(optimisticList);
+        } else {
+          final optimisticList = _bookings.map((b) {
+            if (b.id == bookingId) return b.copyWith(rideStatus: newStatus);
+            return b;
+          }).toList();
+          setBookings(optimisticList);
+        }
+      }
+
+      final success =
+          await _repository.updateBookingStatus(bookingId, newStatus);
+
+      if (success) {
+        if (!optimistic && !_isDisposed) {
+          if (removeOnSuccess) {
+            final updated = _bookings.where((b) => b.id != bookingId).toList();
+            setBookings(updated);
+          } else {
+            final updated = _bookings.map((b) {
+              if (b.id == bookingId) return b.copyWith(rideStatus: newStatus);
+              return b;
+            }).toList();
+            setBookings(updated);
           }
-          return b;
-        }).toList();
-
-        setBookings(updatedBookings);
-        BookingLogger.log('Successfully marked booking $bookingId as ongoing',
-            type: 'SUCCESS');
+        }
         return true;
+      } else {
+        if (optimistic && !_isDisposed) {
+          setBookings(previous);
+        }
+        return false;
       }
-
-      if (!success) {
-        BookingLogger.log(
-            'Failed to mark booking $bookingId as ongoing: Database update failed',
-            type: 'FAILURE');
-      }
-
-      return false;
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('Error marking booking as ongoing: $e');
+        debugPrint('Error setting booking status: $e');
       }
-
-      BookingLogger.log('Error marking booking $bookingId as ongoing: $e',
-          type: 'ERROR');
-
       if (!_isDisposed) {
         if (e is BookingException) {
           _error = e.message;
@@ -299,74 +311,61 @@ class PassengerProvider with ChangeNotifier {
         }
         notifyListeners();
       }
-
       return false;
     }
+  }
+
+  /// Mark a booking as ongoing when driver is near pickup location
+  Future<bool> markBookingAsOngoing(String bookingId) async {
+    BookingLogger.log('Attempting to mark booking $bookingId as ongoing',
+        type: 'ACTION');
+    final ok = await _setBookingStatus(
+        bookingId: bookingId,
+        newStatus: BookingConstants.statusOngoing,
+        optimistic: true);
+    if (ok) {
+      BookingLogger.log('Successfully marked booking $bookingId as ongoing',
+          type: 'SUCCESS');
+    } else {
+      BookingLogger.log(
+          'Failed to mark booking $bookingId as ongoing: Database update failed',
+          type: 'FAILURE');
+    }
+    return ok;
+  }
+
+  /// Revert or set a booking to accepted status
+  Future<bool> markBookingAsAccepted(String bookingId) async {
+    BookingLogger.log('Setting booking $bookingId as accepted', type: 'ACTION');
+    final ok = await _setBookingStatus(
+        bookingId: bookingId, newStatus: BookingConstants.statusAccepted);
+    if (ok) {
+      BookingLogger.log('Successfully set booking $bookingId as accepted',
+          type: 'SUCCESS');
+    }
+    return ok;
   }
 
   /// Mark a booking as completed when passenger reaches destination
   Future<bool> markBookingAsCompleted(String bookingId) async {
     BookingLogger.log('Attempting to mark booking $bookingId as completed',
         type: 'ACTION');
-
-    try {
-      final booking = _bookings.firstWhere(
-        (b) => b.id == bookingId,
-        orElse: () => throw BookingException(
-          message: 'Booking not found in local state',
-          type: BookingConstants.errorTypeUnknown,
-          operation: 'markBookingAsCompleted',
-        ),
-      );
-
-      if (booking.distanceToDriver != null) {
-        BookingLogger.log(
-            'Distance to dropoff location: \\${booking.distanceToDriver!.toStringAsFixed(2)}m',
-            type: 'DISTANCE');
-      }
-
-      final success = await _repository.updateBookingStatus(
-          bookingId, BookingConstants.statusCompleted);
-
-      if (success && !_isDisposed) {
-        final updatedBookings =
-            _bookings.where((b) => b.id != bookingId).toList();
-        setBookings(updatedBookings);
-        setCompletedBooking(_completedBooking + 1);
-
-        BookingLogger.log('Successfully marked booking $bookingId as completed',
-            type: 'SUCCESS');
-        return true;
-      }
-
-      if (!success) {
-        BookingLogger.log(
-            'Failed to mark booking $bookingId as completed: Database update failed',
-            type: 'FAILURE');
-      }
-
-      return false;
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('Error marking booking as completed: $e');
-      }
-
-      BookingLogger.log('Error marking booking $bookingId as completed: $e',
-          type: 'ERROR');
-
-      if (!_isDisposed) {
-        if (e is BookingException) {
-          _error = e.message;
-          _errorType = e.type;
-        } else {
-          _error = e.toString();
-          _errorType = BookingConstants.errorTypeUnknown;
-        }
-        notifyListeners();
-      }
-
-      return false;
+    final ok = await _setBookingStatus(
+      bookingId: bookingId,
+      newStatus: BookingConstants.statusCompleted,
+      removeOnSuccess: true,
+      optimistic: true,
+    );
+    if (ok && !_isDisposed) {
+      setCompletedBooking(_completedBooking + 1);
+      BookingLogger.log('Successfully marked booking $bookingId as completed',
+          type: 'SUCCESS');
+    } else if (!ok) {
+      BookingLogger.log(
+          'Failed to mark booking $bookingId as completed: Database update failed',
+          type: 'FAILURE');
     }
+    return ok;
   }
 
   /// Fetch completed bookings count
