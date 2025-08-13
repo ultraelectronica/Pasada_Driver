@@ -167,8 +167,8 @@ class ProfilePageState extends State<ProfilePage> {
                             ProfileConstants.infoCardSpacerFraction),
 
                     // --- Actions Card ---
-                    _buildActionsCard(),
-                    const SizedBox(height: 30),
+                    // _buildActionsCard(),
+                    // const SizedBox(height: 30),
 
                     // --- Log Out Button ---
                     _buildLogoutButton(),
@@ -315,6 +315,7 @@ class ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildActionsCard() {
     return Card(
       elevation: 4,

@@ -287,6 +287,46 @@ class HomeController extends ChangeNotifier {
   //--------------------------------------------------------------------------
   // Public API used by UI layer
   //--------------------------------------------------------------------------
+  /// Handle selection from UI: updates internal selection state, toggles
+  /// proximity flags, focuses the map on the appropriate location, and
+  /// refreshes passenger markers.
+  void handlePassengerSelected(String passengerId) {
+    selectedPassengerId = passengerId;
+
+    final PassengerStatus? selected = _nearbyPassengers
+        .where((p) => p.booking.id == passengerId)
+        .cast<PassengerStatus?>()
+        .firstOrNull;
+
+    if (selected != null) {
+      if (selected.booking.rideStatus == BookingConstants.statusAccepted) {
+        _isNearPickupLocation = selected.isNearPickup;
+        _isNearDropoffLocation = false;
+        nearestBookingId = selected.booking.id;
+        ongoingBookingId = null;
+
+        // Focus map on pickup location
+        final mapState = mapScreenKey.currentState;
+        mapState?.animateToLocation(selected.booking.pickupLocation);
+
+        // Reflect pickup location into MapProvider
+        mapProvider.setPickUpLocation(selected.booking.pickupLocation);
+      } else {
+        _isNearPickupLocation = false;
+        _isNearDropoffLocation = selected.isNearDropoff;
+        nearestBookingId = null;
+        ongoingBookingId = selected.booking.id;
+
+        // Focus map on dropoff location
+        final mapState = mapScreenKey.currentState;
+        mapState?.animateToLocation(selected.booking.dropoffLocation);
+      }
+    }
+
+    _updateMapMarkers();
+    notifyListeners();
+  }
+
   void selectPassenger(String passengerId) {
     selectedPassengerId = passengerId;
     notifyListeners();

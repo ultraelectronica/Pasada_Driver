@@ -25,7 +25,7 @@ Usage pattern
 final capacity = context.select<DriverProvider,int>((p) => p.passengerCapacity);
 
 ElevatedButton(
-  onPressed: () => context.read<DriverProvider>().updateStatusToDB('Online', context),
+  onPressed: () => context.read<DriverProvider>().updateStatusToDB('Online'),
   child: const Text('Go Online'),
 );
 ```
@@ -38,3 +38,7 @@ final prov = DriverProvider();
 prov.setLoading(true);
 expect(prov.isLoading, true);
 ``` 
+
+### Recent changes
+- `DriverProvider.updateStatusToDB` no longer requires `BuildContext` and validates/throttles updates
+- `MapProvider.initialize` returns `bool` for clearer error propagation to UI

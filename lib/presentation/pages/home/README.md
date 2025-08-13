@@ -1,33 +1,42 @@
 ## Home Page Module
 
-This directory contains the refactored Home screen for the Pasada driver application.
+This directory contains the refactored Home feature for the Pasada driver app.
 
-Sub-folders:
+### Structure
 
-* `models/`  – data classes used only by the Home module (e.g. `PassengerStatus`).
-* `widgets/` – small stateless/stateful widgets that compose the UI (floating buttons, list, etc.).
-* `utils/`    – tiny pure-Dart helpers (e.g. snackbar helper).
+- `controllers/`
+  - `home_controller.dart`: Non-UI logic (proximity checks, periodic fetches, marker updates). Exposes read-only state for the UI.
+- `models/`
+  - `passenger_status.dart`: View model used to render bookings with distance/proximity flags.
+- `widgets/`
+  - `passenger_list_widget.dart`: Nearby/active bookings list
+  - `seat_capacity_control.dart`: Encapsulated Standing/Sitting capacity control (manual vs booked-safe decrement)
+  - `total_capacity_indicator.dart`: Total capacity display and refresh
+  - `confirm_pickup_control.dart`, `complete_ride_control.dart`: Booking action wrappers with mounted checks
+  - Floating buttons and status switch components
+- `utils/`
+  - `home_constants.dart`: Layout multipliers (positions/z-index)
+  - `snackbar_utils.dart`: Unified snackbars for consistent UX
 
-The goal is to keep each file focused and below ~300 LOC. 
+### Principles
+- UI delegates logic to `HomeController` and providers
+- Small widgets; no business logic inside widgets
+- Avoid context across async gaps; use mounted checks
+- Prefer provider `select` to minimize rebuilds
 
 ### Provider & network state
-
-HomePage follows the global 3-state contract:
+Home follows the global 3-state contract via providers. Example:
 
 ```dart
-final passengerCapacity = context.select<DriverProvider,int>((p) => p.passengerCapacity);
-final isBookingLoading = context.select<PassengerProvider,bool>((p) => p.isLoading);
-final bookingError = context.select<PassengerProvider,String?>((p) => p.error);
+final capacity = context.select<DriverProvider,int>((p) => p.passengerCapacity);
+final isLoading = context.select<PassengerProvider,bool>((p) => p.isLoading);
+final error = context.select<PassengerProvider,String?>((p) => p.error);
 ```
 
-UI rendering logic (simplified):
-```dart
-if (isBookingLoading) return const Center(child: CircularProgressIndicator());
-if (bookingError != null) {
-  return ErrorRetryWidget(message: bookingError!, onRetry: () => fetchBookings(context));
-}
-return PassengerListWidget(passengers: _nearbyPassengers);
-```
+### Capacity rules
+- Manual increment/decrement uses `PassengerCapacity`
+- Manual decrement is blocked when only booked capacity remains (safe-guard)
+- Manual counts are persisted locally to survive restarts
 
-### Constants
-All layout numbers live in `utils/home_constants.dart`. New numbers must be added there – no in-line `0.05` multipliers. 
+### Map integration
+`HomeController` owns selection, focusing the map, and rebuilding passenger markers via the `MapPageState` key.

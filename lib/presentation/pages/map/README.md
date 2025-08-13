@@ -34,11 +34,17 @@ This module follows clean architecture principles with proper separation of conc
 3. **Testable**: Business logic separated from Flutter widgets
 4. **Maintainable**: Clear folder structure and naming conventions
 5. **Consistent**: Follows same patterns as other feature modules
+6. **Throttled updates**: Camera/polyline/DB location updates are throttled to reduce API/DB load
+7. **Correct distance math**: Haversine calculation corrected; thresholds centralized in `MapConstants`
 
 ### Dependencies
 - Domain: `polyline_service.dart`, `location_tracker.dart`
 - Common: `network_utility.dart` (moved from Map/ folder)
 - Providers: `map_provider.dart`, `driver_provider.dart`, `passenger_provider.dart`
+
+### Notes
+- `GoogleMapView` exposes `onCameraMoveStarted/onCameraIdle` so the page can pause auto-follow during manual panning
+- `MapProvider.initialize` returns `bool` for clear error signaling to the page
 
 ## Usage
 
