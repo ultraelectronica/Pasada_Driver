@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/Services/auth_service.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/presentation/pages/main/main_page.dart';
-import 'package:pasada_driver_side/presentation/pages/start/main.dart'
+import 'package:pasada_driver_side/main.dart'
     show AuthPagesView; // Re-use existing AuthPagesView
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
@@ -122,7 +122,7 @@ class _AuthGateState extends State<AuthGate> {
     if (_hasSession == true) {
       return const MainPage();
     } else {
-      return const AuthPagesView();
+      return AuthPagesView();
     }
   }
 }
