@@ -74,6 +74,9 @@ class _AuthGateState extends State<AuthGate> {
         final mapProvider = context.read<MapProvider>();
         final passengerProvider = context.read<PassengerProvider>();
 
+        // Log login time once we are sure session and provider are loaded
+        await driverProvider.writeLoginTime(context);
+
         // Validate route id
         if (driverProvider.routeID > 0) {
           logDebug(

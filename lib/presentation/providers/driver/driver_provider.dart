@@ -7,7 +7,6 @@ import 'package:pasada_driver_side/UI/message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/common/utils/result.dart';
 
-// this class is used to store values just like a global variable
 class DriverProvider with ChangeNotifier {
   // Driver identification
   String _driverID = '';
@@ -318,6 +317,7 @@ class DriverProvider with ChangeNotifier {
     }
   }
 
+  /// Updates the driver's last online on DriverTable
   Future<void> updateLastOnline(BuildContext context) async {
     try {
       // Try to load session data if driver_id is empty
@@ -410,6 +410,30 @@ class DriverProvider with ChangeNotifier {
       debugPrint('Error getting driver route: $e');
       debugPrint('Get Driver Route StackTrace: $stacktrace');
       _routeID = 0; // Set to default value on error
+    }
+  }
+
+  /// Updates the time that the driver logs into the app
+  Future<void> writeLoginTime(BuildContext context) async {
+    try {
+      final driverIdInt = int.tryParse(_driverID);
+      
+      final response = await supabase
+          .from('driverActivityLog')
+          .insert({
+            'driver_id': driverIdInt,
+            'login_timestamp': DateTime.now().toUtc().toIso8601String(),
+            'status': 'WAITING'
+          })
+          .select('login_timestamp')
+          .single();
+
+      if (kDebugMode) {
+        print('Login time updated: ${response['login_timestamp'].toString()}');
+      }
+    } catch (e, stacktrace) {
+      debugPrint('Error logging driver log in time, $e');
+      debugPrint('Error Write Login Time StackTrace: $stacktrace');
     }
   }
 }

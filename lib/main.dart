@@ -61,15 +61,12 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  // Session checks have been moved to [AuthGate]
-
   @override
   void initState() {
     super.initState();
     _precacheAssets();
   }
 
-  // Properly precache assets with a valid BuildContext
   void _precacheAssets() {
     // Wait until the first frame is built so we have a valid context
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -82,8 +79,6 @@ class _MyAppState extends State<MyApp> {
       }
     });
   }
-
-  // All session-related logic moved to [AuthGate]
 
   @override
   Widget build(BuildContext context) {
@@ -128,8 +123,8 @@ class _AuthPagesViewState extends State<AuthPagesView> {
 
   void goToLoginPage() {
     _pageController.animateToPage(1,
-        duration: const Duration(milliseconds: 400), // Reduced animation time
-        curve: Curves.easeInOutExpo); // Simpler curve
+        duration: const Duration(milliseconds: 400), 
+        curve: Curves.easeInOutExpo);
   }
 
   @override
@@ -138,10 +133,8 @@ class _AuthPagesViewState extends State<AuthPagesView> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // White background - use const when possible
           const ColoredBox(color: Colors.white),
-
-          // Pages with hardware acceleration
+          
           PageView.builder(
             controller: _pageController,
             itemCount: 2,
