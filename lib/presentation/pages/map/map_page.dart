@@ -218,15 +218,8 @@ class MapPageState extends State<MapPage> {
 
       // Use post-frame callback to avoid state updates during build
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          context.read<MapProvider>().changeRouteLocation(context);
-
-          // Update driver status
-          final driverProvider = context.read<DriverProvider>();
-          driverProvider.setIsDriving(false);
-          driverProvider.updateStatusToDB('Online');
-          driverProvider.setDriverStatus('Online');
-        }
+        if (!mounted) return;
+        // No automatic route flip or status change. Show a UI elsewhere to prompt.
       });
     }
   }

@@ -35,12 +35,18 @@ This module follows clean architecture principles with proper separation of conc
 4. **Maintainable**: Clear folder structure and naming conventions
 5. **Consistent**: Follows same patterns as other feature modules
 6. **Throttled updates**: Camera/polyline/DB location updates are throttled to reduce API/DB load
+7. **Debounced polylines**: Polyline generation is guarded to avoid concurrent/in-flight requests and enforces a minimum interval
 7. **Correct distance math**: Haversine calculation corrected; thresholds centralized in `MapConstants`
 
 ### Dependencies
 - Domain: `polyline_service.dart`, `location_tracker.dart`
 - Common: `network_utility.dart` (moved from Map/ folder)
 - Providers: `map_provider.dart`, `driver_provider.dart`, `passenger_provider.dart`
+
+### Route handling and polylines
+- `MapProvider.getRouteCoordinates(routeId)` loads route geometry from `official_routes` and caches results.
+- `MapProvider.setRouteById(routeId: ..., driverProv: ...)` centralizes route switching; updates local state first, then persists to backend.
+- `MapProvider.generatePolyline()` is debounced and rejects overlapping calls to prevent UI flicker and API overuse.
 
 ### Notes
 - `GoogleMapView` exposes `onCameraMoveStarted/onCameraIdle` so the page can pause auto-follow during manual panning

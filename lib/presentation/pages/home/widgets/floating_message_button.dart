@@ -5,8 +5,8 @@ import 'package:pasada_driver_side/presentation/providers/driver/driver_provider
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
 
 /// Small floating button that refreshes booking requests (only when driver is in "Driving" mode).
-class FloatingMessageButton extends StatelessWidget {
-  const FloatingMessageButton({
+class FloatingRefreshBookingButton extends StatelessWidget {
+  const FloatingRefreshBookingButton({
     super.key,
     required this.screenHeight,
     required this.screenWidth,
@@ -25,8 +25,8 @@ class FloatingMessageButton extends StatelessWidget {
         .select<DriverProvider, bool>((p) => p.driverStatus == 'Driving');
 
     return Positioned(
-      bottom: screenHeight * 0.04,
-      left: screenWidth * 0.05,
+      bottom: screenHeight * 0.18,
+      left: screenWidth * 0.025,
       child: SizedBox(
         width: 50,
         height: 50,

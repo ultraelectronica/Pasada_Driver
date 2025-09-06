@@ -44,3 +44,5 @@ final error = context.select<PassengerProvider,String?>((p) => p.error);
 ### Recent changes
 - React to booking stream changes immediately to refresh the passenger list without timer delay.
 - Buttons show processing state and prevent double taps while booking mutations are in-flight.
+- Route selection prompt appears only when no route is configured (or after a route-load error), not merely while loading.
+- Route changes are blocked while Driving or when there are active bookings; the route button is disabled with a tooltip.

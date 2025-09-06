@@ -14,6 +14,7 @@ import 'package:pasada_driver_side/presentation/providers/passenger/passenger_pr
 import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart';
 import 'package:pasada_driver_side/common/utils/result.dart';
 import 'package:pasada_driver_side/common/logging.dart';
+import 'package:pasada_driver_side/presentation/pages/route_setup/route_selection_sheet.dart';
 
 /// A gatekeeper widget that decides which tree to show: the authenticated
 /// application (`MainPage`) or the authentication flow (`AuthPagesView`). It
@@ -87,6 +88,14 @@ class _AuthGateState extends State<AuthGate> {
           await passengerProvider.getBookingRequestsID(context);
         } else {
           logDebug('No valid route ID found: ${driverProvider.routeID}');
+          if (mounted) {
+            final selected = await RouteSelectionSheet.show(context);
+            if (selected != null) {
+              await mapProvider.getRouteCoordinates(selected);
+              mapProvider.setRouteID(selected);
+              await passengerProvider.getBookingRequestsID(context);
+            }
+          }
         }
       });
     } catch (e) {

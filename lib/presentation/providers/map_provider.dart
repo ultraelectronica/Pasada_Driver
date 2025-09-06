@@ -7,6 +7,8 @@ import 'package:pasada_driver_side/UI/message.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/domain/services/polyline_service.dart';
+import 'dart:collection';
+import 'dart:convert';
 
 // Define clear state for route data
 enum RouteState { initial, loading, loaded, error }
@@ -88,7 +90,8 @@ class MapProvider with ChangeNotifier {
   String? get polylineError => _polylineError;
   List<LatLng> get polylineCoords => _polylineCoords;
 
-  final Map<int, RouteData> _routeCache = {};
+  final LinkedHashMap<int, RouteData> _routeCache = LinkedHashMap<int, RouteData>();
+  static const int _maxRouteCacheSize = 20;
   final SupabaseClient supabase = Supabase.instance.client;
 
   RouteState get routeState => _routeState;
@@ -155,6 +158,10 @@ class MapProvider with ChangeNotifier {
       if (resp == null) throw Exception('No route found for id $routeId');
       final rd = _processRouteResponse(resp, routeId);
       _routeCache[routeId] = rd;
+      if (_routeCache.length > _maxRouteCacheSize) {
+        final firstKey = _routeCache.keys.first;
+        _routeCache.remove(firstKey);
+      }
       _setRouteData(rd);
     } catch (e) {
       _handleError('Failed to fetch route data: $e');
@@ -168,7 +175,14 @@ class MapProvider with ChangeNotifier {
     final dest = parsePoint(json['destination_lat'], json['destination_lng']);
     final List<LatLng> inter = [];
     if (json['intermediate_coordinates'] != null) {
-      final data = json['intermediate_coordinates'];
+      dynamic data = json['intermediate_coordinates'];
+      if (data is String) {
+        try {
+          data = jsonDecode(data);
+        } catch (_) {
+          data = null;
+        }
+      }
       if (data is List) {
         for (final p in data) {
           if (p is Map && p['lat'] != null && p['lng'] != null) {
@@ -186,26 +200,28 @@ class MapProvider with ChangeNotifier {
     );
   }
 
-  Future<void> changeRouteLocation(BuildContext context) async {
+  // Removed auto flip: route changes are now explicit via RouteSetupPage.
+  // Keep a public API to set a route by ID explicitly.
+  Future<void> setRouteById({required int routeId, required DriverProvider driverProv}) async {
+    if (routeId <= 0) {
+      _handleError('Invalid route ID: $routeId');
+      return;
+    }
     try {
-      final driverProv = context.read<DriverProvider>();
-      final curId = driverProv.routeID;
-      if (curId <= 0) throw Exception('Invalid current route id');
-      final newId = _determineNewRouteID(curId);
-      driverProv.setRouteID(newId);
-      await getRouteCoordinates(newId);
+      driverProv.setRouteID(routeId);
+      await getRouteCoordinates(routeId);
       await supabase
           .from('vehicleTable')
-          .update({'route_id': newId}).eq('vehicle_id', driverProv.vehicleID);
+          .update({'route_id': routeId}).eq('vehicle_id', driverProv.vehicleID);
       await supabase
           .from('driverTable')
-          .update({'route_id': newId}).eq('driver_id', driverProv.driverID);
+          .update({'currentroute_id': routeId}).eq('driver_id', driverProv.driverID);
       _pickupLocation = null;
       notifyListeners();
       ShowMessage().showToast('Route changed successfully');
     } catch (e) {
-      _handleError('Failed to change route: $e');
-      ShowMessage().showToast('Failed to change route: $e');
+      _handleError('Failed to set route: $e');
+      ShowMessage().showToast('Failed to set route: $e');
     }
   }
 
@@ -213,6 +229,7 @@ class MapProvider with ChangeNotifier {
   void _updateState(RouteState s, String? err) {
     _routeState = s;
     _errorMessage = err;
+    debugPrint('MapProvider: $s, $err');
     notifyListeners();
   }
 
@@ -241,26 +258,21 @@ class MapProvider with ChangeNotifier {
     }
     _updateState(RouteState.loaded, null);
     _refreshMarkers();
-  }
 
-  int _determineNewRouteID(int id) {
-    switch (id) {
-      case 1:
-        return 2;
-      case 2:
-        return 1;
-      case 3:
-        return 4;
-      case 4:
-        return 3;
-      case 5:
-        return 6;
-      case 6:
-        return 5;
-      default:
-        throw Exception('Invalid route id');
+    // Regenerate polyline when route changes and we have a current location
+    if (_currentLocation != null && endingLocation != null) {
+      final waypoints = <LatLng>[];
+      if (intermediateLoc1 != null) waypoints.add(intermediateLoc1!);
+      if (intermediateLoc2 != null) waypoints.add(intermediateLoc2!);
+      generatePolyline(
+        start: _currentLocation!,
+        end: endingLocation!,
+        waypoints: waypoints.isEmpty ? null : waypoints,
+      );
     }
   }
+
+  // Removed hardcoded reverse ID mapping; moved to explicit selection flow.
 
   // bool _isReversedRoutePair(int a, int b) =>
   //     (a == 1 && b == 2) ||
@@ -309,6 +321,13 @@ class MapProvider with ChangeNotifier {
     required LatLng end,
     List<LatLng>? waypoints,
   }) async {
+    if (_polylineLoading) return;
+    const minInterval = Duration(seconds: 1);
+    if (_lastPolylineRequestedAt != null &&
+        DateTime.now().difference(_lastPolylineRequestedAt!) < minInterval) {
+      return;
+    }
+    _lastPolylineRequestedAt = DateTime.now();
     _setPolylineState(loading: true);
     try {
       // Use the new PolylineService for route generation
@@ -324,6 +343,8 @@ class MapProvider with ChangeNotifier {
       _setPolylineState(loading: false, error: e.toString());
     }
   }
+
+  DateTime? _lastPolylineRequestedAt;
 
   void _setPolylineState({required bool loading, String? error}) {
     _polylineLoading = loading;
