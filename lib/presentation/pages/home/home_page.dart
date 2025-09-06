@@ -18,6 +18,8 @@ import 'package:pasada_driver_side/presentation/pages/home/models/passenger_stat
 import 'package:pasada_driver_side/presentation/pages/home/widgets/passenger_list_widget.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_message_button.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_status_switch.dart';
+import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_route_button.dart';
+import 'package:pasada_driver_side/presentation/pages/route_setup/route_selection_sheet.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/seat_capacity_control.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/total_capacity_indicator.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/reset_capacity_button.dart';
@@ -62,6 +64,9 @@ class HomePageState extends State<HomePage> {
   // Loading state for bookings fetch
   bool _isLoadingBookings = false;
 
+  // Whether we already showed the route selection prompt on first load
+  bool _routePromptShown = false;
+
   // New: centralised controller holding timers & logic
   late HomeController _controller;
 
@@ -86,10 +91,21 @@ class HomePageState extends State<HomePage> {
     )..addListener(_onControllerUpdate);
 
     // Delay timer start to ensure context is fully ready
-    SchedulerBinding.instance.addPostFrameCallback((_) {
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
         // Initialize passenger capacity system only – controller handles the rest
         PassengerCapacity().initializeCapacity(context);
+        // Show route selection prompt on first open
+        if (!_routePromptShown) {
+          _routePromptShown = true;
+          final driverProv = context.read<DriverProvider>();
+          final mapProv = context.read<MapProvider>();
+          // Only prompt if no route is set. If loading, allow it to finish; if error, allow user to select.
+          if (driverProv.routeID <= 0 || mapProv.routeState == RouteState.error) {
+            // ignore: use_build_context_synchronously
+            await RouteSelectionSheet.show(context);
+          }
+        }
         // Controller already starts its own timers and fetches; skip legacy setup
       }
     });
@@ -150,7 +166,7 @@ class HomePageState extends State<HomePage> {
               ),
 
             // FLOATING MESSAGE BUTTON
-            FloatingMessageButton(
+            FloatingRefreshBookingButton(
               screenHeight: screenHeight,
               screenWidth: screenWidth,
               isLoading: _isLoadingBookings,
@@ -159,6 +175,12 @@ class HomePageState extends State<HomePage> {
 
             // Floating Status Switch
             FloatingStatusSwitch(
+              screenHeight: screenHeight,
+              screenWidth: screenWidth,
+            ),
+
+            // Floating Route Button (right side)
+            FloatingRouteButton(
               screenHeight: screenHeight,
               screenWidth: screenWidth,
             ),

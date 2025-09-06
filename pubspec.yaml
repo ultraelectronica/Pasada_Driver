@@ -113,7 +113,6 @@ flutter:
     - assets/svg/message.svg
     - assets/svg/rightArrow.svg
     - assets/svg/list.svg
-    - assets/svg/listFilled.svg
     - assets/svg/sitting.svg
     - assets/svg/standing.svg
     - assets/svg/people.svg

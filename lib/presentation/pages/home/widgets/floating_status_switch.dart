@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/UI/constants.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
+import 'package:pasada_driver_side/presentation/pages/route_setup/route_selection_sheet.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
 
@@ -27,8 +29,8 @@ class FloatingStatusSwitch extends StatelessWidget {
     final driverProvider = context.read<DriverProvider>();
 
     return Positioned(
-      bottom: screenHeight * 0.115,
-      left: screenWidth * 0.05,
+      bottom: screenHeight * 0.11,
+      left: screenWidth * 0.025,
       child: SizedBox(
         width: 135,
         height: 50,
@@ -69,14 +71,34 @@ class FloatingStatusSwitch extends StatelessWidget {
     );
   }
 
-  void _switchToDriving(BuildContext context, DriverProvider driverProvider) {
-    driverProvider.updateStatusToDB('Driving');
-    driverProvider.setDriverStatus('Driving');
-    driverProvider.setIsDriving(true);
+  void _switchToDriving(BuildContext context, DriverProvider driverProvider) async {
+    final mapProvider = context.read<MapProvider>();
+
+    // Guard: require a valid, loaded route
+    final bool hasValidRoute = driverProvider.routeID > 0 &&
+        mapProvider.routeState == RouteState.loaded;
+
+    if (!hasValidRoute) {
+      final selected = await RouteSelectionSheet.show(context);
+      if (selected == null) {
+        SnackBarUtils.show(
+          context,
+          'Select a route before going Driving',
+          Colors.red,
+        );
+        return;
+      }
+    }
+
+    await driverProvider.updateStatusToDB('Driving');
 
     // Trigger initial bookings fetch
+    // Note: downstream flows depend on Driving status now being set
+    // so we fetch bookings after status flips.
+    // ignore: use_build_context_synchronously
     context.read<PassengerProvider>().getBookingRequestsID(context);
 
+    // ignore: use_build_context_synchronously
     SnackBarUtils.show(context, 'Status set to Driving', Constants.GREEN_COLOR);
   }
 
@@ -93,8 +115,6 @@ class FloatingStatusSwitch extends StatelessWidget {
     }
 
     driverProvider.updateStatusToDB('Online');
-    driverProvider.setDriverStatus('Online');
-    driverProvider.setIsDriving(false);
 
     SnackBarUtils.show(context, 'Status set to Online', Colors.grey[700]!);
   }

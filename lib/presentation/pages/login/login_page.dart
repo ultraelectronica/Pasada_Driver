@@ -72,9 +72,13 @@ class _LogInState extends State<LogIn> {
         // saves all the infos to the provider
         await _setDriverInfo(response);
 
+        //saves the session token to the local storage
         await saveSession(enteredDriverID, response);
 
         ShowMessage().showToastTop('Welcome Manong ${response['full_name']}!');
+
+        //logs the login time of the driver
+        await context.read<DriverProvider>().writeLoginTime(context);
 
         // move to the main page once the driver successfuly logs in
         if (mounted) {

@@ -42,3 +42,6 @@ expect(prov.isLoading, true);
 ### Recent changes
 - `DriverProvider.updateStatusToDB` no longer requires `BuildContext` and validates/throttles updates
 - `MapProvider.initialize` returns `bool` for clearer error propagation to UI
+- `MapProvider.setRouteById({required int routeId, required DriverProvider driverProv})` is the single entry point for route switching; updates local state and persists to backend
+- `MapProvider.getRouteCoordinates(routeId)` caches route geometry (LRU-like, up to 20 entries)
+- `MapProvider.generatePolyline()` is debounced and ignores overlapping calls to avoid flicker and reduce API usage

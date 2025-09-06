@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/Services/auth_service.dart';
 import 'package:pasada_driver_side/UI/message.dart';
 import 'package:pasada_driver_side/presentation/pages/main/main_page.dart';
-import 'package:pasada_driver_side/presentation/pages/start/main.dart'
+import 'package:pasada_driver_side/main.dart'
     show AuthPagesView; // Re-use existing AuthPagesView
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
@@ -14,6 +14,7 @@ import 'package:pasada_driver_side/presentation/providers/passenger/passenger_pr
 import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart';
 import 'package:pasada_driver_side/common/utils/result.dart';
 import 'package:pasada_driver_side/common/logging.dart';
+import 'package:pasada_driver_side/presentation/pages/route_setup/route_selection_sheet.dart';
 
 /// A gatekeeper widget that decides which tree to show: the authenticated
 /// application (`MainPage`) or the authentication flow (`AuthPagesView`). It
@@ -74,6 +75,9 @@ class _AuthGateState extends State<AuthGate> {
         final mapProvider = context.read<MapProvider>();
         final passengerProvider = context.read<PassengerProvider>();
 
+        // Log login time once we are sure session and provider are loaded
+        await driverProvider.writeLoginTime(context);
+
         // Validate route id
         if (driverProvider.routeID > 0) {
           logDebug(
@@ -84,6 +88,14 @@ class _AuthGateState extends State<AuthGate> {
           await passengerProvider.getBookingRequestsID(context);
         } else {
           logDebug('No valid route ID found: ${driverProvider.routeID}');
+          if (mounted) {
+            final selected = await RouteSelectionSheet.show(context);
+            if (selected != null) {
+              await mapProvider.getRouteCoordinates(selected);
+              mapProvider.setRouteID(selected);
+              await passengerProvider.getBookingRequestsID(context);
+            }
+          }
         }
       });
     } catch (e) {
@@ -122,7 +134,7 @@ class _AuthGateState extends State<AuthGate> {
     if (_hasSession == true) {
       return const MainPage();
     } else {
-      return const AuthPagesView();
+      return AuthPagesView();
     }
   }
 }
