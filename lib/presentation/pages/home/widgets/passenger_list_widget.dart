@@ -37,11 +37,11 @@ class PassengerListWidget extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
+        color: Colors.white.withValues(alpha: 0.75),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.5),
             blurRadius: 5,
             spreadRadius: 1,
             offset: const Offset(0, 2),
@@ -53,7 +53,7 @@ class PassengerListWidget extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildHeader(context),
-          const Divider(height: 1, thickness: 1),
+          const Divider(height: 1, thickness: 1, color: Colors.grey),
           _buildListSummary(context, sortedPassengers),
           if (sortedPassengers.isNotEmpty)
             ListView.builder(
@@ -75,9 +75,9 @@ class PassengerListWidget extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            'Booking Operations',
+            'Active Bookings',
             style:
-                Styles().textStyle(14, Styles.w600Weight, Styles.customBlack),
+                Styles().textStyle(15, Styles.w600Weight, Styles.customBlack),
           ),
           const Spacer(),
           Icon(Icons.swipe_down_alt, size: 16, color: Colors.grey[500]),
@@ -102,14 +102,19 @@ class PassengerListWidget extends StatelessWidget {
         children: [
           _buildCountChip(
             icon: Icons.person_pin_circle,
-            color: Colors.blue,
-            label: 'PICKUPS: $pickupCount',
+            color: Colors.green,
+            label: 'PICKUPS: ',
+            count: pickupCount.toString(),
+            countColor: Colors.white,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           _buildCountChip(
             icon: Icons.location_on,
             color: Colors.orange,
-            label: 'DROPOFFS: $dropoffCount',
+            label: 'DROPOFFS: ',
+            count: dropoffCount.toString(),
+            countColor: Colors.white,
+            
           ),
         ],
       ),
@@ -120,20 +125,27 @@ class PassengerListWidget extends StatelessWidget {
     required IconData icon,
     required Color color,
     required String label,
+    required String count,
+    required Color countColor,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: Colors.black.withValues(alpha: 0.75),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
           Icon(icon, color: color, size: 12),
-          const SizedBox(width: 4),
+          const SizedBox(width: 5),
           Text(
             label,
-            style: Styles().textStyle(10, Styles.w700Weight, color),
+            style: Styles().textStyle(11, Styles.w700Weight, color),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            count,
+            style: Styles().textStyle(11, Styles.w700Weight, countColor),
           ),
         ],
       ),
@@ -142,7 +154,7 @@ class PassengerListWidget extends StatelessWidget {
 
   Widget _buildEmptyState(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(10.0),
+      padding: const EdgeInsets.all(15.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

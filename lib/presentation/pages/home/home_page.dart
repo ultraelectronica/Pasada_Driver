@@ -16,7 +16,7 @@ import 'package:pasada_driver_side/presentation/pages/home/utils/home_constants.
 import 'package:pasada_driver_side/presentation/pages/home/controllers/home_controller.dart';
 import 'package:pasada_driver_side/presentation/pages/home/models/passenger_status.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/passenger_list_widget.dart';
-import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_message_button.dart';
+import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_refresh_booking_button.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_status_switch.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_route_button.dart';
 import 'package:pasada_driver_side/presentation/pages/route_setup/route_selection_sheet.dart';
@@ -194,16 +194,18 @@ class HomePageState extends State<HomePage> {
             ),
 
             // PASSENGER STANDING CAPACITY - Can be incremented manually
-            SeatCapacityControl(
-              screenHeight: screenHeight,
-              screenWidth: screenWidth,
-              bottomFraction: HomeConstants.capacityStandingBottomFraction,
-              rightFraction: HomeConstants.sideButtonRightFraction,
-              seatType: 'Standing',
-            ),
+            if (driverStatus == 'Driving')
+              SeatCapacityControl(
+                screenHeight: screenHeight,
+                screenWidth: screenWidth,
+                bottomFraction: HomeConstants.capacityStandingBottomFraction,
+                rightFraction: HomeConstants.sideButtonRightFraction,
+                seatType: 'Standing',
+              ),
 
             // PASSENGER SITTING CAPACITY - Can be incremented manually
-            SeatCapacityControl(
+            if (driverStatus == 'Driving' ) 
+              SeatCapacityControl(
               screenHeight: screenHeight,
               screenWidth: screenWidth,
               bottomFraction: HomeConstants.capacitySittingBottomFraction,
