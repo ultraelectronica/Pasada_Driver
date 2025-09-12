@@ -9,6 +9,7 @@ class Booking {
   final LatLng pickupLocation;
   final LatLng dropoffLocation;
   final String seatType;
+  final String? passengerIdImagePath;
 
   // Optional calculated fields
   final double? distanceToDriver;
@@ -20,6 +21,7 @@ class Booking {
     required this.pickupLocation,
     required this.dropoffLocation,
     required this.seatType,
+    this.passengerIdImagePath,
     this.distanceToDriver,
   });
 
@@ -67,6 +69,7 @@ class Booking {
       ),
       seatType: json[BookingConstants.fieldSeatType] as String? ??
           BookingConstants.defaultSeatType,
+      passengerIdImagePath: json[BookingConstants.fieldPassengerIdImagePath] as String?,
     );
   }
 
@@ -81,6 +84,7 @@ class Booking {
       BookingConstants.fieldDropoffLat: dropoffLocation.latitude,
       BookingConstants.fieldDropoffLng: dropoffLocation.longitude,
       BookingConstants.fieldSeatType: seatType,
+      BookingConstants.fieldPassengerIdImagePath: passengerIdImagePath,
     };
   }
 
@@ -92,6 +96,7 @@ class Booking {
     LatLng? pickupLocation,
     LatLng? dropoffLocation,
     String? seatType,
+    String? passengerIdImagePath,
     double? distanceToDriver,
   }) {
     return Booking(
@@ -101,6 +106,7 @@ class Booking {
       pickupLocation: pickupLocation ?? this.pickupLocation,
       dropoffLocation: dropoffLocation ?? this.dropoffLocation,
       seatType: seatType ?? this.seatType,
+      passengerIdImagePath: passengerIdImagePath ?? this.passengerIdImagePath,
       distanceToDriver: distanceToDriver ?? this.distanceToDriver,
     );
   }
@@ -152,7 +158,7 @@ class Booking {
     return 'Booking(id: $id, passengerId: $passengerId, status: $rideStatus, '
         'pickup: (${pickupLocation.latitude}, ${pickupLocation.longitude}), '
         'dropoff: (${dropoffLocation.latitude}, ${dropoffLocation.longitude}), '
-        'seatType: $seatType, distance: $distanceToDriver)';
+        'seatType: $seatType, passengerIdImagePath: $passengerIdImagePath, distance: $distanceToDriver)';
   }
 
   @override

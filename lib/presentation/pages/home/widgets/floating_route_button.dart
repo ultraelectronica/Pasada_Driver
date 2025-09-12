@@ -34,7 +34,8 @@ class FloatingRouteButton extends StatelessWidget {
     return Positioned(
       bottom: screenHeight * 0.04,
       left: screenWidth * 0.02,
-      child: SizedBox(
+      child: isDisabled ? const SizedBox.shrink() 
+      : SizedBox(
         height: 50,
         child: Tooltip(
           message: isDisabled
@@ -64,9 +65,9 @@ class FloatingRouteButton extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: Styles().textStyle(14, Styles.w600Weight, Styles.customBlack),
           ),
+            ),
           ),
         ),
-      ),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:pasada_driver_side/presentation/pages/home/models/passenger_stat
 import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 import 'package:pasada_driver_side/UI/constants.dart';
 import 'package:pasada_driver_side/UI/text_styles.dart';
+import 'package:pasada_driver_side/UI/message.dart';
 
 /// Widget to display the list of nearby passengers (top 3, sorted by distance).
 class PassengerListWidget extends StatelessWidget {
@@ -37,11 +38,11 @@ class PassengerListWidget extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
+        color: Colors.white.withValues(alpha: 0.75),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.5),
             blurRadius: 5,
             spreadRadius: 1,
             offset: const Offset(0, 2),
@@ -52,16 +53,30 @@ class PassengerListWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Header
           _buildHeader(context),
-          const Divider(height: 1, thickness: 1),
+          const Divider(height: 1, thickness: 1, color: Colors.grey),
+
+          // Total number of pickups and dropoffs
           _buildListSummary(context, sortedPassengers),
-          if (sortedPassengers.isNotEmpty)
-            ListView.builder(
+            if (sortedPassengers.isNotEmpty)
+            ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
               itemCount: sortedPassengers.length,
               itemBuilder: (ctx, idx) =>
+              // Passenger item
                   _buildCompactPassengerItem(ctx, sortedPassengers[idx]),
+
+              // Divider between items
+              separatorBuilder: (ctx, idx) => Divider(
+                height: 1,
+                thickness: 1.5,
+                color: Colors.grey.withValues(alpha: 1),
+                indent: 10,
+                endIndent: 10,
+              ),
             ),
           if (passengers.isEmpty) _buildEmptyState(context),
         ],
@@ -75,9 +90,9 @@ class PassengerListWidget extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            'Booking Operations',
+            'Active Bookings',
             style:
-                Styles().textStyle(14, Styles.w600Weight, Styles.customBlack),
+                Styles().textStyle(15, Styles.w600Weight, Styles.customBlack),
           ),
           const Spacer(),
           Icon(Icons.swipe_down_alt, size: 16, color: Colors.grey[500]),
@@ -102,14 +117,19 @@ class PassengerListWidget extends StatelessWidget {
         children: [
           _buildCountChip(
             icon: Icons.person_pin_circle,
-            color: Colors.blue,
-            label: 'PICKUPS: $pickupCount',
+            color: Colors.green,
+            label: 'PICKUPS: ',
+            count: pickupCount.toString(),
+            countColor: Colors.white,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           _buildCountChip(
             icon: Icons.location_on,
             color: Colors.orange,
-            label: 'DROPOFFS: $dropoffCount',
+            label: 'DROPOFFS: ',
+            count: dropoffCount.toString(),
+            countColor: Colors.white,
+            
           ),
         ],
       ),
@@ -120,20 +140,27 @@ class PassengerListWidget extends StatelessWidget {
     required IconData icon,
     required Color color,
     required String label,
+    required String count,
+    required Color countColor,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: Colors.black.withValues(alpha: 0.75),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
           Icon(icon, color: color, size: 12),
-          const SizedBox(width: 4),
+          const SizedBox(width: 5),
           Text(
             label,
-            style: Styles().textStyle(10, Styles.w700Weight, color),
+            style: Styles().textStyle(11, Styles.w700Weight, color),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            count,
+            style: Styles().textStyle(11, Styles.w700Weight, countColor),
           ),
         ],
       ),
@@ -142,15 +169,15 @@ class PassengerListWidget extends StatelessWidget {
 
   Widget _buildEmptyState(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(10.0),
+      padding: const EdgeInsets.all(15.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.not_listed_location, size: 16, color: Colors.grey),
+          Icon(Icons.not_listed_location, size: 20, color: Constants.BLACK_COLOR),
           const SizedBox(width: 6),
           Text(
             'No active bookings',
-            style: Styles().textStyle(12, Styles.w500Weight, Colors.grey),
+            style: Styles().textStyle(14, Styles.w700Weight, Constants.BLACK_COLOR),
           ),
         ],
       ),
@@ -188,20 +215,21 @@ class PassengerListWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? (isPickup
-                  ? Colors.blue.withValues(alpha: 0.05)
-                  : Colors.orange.withValues(alpha: 0.05))
+                  ? Colors.blue.withValues(alpha: 0.2)
+                  : Colors.orange.withValues(alpha: 0.2))
               : Colors.transparent,
-          border: Border(
-            left: BorderSide(
-              color: isSelected
-                  ? statusColor
-                  : (isPickup ? Colors.blue : Colors.orange),
-              width: isSelected ? 3 : 2,
-            ),
-            bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1), width: 1),
-          ),
+          // border: Border(
+            // left: BorderSide(
+            //   color: isSelected
+            //       ? statusColor
+            //       : (isPickup ? Colors.blue : Colors.orange),
+            //   width: isSelected ? 3 : 2,
+            // ),
+            // bottom: BorderSide(color: Colors.grey.withValues(alpha: 1), width: 1),
+          // ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         child: Row(
           children: [
             // Status icon
@@ -219,7 +247,7 @@ class PassengerListWidget extends StatelessWidget {
               child: Row(
                 children: [
                   Text(
-                    '#${passenger.booking.id}',
+                    '# ${passenger.booking.id}',
                     style: Styles()
                         .textStyle(13, Styles.w600Weight, Styles.customBlack),
                   ),
@@ -242,16 +270,39 @@ class PassengerListWidget extends StatelessWidget {
                 ],
               ),
             ),
+
+            // view ID button - only show if passenger has ID image
+            if (passenger.booking.passengerIdImagePath != null && 
+                passenger.booking.passengerIdImagePath!.isNotEmpty)
+              InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () {
+                  ShowMessage().showToast('View ID for passenger: ${passenger.booking.id}');
+                  // You can add navigation, show dialog, etc.
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: .5),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Text('View ID', style: Styles().textStyle(14, Styles.w600Weight, Colors.white),),
+                  ),
+                ),
+              ),
+
+            const SizedBox(width: 15),
+
             // Distance chip
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 formattedDistance,
-                style: Styles().textStyle(14, Styles.w600Weight, statusColor),
+                style: Styles().textStyle(14, Styles.w600Weight, Constants.BLACK_COLOR),
               ),
             ),
           ],
@@ -260,6 +311,7 @@ class PassengerListWidget extends StatelessWidget {
     );
   }
 
+  /// format distance from m to km
   String _formatDistance(double meters) {
     if (meters < 1000) return '${meters.toInt()} m';
     final km = meters / 1000;
