@@ -137,9 +137,9 @@ class HomePageState extends State<HomePage> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     final passengerCapacity =
-        context.select<DriverProvider, int>((p) => p.passengerCapacity);
+        context.select<DriverProvider, int>((provider) => provider.passengerCapacity);
     final driverStatus =
-        context.select<DriverProvider, String>((p) => p.driverStatus);
+        context.select<DriverProvider, String>((provider) => provider.driverStatus);
 
     return Scaffold(
       body: SizedBox(
@@ -150,7 +150,7 @@ class HomePageState extends State<HomePage> {
             ),
 
             // PASSENGER LIST - shows top 3 nearest passengers
-            // if (_nearbyPassengers.isNotEmpty)
+            if (driverStatus == 'Driving')
               Positioned(
                 top: MediaQuery.of(context).padding.top +
                     10, // Reset to original position
@@ -206,12 +206,12 @@ class HomePageState extends State<HomePage> {
             // PASSENGER SITTING CAPACITY - Can be incremented manually
             if (driverStatus == 'Driving' ) 
               SeatCapacityControl(
-              screenHeight: screenHeight,
-              screenWidth: screenWidth,
-              bottomFraction: HomeConstants.capacitySittingBottomFraction,
-              rightFraction: HomeConstants.sideButtonRightFraction,
-              seatType: 'Sitting',
-            ),
+                screenHeight: screenHeight,
+                screenWidth: screenWidth,
+                bottomFraction: HomeConstants.capacitySittingBottomFraction,
+                rightFraction: HomeConstants.sideButtonRightFraction,
+                seatType: 'Sitting',
+              ),
 
             ConfirmPickupControl(
               isVisible: _isNearPickupLocation && _nearestBookingId != null,

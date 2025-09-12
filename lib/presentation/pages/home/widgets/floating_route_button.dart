@@ -21,13 +21,13 @@ class FloatingRouteButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final routeName = context.select<MapProvider, String?>(
-      (p) => p.routeName,
+      (provider) => provider.routeName,
     );
     final isDriving = context.select<DriverProvider, bool>(
-      (p) => p.driverStatus == 'Driving',
+      (provider) => provider.driverStatus == 'Driving',
     );
-    final hasActiveBooking = context.select<PassengerProvider, bool>((p) {
-      return p.bookings.any((b) => b.rideStatus == 'accepted' || b.rideStatus == 'ongoing');
+    final hasActiveBooking = context.select<PassengerProvider, bool>((passenger) {
+      return passenger.bookings.any((b) => b.rideStatus == 'accepted' || b.rideStatus == 'ongoing');
     });
     final bool isDisabled = isDriving || hasActiveBooking;
 
