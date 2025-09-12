@@ -150,7 +150,7 @@ class HomePageState extends State<HomePage> {
             ),
 
             // PASSENGER LIST - shows top 3 nearest passengers
-            if (_nearbyPassengers.isNotEmpty)
+            // if (_nearbyPassengers.isNotEmpty)
               Positioned(
                 top: MediaQuery.of(context).padding.top +
                     10, // Reset to original position
