@@ -2,14 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:pasada_driver_side/UI/constants.dart';
-import 'package:pasada_driver_side/UI/message.dart';
+import 'package:pasada_driver_side/common/constants/constants.dart';
+import 'package:pasada_driver_side/common/constants/message.dart';
 import 'package:pasada_driver_side/presentation/pages/activity/activity_page.dart';
 import 'package:pasada_driver_side/presentation/pages/home/home_page.dart';
 import 'package:pasada_driver_side/presentation/pages/profile/profile_page.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
-import 'package:pasada_driver_side/UI/text_styles.dart';
+import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:provider/provider.dart';
 
 class MainPage extends StatefulWidget {

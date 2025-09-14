@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:pasada_driver_side/Services/auth_service.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:location/location.dart';
-import 'package:pasada_driver_side/UI/message.dart';
+import 'package:pasada_driver_side/common/constants/message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/common/utils/result.dart';
 

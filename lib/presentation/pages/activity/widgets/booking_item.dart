@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pasada_driver_side/common/constants/booking_constants.dart';
-import 'package:pasada_driver_side/UI/constants.dart';
-import 'package:pasada_driver_side/UI/text_styles.dart';
+import 'package:pasada_driver_side/common/constants/constants.dart';
+import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:pasada_driver_side/data/models/booking_model.dart';
 
 class BookingItem extends StatelessWidget {

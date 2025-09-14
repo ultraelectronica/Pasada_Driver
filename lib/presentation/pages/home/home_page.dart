@@ -8,8 +8,8 @@ import 'package:pasada_driver_side/presentation/providers/passenger/passenger_pr
 import 'package:pasada_driver_side/presentation/pages/map/map_page.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
-import 'package:pasada_driver_side/UI/constants.dart';
-import 'package:pasada_driver_side/UI/text_styles.dart';
+import 'package:pasada_driver_side/common/constants/constants.dart';
+import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/home_constants.dart';

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:pasada_driver_side/presentation/pages/home/models/passenger_status.dart';
 import 'package:pasada_driver_side/common/constants/booking_constants.dart';
-import 'package:pasada_driver_side/UI/constants.dart';
-import 'package:pasada_driver_side/UI/text_styles.dart';
-import 'package:pasada_driver_side/UI/message.dart';
+import 'package:pasada_driver_side/common/constants/constants.dart';
+import 'package:pasada_driver_side/common/constants/text_styles.dart';
+import 'package:pasada_driver_side/common/constants/message.dart';
 
 /// Widget to display the list of nearby passengers (top 3, sorted by distance).
 class PassengerListWidget extends StatelessWidget {
