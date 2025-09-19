@@ -39,7 +39,8 @@ class SupabaseBookingRepository implements BookingRepository {
           '${BookingConstants.fieldPickupLng}, '
           '${BookingConstants.fieldDropoffLat}, '
           '${BookingConstants.fieldDropoffLng}, '
-          '${BookingConstants.fieldSeatType}';
+          '${BookingConstants.fieldSeatType}, '
+          '${BookingConstants.fieldPassengerIdImagePath}';
 
       const statusFilter =
           '${BookingConstants.fieldRideStatus}.eq.${BookingConstants.statusRequested},'
@@ -59,6 +60,10 @@ class SupabaseBookingRepository implements BookingRepository {
 
       if (kDebugMode) {
         debugPrint('Retrieved ${response.length} active bookings');
+        // Debug: Print the first booking to see what fields are actually returned
+        if (response.isNotEmpty) {
+          debugPrint('First booking data: ${response.first}');
+        }
       }
 
       return List<Map<String, dynamic>>.from(response)

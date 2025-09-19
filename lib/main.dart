@@ -123,7 +123,7 @@ class _AuthPagesViewState extends State<AuthPagesView> {
 
   void goToLoginPage() {
     _pageController.animateToPage(1,
-        duration: const Duration(milliseconds: 400), 
+        duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOutExpo);
   }
 
@@ -134,7 +134,7 @@ class _AuthPagesViewState extends State<AuthPagesView> {
         fit: StackFit.expand,
         children: [
           const ColoredBox(color: Colors.white),
-          
+
           PageView.builder(
             controller: _pageController,
             itemCount: 2,

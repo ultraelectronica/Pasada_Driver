@@ -101,7 +101,8 @@ class HomePageState extends State<HomePage> {
           final driverProv = context.read<DriverProvider>();
           final mapProv = context.read<MapProvider>();
           // Only prompt if no route is set. If loading, allow it to finish; if error, allow user to select.
-          if (driverProv.routeID <= 0 || mapProv.routeState == RouteState.error) {
+          if (driverProv.routeID <= 0 ||
+              mapProv.routeState == RouteState.error) {
             // ignore: use_build_context_synchronously
             await RouteSelectionSheet.show(context);
           }
@@ -136,10 +137,10 @@ class HomePageState extends State<HomePage> {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    final passengerCapacity =
-        context.select<DriverProvider, int>((provider) => provider.passengerCapacity);
-    final driverStatus =
-        context.select<DriverProvider, String>((provider) => provider.driverStatus);
+    final passengerCapacity = context
+        .select<DriverProvider, int>((provider) => provider.passengerCapacity);
+    final driverStatus = context
+        .select<DriverProvider, String>((provider) => provider.driverStatus);
 
     return Scaffold(
       body: SizedBox(
@@ -204,7 +205,7 @@ class HomePageState extends State<HomePage> {
               ),
 
             // PASSENGER SITTING CAPACITY - Can be incremented manually
-            if (driverStatus == 'Driving' ) 
+            if (driverStatus == 'Driving')
               SeatCapacityControl(
                 screenHeight: screenHeight,
                 screenWidth: screenWidth,
