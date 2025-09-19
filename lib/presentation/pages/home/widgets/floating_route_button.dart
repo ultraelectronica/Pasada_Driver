@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:pasada_driver_side/UI/constants.dart';
-import 'package:pasada_driver_side/UI/text_styles.dart';
+import 'package:pasada_driver_side/common/constants/constants.dart';
+import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/pages/route_setup/route_selection_sheet.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
@@ -21,13 +21,13 @@ class FloatingRouteButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final routeName = context.select<MapProvider, String?>(
-      (p) => p.routeName,
+      (provider) => provider.routeName,
     );
     final isDriving = context.select<DriverProvider, bool>(
-      (p) => p.driverStatus == 'Driving',
+      (provider) => provider.driverStatus == 'Driving',
     );
-    final hasActiveBooking = context.select<PassengerProvider, bool>((p) {
-      return p.bookings.any((b) => b.rideStatus == 'accepted' || b.rideStatus == 'ongoing');
+    final hasActiveBooking = context.select<PassengerProvider, bool>((passenger) {
+      return passenger.bookings.any((b) => b.rideStatus == 'accepted' || b.rideStatus == 'ongoing');
     });
     final bool isDisabled = isDriving || hasActiveBooking;
 

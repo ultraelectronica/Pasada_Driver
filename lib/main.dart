@@ -9,7 +9,7 @@ import 'package:pasada_driver_side/bootstrap/app_bootstrap_error_screen.dart';
 import 'package:pasada_driver_side/presentation/pages/login/login_page.dart';
 import 'package:pasada_driver_side/presentation/pages/start/widgets/optimized_welcome_page.dart';
 import 'package:pasada_driver_side/presentation/pages/start/utils/start_constants.dart';
-import 'package:pasada_driver_side/UI/constants.dart';
+import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/presentation/routes/app_routes.dart';
 import 'package:pasada_driver_side/common/logging.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -123,7 +123,7 @@ class _AuthPagesViewState extends State<AuthPagesView> {
 
   void goToLoginPage() {
     _pageController.animateToPage(1,
-        duration: const Duration(milliseconds: 400), 
+        duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOutExpo);
   }
 
@@ -134,7 +134,7 @@ class _AuthPagesViewState extends State<AuthPagesView> {
         fit: StackFit.expand,
         children: [
           const ColoredBox(color: Colors.white),
-          
+
           PageView.builder(
             controller: _pageController,
             itemCount: 2,

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 
@@ -55,6 +56,13 @@ class Booking {
       throw ArgumentError('Missing required dropoff location fields');
     }
 
+    // Debug: Log the passengerIdImagePath value
+    final imagePath =
+        json[BookingConstants.fieldPassengerIdImagePath] as String?;
+    if (kDebugMode) {
+      debugPrint('Booking ${bookingId}: passengerIdImagePath = $imagePath');
+    }
+
     return Booking(
       id: bookingId.toString(),
       passengerId: passengerId.toString(),
@@ -69,7 +77,7 @@ class Booking {
       ),
       seatType: json[BookingConstants.fieldSeatType] as String? ??
           BookingConstants.defaultSeatType,
-      passengerIdImagePath: json[BookingConstants.fieldPassengerIdImagePath] as String?,
+      passengerIdImagePath: imagePath,
     );
   }
 

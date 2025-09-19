@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:pasada_driver_side/UI/constants.dart';
-import 'package:pasada_driver_side/UI/text_styles.dart';
+import 'package:pasada_driver_side/common/constants/constants.dart';
+import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:pasada_driver_side/presentation/pages/start/utils/start_constants.dart';
 import 'package:pasada_driver_side/presentation/routes/app_routes.dart';
 

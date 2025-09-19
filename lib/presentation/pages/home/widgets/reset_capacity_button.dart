@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pasada_driver_side/UI/text_styles.dart';
+import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/home_constants.dart';
 
 class ResetCapacityButton extends StatelessWidget {

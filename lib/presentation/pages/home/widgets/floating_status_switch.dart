@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:pasada_driver_side/UI/constants.dart';
-import 'package:pasada_driver_side/UI/text_styles.dart';
+import 'package:pasada_driver_side/common/constants/constants.dart';
+import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/pages/route_setup/route_selection_sheet.dart';
@@ -39,7 +39,7 @@ class FloatingStatusSwitch extends StatelessWidget {
           elevation: 4,
           borderRadius: BorderRadius.circular(15),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            padding: const EdgeInsets.only(left: 12.0, right: 7.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -48,12 +48,16 @@ class FloatingStatusSwitch extends StatelessWidget {
                   style: Styles().textStyle(
                     14,
                     Styles.w600Weight,
-                    isDriving ? Constants.GREEN_COLOR : Colors.grey[700]!,
+                    isDriving ? Constants.GREEN_COLOR_DARK : Colors.grey[700]!,
                   ),
                 ),
                 Switch(
                   value: isDriving,
-                  activeColor: Constants.GREEN_COLOR,
+                  activeThumbColor: Constants.GREEN_COLOR,
+                  activeTrackColor: Constants.GREEN_COLOR_LIGHT,
+                  inactiveThumbColor: Constants.SWITCH_GREY_COLOR,
+                  inactiveTrackColor: Constants.SWITCH_GREY_COLOR_DARK,
+                  trackOutlineWidth: WidgetStateProperty.all(1.5),
                   onChanged: (value) {
                     if (value) {
                       _switchToDriving(context, driverProvider);

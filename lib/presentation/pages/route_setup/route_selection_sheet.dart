@@ -7,7 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
-import 'package:pasada_driver_side/UI/message.dart';
+import 'package:pasada_driver_side/common/constants/message.dart';
 
 class RouteSelectionSheet {
   static Future<int?> show(BuildContext context) async {

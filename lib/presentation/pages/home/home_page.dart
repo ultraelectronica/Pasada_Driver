@@ -8,8 +8,8 @@ import 'package:pasada_driver_side/presentation/providers/passenger/passenger_pr
 import 'package:pasada_driver_side/presentation/pages/map/map_page.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
-import 'package:pasada_driver_side/UI/constants.dart';
-import 'package:pasada_driver_side/UI/text_styles.dart';
+import 'package:pasada_driver_side/common/constants/constants.dart';
+import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/home_constants.dart';
@@ -101,7 +101,8 @@ class HomePageState extends State<HomePage> {
           final driverProv = context.read<DriverProvider>();
           final mapProv = context.read<MapProvider>();
           // Only prompt if no route is set. If loading, allow it to finish; if error, allow user to select.
-          if (driverProv.routeID <= 0 || mapProv.routeState == RouteState.error) {
+          if (driverProv.routeID <= 0 ||
+              mapProv.routeState == RouteState.error) {
             // ignore: use_build_context_synchronously
             await RouteSelectionSheet.show(context);
           }
@@ -136,10 +137,10 @@ class HomePageState extends State<HomePage> {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    final passengerCapacity =
-        context.select<DriverProvider, int>((p) => p.passengerCapacity);
-    final driverStatus =
-        context.select<DriverProvider, String>((p) => p.driverStatus);
+    final passengerCapacity = context
+        .select<DriverProvider, int>((provider) => provider.passengerCapacity);
+    final driverStatus = context
+        .select<DriverProvider, String>((provider) => provider.driverStatus);
 
     return Scaffold(
       body: SizedBox(
@@ -150,7 +151,7 @@ class HomePageState extends State<HomePage> {
             ),
 
             // PASSENGER LIST - shows top 3 nearest passengers
-            // if (_nearbyPassengers.isNotEmpty)
+            if (driverStatus == 'Driving')
               Positioned(
                 top: MediaQuery.of(context).padding.top +
                     10, // Reset to original position
@@ -204,14 +205,14 @@ class HomePageState extends State<HomePage> {
               ),
 
             // PASSENGER SITTING CAPACITY - Can be incremented manually
-            if (driverStatus == 'Driving' ) 
+            if (driverStatus == 'Driving')
               SeatCapacityControl(
-              screenHeight: screenHeight,
-              screenWidth: screenWidth,
-              bottomFraction: HomeConstants.capacitySittingBottomFraction,
-              rightFraction: HomeConstants.sideButtonRightFraction,
-              seatType: 'Sitting',
-            ),
+                screenHeight: screenHeight,
+                screenWidth: screenWidth,
+                bottomFraction: HomeConstants.capacitySittingBottomFraction,
+                rightFraction: HomeConstants.sideButtonRightFraction,
+                seatType: 'Sitting',
+              ),
 
             ConfirmPickupControl(
               isVisible: _isNearPickupLocation && _nearestBookingId != null,
