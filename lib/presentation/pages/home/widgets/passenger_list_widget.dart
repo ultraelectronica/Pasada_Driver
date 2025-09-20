@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pasada_driver_side/presentation/pages/home/controllers/id_acceptance_controller.dart';
 import 'package:pasada_driver_side/presentation/pages/home/models/passenger_status.dart';
 import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 import 'package:pasada_driver_side/common/constants/constants.dart';
@@ -237,7 +238,7 @@ class PassengerListWidget extends StatelessWidget {
             // Status icon
             Container(
               decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.1),
+                color: Colors.black.withValues(alpha: 0.75),
                 shape: BoxShape.circle,
               ),
               padding: const EdgeInsets.all(4),
@@ -452,56 +453,80 @@ class PassengerListWidget extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // Decline ID button
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 5,
-                        offset: const Offset(1, 2),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    'Decline',
-                    style: Styles().textStyle(
-                        16, Styles.w700Weight, Constants.WHITE_COLOR),
-                  ),
-                ),
-              ),
+              _buildDeclineIDButton(context, bookingId),
               // Accept ID button
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Constants.GREEN_COLOR,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 5,
-                        offset: const Offset(1, 2),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    'Accept',
-                    style: Styles().textStyle(
-                        16, Styles.w700Weight, Constants.WHITE_COLOR),
-                  ),
-                ),
-              ),
+              _buildAcceptIDButton(context, bookingId),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDeclineIDButton(BuildContext context, String bookingId) {
+    return GestureDetector(
+      onTap: () async {
+        try {
+          await IdAcceptanceController().declineID(bookingId);
+          Navigator.of(context).pop();
+          ShowMessage().showToast('ID declined for booking #$bookingId');
+        } catch (e) {
+          Navigator.of(context).pop();
+          ShowMessage().showToast('Failed to decline ID: $e');
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 5,
+              offset: const Offset(1, 2),
+            ),
+          ],
+        ),
+        child: Text(
+          'Decline',
+          style:
+              Styles().textStyle(16, Styles.w700Weight, Constants.WHITE_COLOR),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAcceptIDButton(BuildContext context, String bookingId) {
+    return GestureDetector(
+      onTap: () async {
+        try {
+          await IdAcceptanceController().acceptID(bookingId);
+          Navigator.of(context).pop();
+          ShowMessage().showToast('ID accepted for booking #$bookingId');
+        } catch (e) {
+          Navigator.of(context).pop();
+          ShowMessage().showToast('Failed to accept ID: $e');
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+        decoration: BoxDecoration(
+          color: Constants.GREEN_COLOR,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 5,
+              offset: const Offset(1, 2),
+            ),
+          ],
+        ),
+        child: Text(
+          'Accept',
+          style:
+              Styles().textStyle(16, Styles.w700Weight, Constants.WHITE_COLOR),
+        ),
       ),
     );
   }
