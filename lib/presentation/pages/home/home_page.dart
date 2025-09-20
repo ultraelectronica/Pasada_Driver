@@ -25,6 +25,7 @@ import 'package:pasada_driver_side/presentation/pages/home/widgets/total_capacit
 import 'package:pasada_driver_side/presentation/pages/home/widgets/reset_capacity_button.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/confirm_pickup_control.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/complete_ride_control.dart';
+import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -301,18 +302,15 @@ class HomePageState extends State<HomePage> {
                   final result =
                       await PassengerCapacity().resetCapacityToZero(context);
                   if (result.success) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Capacity reset to zero successfully'),
-                      backgroundColor: Colors.green,
-                      duration: Duration(seconds: 2),
-                    ));
+                    SnackBarUtils.showSuccess(
+                      context,
+                      'Capacity reset to zero successfully',
+                    );
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(
-                          'Failed to reset capacity: ${result.errorMessage}'),
-                      backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 3),
-                    ));
+                    SnackBarUtils.showError(
+                      context,
+                      'Failed to reset capacity: ${result.errorMessage}',
+                    );
                   }
                 }
               },
