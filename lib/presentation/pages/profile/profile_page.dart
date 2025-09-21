@@ -181,7 +181,7 @@ class ProfilePageState extends State<ProfilePage> {
       );
     }
 
-    return Scaffold(backgroundColor: Styles.customWhite, body: bodyContent);
+    return Scaffold(backgroundColor: Styles.customWhiteFont, body: bodyContent);
   }
 
   // --- Helper Widgets ---
@@ -189,7 +189,7 @@ class ProfilePageState extends State<ProfilePage> {
   Widget _buildDriverName(String driverName) {
     return Text(
       driverName,
-      style: Styles().textStyle(22, Styles.w700Weight, Styles.customWhite),
+      style: Styles().textStyle(22, Styles.w700Weight, Styles.customWhiteFont),
       textAlign: TextAlign.center,
     );
   }
@@ -226,7 +226,7 @@ class ProfilePageState extends State<ProfilePage> {
             Text(
               driverStatus,
               style: Styles().textStyle(14, Styles.w500Weight,
-                  Styles.customBlack // Dark text for status
+                  Styles.customBlackFont // Dark text for status
                   ),
             ),
           ],
@@ -307,8 +307,8 @@ class ProfilePageState extends State<ProfilePage> {
           // Allow text to wrap if needed
           child: Text(
             text,
-            style:
-                Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
+            style: Styles()
+                .textStyle(14, Styles.normalWeight, Styles.customBlackFont),
           ),
         ),
       ],
@@ -405,13 +405,13 @@ class ProfilePageState extends State<ProfilePage> {
         return AlertDialog(
           title: Text(
             'Confirm Log out',
-            style:
-                Styles().textStyle(20, Styles.w600Weight, Styles.customBlack),
+            style: Styles()
+                .textStyle(20, Styles.w600Weight, Styles.customBlackFont),
           ),
           content: Text(
             'Are you sure you want to log out?',
-            style:
-                Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
+            style: Styles()
+                .textStyle(16, Styles.normalWeight, Styles.customBlackFont),
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
@@ -472,7 +472,7 @@ class ProfilePageState extends State<ProfilePage> {
                 child: Text(
                   'Change Status',
                   style: Styles()
-                      .textStyle(18, Styles.w600Weight, Styles.customBlack),
+                      .textStyle(18, Styles.w600Weight, Styles.customBlackFont),
                 ),
               ),
               statusOption('Online'),
@@ -505,7 +505,8 @@ class ProfilePageState extends State<ProfilePage> {
     return ListTile(
       leading: Icon(Icons.circle, color: statusColors[status]),
       title: Text(status,
-          style: Styles().textStyle(16, Styles.w500Weight, Styles.customBlack)),
+          style: Styles()
+              .textStyle(16, Styles.w500Weight, Styles.customBlackFont)),
       onTap: () {
         if (status != 'Driving') {
           context.read<DriverProvider>().setIsDriving(false);

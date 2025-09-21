@@ -123,9 +123,9 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
       showSelectedLabels: true,
       showUnselectedLabels: false,
       selectedLabelStyle:
-          Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
+          Styles().textStyle(12, Styles.w700Weight, Styles.customBlackFont),
       unselectedLabelStyle:
-          Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
+          Styles().textStyle(12, Styles.w700Weight, Styles.customBlackFont),
       selectedItemColor: Constants.GREEN_COLOR,
       type: BottomNavigationBarType.fixed,
       items: navigation.entries

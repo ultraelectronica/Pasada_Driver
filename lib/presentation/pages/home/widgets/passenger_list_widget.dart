@@ -94,8 +94,8 @@ class PassengerListWidget extends StatelessWidget {
         children: [
           Text(
             'Active Bookings',
-            style:
-                Styles().textStyle(15, Styles.w600Weight, Styles.customBlack),
+            style: Styles()
+                .textStyle(15, Styles.w600Weight, Styles.customBlackFont),
           ),
           const Spacer(),
           Icon(Icons.swipe_down_alt, size: 16, color: Colors.grey[500]),
@@ -251,8 +251,8 @@ class PassengerListWidget extends StatelessWidget {
                 children: [
                   Text(
                     '# ${passenger.booking.id}',
-                    style: Styles()
-                        .textStyle(13, Styles.w600Weight, Styles.customBlack),
+                    style: Styles().textStyle(
+                        13, Styles.w600Weight, Styles.customBlackFont),
                   ),
                   if (isUrgent) ...[
                     const SizedBox(width: 4),
@@ -330,7 +330,8 @@ class PassengerListWidget extends StatelessWidget {
         alignment: Alignment.center,
         title: Text(
           'Accept Passenger ID #$bookingId',
-          style: Styles().textStyle(20, Styles.w600Weight, Styles.customBlack),
+          style:
+              Styles().textStyle(20, Styles.w600Weight, Styles.customBlackFont),
           textAlign: TextAlign.center,
         ),
         content: FutureBuilder<Uint8List?>(

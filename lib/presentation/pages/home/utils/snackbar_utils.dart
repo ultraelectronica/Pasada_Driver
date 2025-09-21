@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pasada_driver_side/common/constants/text_styles.dart';
 
 /// Simple helper for notifications.
 class SnackBarUtils {
@@ -9,14 +10,26 @@ class SnackBarUtils {
     BuildContext ctx,
     String message,
     Color background, {
+    AnimationController? animationController,
     Duration duration = const Duration(seconds: 2),
   }) {
     if (ctx.mounted) {
       ScaffoldMessenger.of(ctx).showSnackBar(
         SnackBar(
-          content: Text(message),
+          content: Text(message,
+              style: Styles()
+                  .textStyle(16, FontWeight.w600, Styles.customWhiteFont)),
           backgroundColor: background,
           duration: duration,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          animation: animationController != null
+              ? CurvedAnimation(
+                  parent: animationController, curve: Curves.easeInOut)
+              : null,
         ),
       );
     }
@@ -26,13 +39,8 @@ class SnackBarUtils {
   static void pop(BuildContext ctx, String message, {Color? backgroundColor}) {
     if (ctx.mounted) {
       ScaffoldMessenger.of(ctx).clearSnackBars();
-      ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: backgroundColor ?? Colors.blue,
-          duration: const Duration(milliseconds: 800),
-        ),
-      );
+      show(ctx, message, backgroundColor ?? Colors.blue,
+          duration: const Duration(milliseconds: 1200));
     }
   }
 

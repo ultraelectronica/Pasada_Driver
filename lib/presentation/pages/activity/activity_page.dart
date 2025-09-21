@@ -121,7 +121,7 @@ class ActivityPageState extends State<ActivityPage> {
   }
 
   Widget _buildTitle() => Text('Driver Activity',
-      style: Styles().textStyle(20, FontWeight.w600, Styles.customBlack));
+      style: Styles().textStyle(20, FontWeight.w600, Styles.customBlackFont));
 
   // Legacy helper widgets have been extracted into dedicated widgets.
 

@@ -292,7 +292,7 @@ class _LogInState extends State<LogIn> {
             : Text(
                 'Log in',
                 style: Styles()
-                    .textStyle(20, Styles.w700Weight, Styles.customWhite),
+                    .textStyle(20, Styles.w700Weight, Styles.customWhiteFont),
               ),
       ),
     );
@@ -356,12 +356,13 @@ class _LogInState extends State<LogIn> {
       children: [
         Text(
           'Enter your ',
-          style:
-              Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
+          style: Styles()
+              .textStyle(14, Styles.normalWeight, Styles.customBlackFont),
         ),
         Text(
           'Password',
-          style: Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
+          style:
+              Styles().textStyle(14, Styles.w700Weight, Styles.customBlackFont),
         ),
       ],
     );
@@ -372,12 +373,13 @@ class _LogInState extends State<LogIn> {
       children: [
         Text(
           'Enter your ',
-          style:
-              Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
+          style: Styles()
+              .textStyle(14, Styles.normalWeight, Styles.customBlackFont),
         ),
         Text(
           'Driver ID',
-          style: Styles().textStyle(14, Styles.w700Weight, Styles.customBlack),
+          style:
+              Styles().textStyle(14, Styles.w700Weight, Styles.customBlackFont),
         ),
       ],
     );
@@ -439,8 +441,8 @@ class _LogInState extends State<LogIn> {
           margin: EdgeInsets.only(top: topMargin),
           child: Text(
             'Log-in to your account',
-            style:
-                Styles().textStyle(18, Styles.w700Weight, Styles.customBlack),
+            style: Styles()
+                .textStyle(18, Styles.w700Weight, Styles.customBlackFont),
           ),
         ),
       ],
