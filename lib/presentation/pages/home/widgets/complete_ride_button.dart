@@ -64,8 +64,7 @@ class CompleteRideButton extends StatelessWidget {
                 ],
                 Text(
                   isLoading ? 'Processing…' : 'Complete Ride',
-                  style:
-                      Styles().textStyle(18, Styles.w600Weight, Colors.white),
+                  style: Styles().textStyle(18, Styles.semiBold, Colors.white),
                 ),
               ],
             ),

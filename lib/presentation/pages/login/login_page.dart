@@ -291,8 +291,8 @@ class _LogInState extends State<LogIn> {
             ? const CircularProgressIndicator(color: Colors.white)
             : Text(
                 'Log in',
-                style: Styles()
-                    .textStyle(20, Styles.w700Weight, Styles.customWhiteFont),
+                style:
+                    Styles().textStyle(20, Styles.bold, Styles.customWhiteFont),
               ),
       ),
     );
@@ -357,12 +357,11 @@ class _LogInState extends State<LogIn> {
         Text(
           'Enter your ',
           style: Styles()
-              .textStyle(14, Styles.normalWeight, Styles.customBlackFont),
+              .textStyle(14, Styles.normal, Styles.customBlackFont),
         ),
         Text(
           'Password',
-          style:
-              Styles().textStyle(14, Styles.w700Weight, Styles.customBlackFont),
+          style: Styles().textStyle(14, Styles.bold, Styles.customBlackFont),
         ),
       ],
     );
@@ -374,12 +373,11 @@ class _LogInState extends State<LogIn> {
         Text(
           'Enter your ',
           style: Styles()
-              .textStyle(14, Styles.normalWeight, Styles.customBlackFont),
+              .textStyle(14, Styles.normal, Styles.customBlackFont),
         ),
         Text(
           'Driver ID',
-          style:
-              Styles().textStyle(14, Styles.w700Weight, Styles.customBlackFont),
+          style: Styles().textStyle(14, Styles.bold, Styles.customBlackFont),
         ),
       ],
     );
@@ -441,8 +439,7 @@ class _LogInState extends State<LogIn> {
           margin: EdgeInsets.only(top: topMargin),
           child: Text(
             'Log-in to your account',
-            style: Styles()
-                .textStyle(18, Styles.w700Weight, Styles.customBlackFont),
+            style: Styles().textStyle(18, Styles.bold, Styles.customBlackFont),
           ),
         ),
       ],

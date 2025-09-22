@@ -67,8 +67,8 @@ class FloatingRouteButton extends StatelessWidget {
                         ? 'Select Route'
                         : routeName,
                     overflow: TextOverflow.ellipsis,
-                    style: Styles().textStyle(
-                        14, Styles.w600Weight, Styles.customBlackFont),
+                    style: Styles()
+                        .textStyle(14, Styles.semiBold, Styles.customBlackFont),
                   ),
                 ),
               ),

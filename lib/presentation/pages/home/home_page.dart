@@ -260,7 +260,7 @@ class HomePageState extends State<HomePage> {
                           Text(
                             'Finding Passengers...',
                             style: Styles().textStyle(
-                                16, Styles.w600Weight, Styles.customBlackFont),
+                                16, Styles.semiBold, Styles.customBlackFont),
                           ),
                         ],
                       ),

@@ -16,9 +16,12 @@ class SnackBarUtils {
     if (ctx.mounted) {
       ScaffoldMessenger.of(ctx).showSnackBar(
         SnackBar(
-          content: Text(message,
-              style: Styles()
-                  .textStyle(16, FontWeight.w600, Styles.customWhiteFont)),
+          content: Text(
+            message,
+            style:
+                Styles().textStyle(14, FontWeight.w600, Styles.customWhiteFont),
+            textAlign: TextAlign.center,
+          ),
           backgroundColor: background,
           duration: duration,
           behavior: SnackBarBehavior.floating,

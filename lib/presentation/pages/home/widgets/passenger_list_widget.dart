@@ -94,8 +94,8 @@ class PassengerListWidget extends StatelessWidget {
         children: [
           Text(
             'Active Bookings',
-            style: Styles()
-                .textStyle(15, Styles.w600Weight, Styles.customBlackFont),
+            style:
+                Styles().textStyle(15, Styles.semiBold, Styles.customBlackFont),
           ),
           const Spacer(),
           Icon(Icons.swipe_down_alt, size: 16, color: Colors.grey[500]),
@@ -157,12 +157,12 @@ class PassengerListWidget extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             label,
-            style: Styles().textStyle(11, Styles.w700Weight, color),
+            style: Styles().textStyle(11, Styles.bold, color),
           ),
           const SizedBox(width: 5),
           Text(
             count,
-            style: Styles().textStyle(11, Styles.w700Weight, countColor),
+            style: Styles().textStyle(11, Styles.bold, countColor),
           ),
         ],
       ),
@@ -180,8 +180,7 @@ class PassengerListWidget extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             'No active bookings',
-            style: Styles()
-                .textStyle(14, Styles.w700Weight, Constants.BLACK_COLOR),
+            style: Styles().textStyle(14, Styles.bold, Constants.BLACK_COLOR),
           ),
         ],
       ),
@@ -251,8 +250,8 @@ class PassengerListWidget extends StatelessWidget {
                 children: [
                   Text(
                     '# ${passenger.booking.id}',
-                    style: Styles().textStyle(
-                        13, Styles.w600Weight, Styles.customBlackFont),
+                    style: Styles()
+                        .textStyle(13, Styles.semiBold, Styles.customBlackFont),
                   ),
                   if (isUrgent) ...[
                     const SizedBox(width: 4),
@@ -265,8 +264,7 @@ class PassengerListWidget extends StatelessWidget {
                       ),
                       child: Text(
                         'URGENT',
-                        style: Styles()
-                            .textStyle(9, Styles.w700Weight, Colors.red),
+                        style: Styles().textStyle(9, Styles.bold, Colors.red),
                       ),
                     ),
                   ],
@@ -295,8 +293,8 @@ class PassengerListWidget extends StatelessWidget {
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: Text(
                       'View ID',
-                      style: Styles()
-                          .textStyle(14, Styles.w600Weight, Colors.white),
+                      style:
+                          Styles().textStyle(14, Styles.semiBold, Colors.white),
                     ),
                   ),
                 ),
@@ -313,7 +311,7 @@ class PassengerListWidget extends StatelessWidget {
               child: Text(
                 formattedDistance,
                 style: Styles()
-                    .textStyle(14, Styles.w600Weight, Constants.BLACK_COLOR),
+                    .textStyle(14, Styles.semiBold, Constants.BLACK_COLOR),
               ),
             ),
           ],
@@ -331,7 +329,7 @@ class PassengerListWidget extends StatelessWidget {
         title: Text(
           'Accept Passenger ID #$bookingId',
           style:
-              Styles().textStyle(20, Styles.w600Weight, Styles.customBlackFont),
+              Styles().textStyle(20, Styles.semiBold, Styles.customBlackFont),
           textAlign: TextAlign.center,
         ),
         content: FutureBuilder<Uint8List?>(
@@ -367,7 +365,7 @@ class PassengerListWidget extends StatelessWidget {
                         'Failed to load ID image',
                         style: Styles().textStyle(
                           14,
-                          Styles.w500Weight,
+                          Styles.medium,
                           Colors.red[600] ?? Colors.red,
                         ),
                       ),
@@ -376,7 +374,7 @@ class PassengerListWidget extends StatelessWidget {
                         'Error: ${snapshot.error}',
                         style: Styles().textStyle(
                           12,
-                          Styles.w400Weight,
+                          Styles.normal,
                           Colors.grey[600] ?? Colors.grey,
                         ),
                         textAlign: TextAlign.center,
@@ -416,7 +414,7 @@ class PassengerListWidget extends StatelessWidget {
                                 'Invalid image format',
                                 style: Styles().textStyle(
                                   14,
-                                  Styles.w500Weight,
+                                  Styles.medium,
                                   Colors.grey[600] ?? Colors.grey,
                                 ),
                               ),
@@ -441,7 +439,7 @@ class PassengerListWidget extends StatelessWidget {
                   'No image data available',
                   style: Styles().textStyle(
                     14,
-                    Styles.w500Weight,
+                    Styles.medium,
                     Colors.grey[600] ?? Colors.grey,
                   ),
                 ),
@@ -491,8 +489,7 @@ class PassengerListWidget extends StatelessWidget {
         ),
         child: Text(
           'Decline',
-          style:
-              Styles().textStyle(16, Styles.w700Weight, Constants.WHITE_COLOR),
+          style: Styles().textStyle(16, Styles.bold, Constants.WHITE_COLOR),
         ),
       ),
     );
@@ -525,8 +522,7 @@ class PassengerListWidget extends StatelessWidget {
         ),
         child: Text(
           'Accept',
-          style:
-              Styles().textStyle(16, Styles.w700Weight, Constants.WHITE_COLOR),
+          style: Styles().textStyle(16, Styles.bold, Constants.WHITE_COLOR),
         ),
       ),
     );
