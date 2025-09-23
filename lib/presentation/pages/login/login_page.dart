@@ -356,8 +356,7 @@ class _LogInState extends State<LogIn> {
       children: [
         Text(
           'Enter your ',
-          style: Styles()
-              .textStyle(14, Styles.normal, Styles.customBlackFont),
+          style: Styles().textStyle(14, Styles.normal, Styles.customBlackFont),
         ),
         Text(
           'Password',
@@ -372,8 +371,7 @@ class _LogInState extends State<LogIn> {
       children: [
         Text(
           'Enter your ',
-          style: Styles()
-              .textStyle(14, Styles.normal, Styles.customBlackFont),
+          style: Styles().textStyle(14, Styles.normal, Styles.customBlackFont),
         ),
         Text(
           'Driver ID',

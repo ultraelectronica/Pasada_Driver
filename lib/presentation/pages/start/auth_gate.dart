@@ -134,7 +134,7 @@ class _AuthGateState extends State<AuthGate> {
     if (_hasSession == true) {
       return const MainPage();
     } else {
-      return AuthPagesView();
+      return const AuthPagesView();
     }
   }
 }
