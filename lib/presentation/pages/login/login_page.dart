@@ -26,29 +26,85 @@ class LogIn extends StatefulWidget {
 class _LogInState extends State<LogIn> {
   final inputDriverIDController = TextEditingController();
   final inputPasswordController = TextEditingController();
+  late final FocusNode driverIdFocusNode;
+  late final FocusNode passwordFocusNode;
   bool isPasswordVisible = false;
-  String errorMessage = '';
+  String driverIdError = '';
+  String passwordError = '';
   // Loading/error handled by DriverProvider now
+
+  @override
+  void initState() {
+    super.initState();
+    driverIdFocusNode = FocusNode();
+    passwordFocusNode = FocusNode();
+
+    void clearErrorOnFocus() {
+      if (driverIdFocusNode.hasFocus && driverIdError.isNotEmpty) {
+        setState(() {
+          driverIdError = '';
+        });
+      }
+      if (passwordFocusNode.hasFocus && passwordError.isNotEmpty) {
+        setState(() {
+          passwordError = '';
+        });
+      }
+    }
+
+    driverIdFocusNode.addListener(clearErrorOnFocus);
+    passwordFocusNode.addListener(clearErrorOnFocus);
+
+    inputDriverIDController.addListener(() {
+      if (driverIdError.isNotEmpty) {
+        setState(() {
+          driverIdError = '';
+        });
+      }
+    });
+
+    inputPasswordController.addListener(() {
+      if (passwordError.isNotEmpty) {
+        setState(() {
+          passwordError = '';
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
     inputDriverIDController.dispose();
     inputPasswordController.dispose();
+    driverIdFocusNode.dispose();
+    passwordFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _logIn() async {
     final driverProv = context.read<DriverProvider>();
     driverProv.clearError();
-    driverProv.setLoading(true);
 
     final enteredDriverID = inputDriverIDController.text.trim();
     final enteredPassword = inputPasswordController.text.trim();
 
     if (enteredDriverID.isEmpty || enteredPassword.isEmpty) {
-      ShowMessage().showSnackBar(context, 'Please fill in all fields');
+      setState(() {
+        driverIdError = enteredDriverID.isEmpty ? 'Driver ID is required' : '';
+        passwordError = enteredPassword.isEmpty ? 'Password is required' : '';
+      });
       return;
     }
+
+    // Clear any previous inline error before proceeding
+    if (driverIdError.isNotEmpty || passwordError.isNotEmpty) {
+      setState(() {
+        driverIdError = '';
+        passwordError = '';
+      });
+    }
+
+    driverProv.setLoading(true);
 
     try {
       //Query to get the driverID and password from the driverTable
@@ -56,16 +112,44 @@ class _LogInState extends State<LogIn> {
           .from('driverTable')
           .select('full_name, driver_id, vehicle_id, driver_password')
           .eq('driver_id', enteredDriverID)
-          .single();
+          .maybeSingle();
 
-      final storedHashedPassword = await response['driver_password'] as String;
+      // Handle case where no row was found (invalid driver ID)
+      if (response == null) {
+        if (mounted) {
+          setState(() {
+            // Unknown driver ID
+            driverIdError = 'Invalid credentials. Please try again.';
+            passwordError = 'Invalid credentials. Please try again.';
+          });
+          driverProv.setLoading(false);
+        }
+        return;
+      }
+
+      final storedHashedPassword = response['driver_password'] as String?;
+      if (storedHashedPassword == null) {
+        if (mounted) {
+          setState(() {
+            driverIdError = 'Invalid credentials. Please try again.';
+            passwordError = 'Invalid credentials. Please try again.';
+          });
+          driverProv.setLoading(false);
+        }
+        return;
+      }
 
       bool checkPassword =
           PasswordUtil().checkPassword(enteredPassword, storedHashedPassword);
 
       if (!checkPassword) {
-        ShowMessage().showToast('Invalid credentials. Please try again.');
-        throw Exception('Error: Invalid credentials $checkPassword');
+        if (mounted) {
+          setState(() {
+            passwordError = 'Invalid credentials. Please try again.';
+          });
+          driverProv.setLoading(false);
+        }
+        return;
       }
 
       if (mounted) {
@@ -99,7 +183,7 @@ class _LogInState extends State<LogIn> {
         print('Error during login: $e');
         print('Error Login, Stack Trace: $stackTrace');
       }
-      ShowMessage().showToast('Invalid credentials. Please try again.');
+      // Keep provider error for unexpected failures; no toast for invalid creds path.
     }
   }
 
@@ -229,9 +313,7 @@ class _LogInState extends State<LogIn> {
         context.select<DriverProvider, String?>((p) => p.error?.message);
 
     Widget content;
-    if (isLoading) {
-      content = const Center(child: CircularProgressIndicator());
-    } else if (errorMsg != null) {
+    if (errorMsg != null) {
       content = ErrorRetryWidget(message: errorMsg, onRetry: _logIn);
     } else {
       content = LayoutBuilder(
@@ -278,7 +360,7 @@ class _LogInState extends State<LogIn> {
       width: double.infinity,
       height: buttonHeight,
       child: ElevatedButton(
-        onPressed: _logIn,
+        onPressed: isLoading ? null : _logIn,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 0, 0, 0),
           shadowColor: Colors.black,
@@ -288,7 +370,12 @@ class _LogInState extends State<LogIn> {
           ),
         ),
         child: isLoading
-            ? const CircularProgressIndicator(color: Colors.white)
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    color: Colors.white, strokeWidth: 2.4),
+              )
             : Text(
                 'Log in',
                 style:
@@ -303,6 +390,7 @@ class _LogInState extends State<LogIn> {
       width: double.infinity,
       height: inputFieldHeight,
       child: TextField(
+        focusNode: passwordFocusNode,
         controller: inputPasswordController,
         obscureText: !isPasswordVisible,
         decoration: InputDecoration(
@@ -314,7 +402,15 @@ class _LogInState extends State<LogIn> {
             borderRadius: BorderRadius.circular(10.0),
             borderSide: const BorderSide(color: Colors.black, width: 2.0),
           ),
-          errorText: errorMessage.isNotEmpty ? errorMessage : null,
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.0),
+            borderSide: const BorderSide(color: Colors.red, width: 2.0),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.0),
+            borderSide: const BorderSide(color: Colors.red, width: 2.0),
+          ),
+          errorText: passwordError.isNotEmpty ? passwordError : null,
           suffixIcon: IconButton(
             color: Colors.black54,
             onPressed: () {
@@ -386,6 +482,7 @@ class _LogInState extends State<LogIn> {
       width: double.infinity,
       height: inputFieldHeight,
       child: TextField(
+        focusNode: driverIdFocusNode,
         controller: inputDriverIDController,
         decoration: InputDecoration(
           enabledBorder: OutlineInputBorder(
@@ -396,13 +493,21 @@ class _LogInState extends State<LogIn> {
             borderRadius: BorderRadius.circular(10.0),
             borderSide: const BorderSide(color: Colors.black, width: 2.0),
           ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.0),
+            borderSide: const BorderSide(color: Colors.red, width: 2.0),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.0),
+            borderSide: const BorderSide(color: Colors.red, width: 2.0),
+          ),
           hintText: 'Enter your Driver ID here',
           hintStyle: TextStyle(
             fontSize: 14,
             color: Colors.grey.shade600,
             fontWeight: FontWeight.w400,
           ),
-          errorText: errorMessage.isNotEmpty ? errorMessage : null,
+          errorText: driverIdError.isNotEmpty ? driverIdError : null,
           filled: true,
           fillColor: Colors.grey.shade50,
           prefixIcon: const Icon(

@@ -160,70 +160,6 @@ class ActivityPageState extends State<ActivityPage> {
             textAlign: TextAlign.center),
       );
 
-  Widget _buildCircularEarningProgress(
-      String title,
-      int todayEarnings,
-      int todayTargetEarnings,
-      int weeklyEarnings,
-      int weeklyTargetEarnings,
-      int monthlyEarnings,
-      int monthlyTargetEarnings) {
-    final progress =
-        todayTargetEarnings == 0 ? 0.0 : todayEarnings / todayTargetEarnings;
-    final weeklyProgress =
-        weeklyTargetEarnings == 0 ? 0.0 : weeklyEarnings / weeklyTargetEarnings;
-    final monthlyProgress = monthlyTargetEarnings == 0
-        ? 0.0
-        : monthlyEarnings / monthlyTargetEarnings;
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Text(
-        //   title,
-        //   style:
-        //       Styles().textStyle(18, Styles.semiBold, Styles.customBlackFont),
-        // ),
-        // const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _earningMetric(
-              label: "Today's Earnings",
-              color: Constants.GREEN_COLOR,
-              progress: progress,
-              currentEarnings: todayEarnings,
-              targetEarnings: todayTargetEarnings,
-            ),
-            // const SizedBox(width: 5),
-            // _earningMetric(
-            //   label: 'Weekly Earnings',
-            //   color: Colors.blue,
-            //   progress: weeklyProgress,
-            //   currentEarnings: weeklyEarnings,
-            //   targetEarnings: weeklyTargetEarnings,
-            // ),
-            // _earningMetric(
-            //   label: 'Monthly\nEarnings',
-            //   color: Colors.red,
-            //   progress: monthlyProgress,
-            //   currentEarnings: monthlyEarnings,
-            //   targetEarnings: monthlyTargetEarnings,
-            // ),
-          ],
-        ),
-        // const SizedBox(height: 15),
-        // _earningMetric(
-        //   label: 'Monthly Earnings',
-        //   color: Colors.red,
-        //   progress: monthlyProgress,
-        //   currentEarnings: monthlyEarnings,
-        //   targetEarnings: monthlyTargetEarnings,
-        // ),
-      ],
-    );
-  }
-
   Widget _earningMetric({
     required String label,
     required Color color,
@@ -232,7 +168,7 @@ class ActivityPageState extends State<ActivityPage> {
     required int targetEarnings,
   }) {
     double circleSize = 100;
-    double strokeWidth = 18 ;
+    double strokeWidth = 18;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -285,26 +221,6 @@ class ActivityPageState extends State<ActivityPage> {
         ]),
         const SizedBox(height: 15),
 
-        // Current earnings
-        // Text(
-        //   '₱$current',
-        //   style: Styles().textStyle(16, FontWeight.w700, color),
-        //   textAlign: TextAlign.center,
-        // ),
-
-        // Text(
-        //   'Target Earnings:',
-        //   style: Styles().textStyle(14, Styles.medium, Styles.customBlackFont),
-        //   textAlign: TextAlign.center,
-        // ),
-
-        // Divider
-        // Container(
-        //   width: 50,
-        //   height: 1,
-        //   margin: const EdgeInsets.symmetric(vertical: 1),
-        //   color: Constants.BLACK_COLOR,
-        // ),
       ],
     );
   }
