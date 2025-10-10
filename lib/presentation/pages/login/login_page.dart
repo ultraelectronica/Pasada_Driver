@@ -218,6 +218,9 @@ class _LogInState extends State<LogIn> {
       debugPrint(
           'Basic driver info set - DriverID: ${response['driver_id']}, VehicleID: ${response['vehicle_id']}');
 
+      final driverProv = context.read<DriverProvider>();
+      debugPrint('Basic driver info: DriverID: ${driverProv.driverID}');
+
       // Wait for driver route to be set before proceeding
       await context.read<DriverProvider>().getDriverRoute();
       debugPrint('Initial route ID fetch completed');

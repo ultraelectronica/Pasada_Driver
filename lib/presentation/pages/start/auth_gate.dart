@@ -84,6 +84,7 @@ class _AuthGateState extends State<AuthGate> {
               'Fetching route coordinates for route: ${driverProvider.routeID}');
 
           await mapProvider.getRouteCoordinates(driverProvider.routeID);
+
           mapProvider.setRouteID(driverProvider.routeID);
           await passengerProvider.getBookingRequestsID(context);
         } else {
@@ -92,6 +93,9 @@ class _AuthGateState extends State<AuthGate> {
             final selected = await RouteSelectionSheet.show(context);
             if (selected != null) {
               await mapProvider.getRouteCoordinates(selected);
+              debugPrint(
+                  'AuthGate: Updating status to Online (after selection)');
+              await driverProvider.updateStatusToDB('Online');
               mapProvider.setRouteID(selected);
               await passengerProvider.getBookingRequestsID(context);
             }

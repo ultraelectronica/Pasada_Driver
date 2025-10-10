@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/common/constants/text_styles.dart';
+import 'package:pasada_driver_side/presentation/providers/quota/quota_provider.dart';
+import 'package:provider/provider.dart';
 
 class ActivityPage extends StatefulWidget {
   const ActivityPage({super.key});
@@ -11,12 +13,6 @@ class ActivityPage extends StatefulWidget {
 }
 
 class ActivityPageState extends State<ActivityPage> {
-  int todayEarnings = 200;
-  int todayTargetEarnings = 1000;
-  int weeklyEarnings = 1500;
-  int weeklyTargetEarnings = 5000;
-  int monthlyEarnings = 9000;
-  int monthlyTargetEarnings = 10000;
 
   final NumberFormat _numberFormat = NumberFormat.decimalPattern();
   String _formatPeso(int value) => '₱${_numberFormat.format(value)}';
@@ -24,10 +20,34 @@ class ActivityPageState extends State<ActivityPage> {
   @override
   void initState() {
     super.initState();
+    // Trigger quota fetch after first frame to ensure providers are ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<QuotaProvider>().fetchQuota(context);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Read target quotas from provider
+    final quotaProv = context.watch<QuotaProvider>();
+    final int todayTargetEarnings = quotaProv.todayTargetQuota;
+    final int weeklyTargetEarnings = quotaProv.weeklyTargetQuota;
+    final int monthlyTargetEarnings = quotaProv.monthlyTargetQuota;
+
+    final int todayEarnings = quotaProv.todayQuota;
+    final int weeklyEarnings = quotaProv.weeklyQuota;
+    final int monthlyEarnings = quotaProv.monthlyQuota;
+
+    // Safe progress calculations
+    final double todayProgress =
+        todayTargetEarnings > 0 ? todayEarnings / todayTargetEarnings : 0.0;
+    final double weeklyProgress =
+        weeklyTargetEarnings > 0 ? weeklyEarnings / weeklyTargetEarnings : 0.0;
+    final double monthlyProgress = monthlyTargetEarnings > 0
+        ? monthlyEarnings / monthlyTargetEarnings
+        : 0.0;
     return Scaffold(
       // backgroundColor: Colors.grey.shade300,
       backgroundColor: Colors.white,
@@ -66,7 +86,7 @@ class ActivityPageState extends State<ActivityPage> {
                             child: _earningMetric(
                               label: 'Today\'s Earnings',
                               color: Constants.GREEN_COLOR,
-                              progress: todayEarnings / todayTargetEarnings,
+                              progress: todayProgress,
                               currentEarnings: todayEarnings,
                               targetEarnings: todayTargetEarnings,
                             ),
@@ -101,7 +121,7 @@ class ActivityPageState extends State<ActivityPage> {
                             child: _earningMetric(
                               label: 'Weekly Earnings',
                               color: Colors.blue,
-                              progress: weeklyEarnings / weeklyTargetEarnings,
+                              progress: weeklyProgress,
                               currentEarnings: weeklyEarnings,
                               targetEarnings: weeklyTargetEarnings,
                             ),
@@ -137,7 +157,7 @@ class ActivityPageState extends State<ActivityPage> {
                       child: _earningMetric(
                         label: 'Monthly Earnings',
                         color: Colors.red,
-                        progress: monthlyEarnings / monthlyTargetEarnings,
+                        progress: monthlyProgress,
                         currentEarnings: monthlyEarnings,
                         targetEarnings: monthlyTargetEarnings,
                       ),
@@ -220,7 +240,6 @@ class ActivityPageState extends State<ActivityPage> {
           ),
         ]),
         const SizedBox(height: 15),
-
       ],
     );
   }

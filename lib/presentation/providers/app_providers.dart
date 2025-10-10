@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'driver/driver_provider.dart';
 import 'map_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/quota/quota_provider.dart';
 import 'passenger/passenger_provider.dart';
 // import 'theme_provider.dart';
 
@@ -17,10 +18,10 @@ class AppProviders extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => DriverProvider()),
         ChangeNotifierProvider(create: (_) => MapProvider()),
         ChangeNotifierProvider(create: (_) => PassengerProvider()),
+        ChangeNotifierProvider(create: (_) => QuotaProvider()),
       ],
       child: child,
     );
