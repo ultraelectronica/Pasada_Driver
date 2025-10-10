@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pasada_driver_side/presentation/pages/home/controllers/id_acceptance_controller.dart';
 import 'package:pasada_driver_side/presentation/pages/home/models/passenger_status.dart';
 import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 import 'package:pasada_driver_side/common/constants/constants.dart';
@@ -94,7 +95,7 @@ class PassengerListWidget extends StatelessWidget {
           Text(
             'Active Bookings',
             style:
-                Styles().textStyle(15, Styles.w600Weight, Styles.customBlack),
+                Styles().textStyle(15, Styles.semiBold, Styles.customBlackFont),
           ),
           const Spacer(),
           Icon(Icons.swipe_down_alt, size: 16, color: Colors.grey[500]),
@@ -156,12 +157,12 @@ class PassengerListWidget extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             label,
-            style: Styles().textStyle(11, Styles.w700Weight, color),
+            style: Styles().textStyle(11, Styles.bold, color),
           ),
           const SizedBox(width: 5),
           Text(
             count,
-            style: Styles().textStyle(11, Styles.w700Weight, countColor),
+            style: Styles().textStyle(11, Styles.bold, countColor),
           ),
         ],
       ),
@@ -179,8 +180,7 @@ class PassengerListWidget extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             'No active bookings',
-            style: Styles()
-                .textStyle(14, Styles.w700Weight, Constants.BLACK_COLOR),
+            style: Styles().textStyle(14, Styles.bold, Constants.BLACK_COLOR),
           ),
         ],
       ),
@@ -237,7 +237,7 @@ class PassengerListWidget extends StatelessWidget {
             // Status icon
             Container(
               decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.1),
+                color: Colors.black.withValues(alpha: 0.75),
                 shape: BoxShape.circle,
               ),
               padding: const EdgeInsets.all(4),
@@ -251,7 +251,7 @@ class PassengerListWidget extends StatelessWidget {
                   Text(
                     '# ${passenger.booking.id}',
                     style: Styles()
-                        .textStyle(13, Styles.w600Weight, Styles.customBlack),
+                        .textStyle(13, Styles.semiBold, Styles.customBlackFont),
                   ),
                   if (isUrgent) ...[
                     const SizedBox(width: 4),
@@ -264,8 +264,7 @@ class PassengerListWidget extends StatelessWidget {
                       ),
                       child: Text(
                         'URGENT',
-                        style: Styles()
-                            .textStyle(9, Styles.w700Weight, Colors.red),
+                        style: Styles().textStyle(9, Styles.bold, Colors.red),
                       ),
                     ),
                   ],
@@ -294,8 +293,8 @@ class PassengerListWidget extends StatelessWidget {
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: Text(
                       'View ID',
-                      style: Styles()
-                          .textStyle(14, Styles.w600Weight, Colors.white),
+                      style:
+                          Styles().textStyle(14, Styles.semiBold, Colors.white),
                     ),
                   ),
                 ),
@@ -312,7 +311,7 @@ class PassengerListWidget extends StatelessWidget {
               child: Text(
                 formattedDistance,
                 style: Styles()
-                    .textStyle(14, Styles.w600Weight, Constants.BLACK_COLOR),
+                    .textStyle(14, Styles.semiBold, Constants.BLACK_COLOR),
               ),
             ),
           ],
@@ -329,7 +328,8 @@ class PassengerListWidget extends StatelessWidget {
         alignment: Alignment.center,
         title: Text(
           'Accept Passenger ID #$bookingId',
-          style: Styles().textStyle(20, Styles.w600Weight, Styles.customBlack),
+          style:
+              Styles().textStyle(20, Styles.semiBold, Styles.customBlackFont),
           textAlign: TextAlign.center,
         ),
         content: FutureBuilder<Uint8List?>(
@@ -365,7 +365,7 @@ class PassengerListWidget extends StatelessWidget {
                         'Failed to load ID image',
                         style: Styles().textStyle(
                           14,
-                          Styles.w500Weight,
+                          Styles.medium,
                           Colors.red[600] ?? Colors.red,
                         ),
                       ),
@@ -374,7 +374,7 @@ class PassengerListWidget extends StatelessWidget {
                         'Error: ${snapshot.error}',
                         style: Styles().textStyle(
                           12,
-                          Styles.w400Weight,
+                          Styles.normal,
                           Colors.grey[600] ?? Colors.grey,
                         ),
                         textAlign: TextAlign.center,
@@ -414,7 +414,7 @@ class PassengerListWidget extends StatelessWidget {
                                 'Invalid image format',
                                 style: Styles().textStyle(
                                   14,
-                                  Styles.w500Weight,
+                                  Styles.medium,
                                   Colors.grey[600] ?? Colors.grey,
                                 ),
                               ),
@@ -439,7 +439,7 @@ class PassengerListWidget extends StatelessWidget {
                   'No image data available',
                   style: Styles().textStyle(
                     14,
-                    Styles.w500Weight,
+                    Styles.medium,
                     Colors.grey[600] ?? Colors.grey,
                   ),
                 ),
@@ -452,56 +452,78 @@ class PassengerListWidget extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // Decline ID button
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 5,
-                        offset: const Offset(1, 2),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    'Decline',
-                    style: Styles().textStyle(
-                        16, Styles.w700Weight, Constants.WHITE_COLOR),
-                  ),
-                ),
-              ),
+              _buildDeclineIDButton(context, bookingId),
               // Accept ID button
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Constants.GREEN_COLOR,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 5,
-                        offset: const Offset(1, 2),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    'Accept',
-                    style: Styles().textStyle(
-                        16, Styles.w700Weight, Constants.WHITE_COLOR),
-                  ),
-                ),
-              ),
+              _buildAcceptIDButton(context, bookingId),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDeclineIDButton(BuildContext context, String bookingId) {
+    return GestureDetector(
+      onTap: () async {
+        try {
+          await IdAcceptanceController().declineID(bookingId);
+          Navigator.of(context).pop();
+          ShowMessage().showToast('ID declined for booking #$bookingId');
+        } catch (e) {
+          Navigator.of(context).pop();
+          ShowMessage().showToast('Failed to decline ID: $e');
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 5,
+              offset: const Offset(1, 2),
+            ),
+          ],
+        ),
+        child: Text(
+          'Decline',
+          style: Styles().textStyle(16, Styles.bold, Constants.WHITE_COLOR),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAcceptIDButton(BuildContext context, String bookingId) {
+    return GestureDetector(
+      onTap: () async {
+        try {
+          await IdAcceptanceController().acceptID(bookingId);
+          Navigator.of(context).pop();
+          ShowMessage().showToast('ID accepted for booking #$bookingId');
+        } catch (e) {
+          Navigator.of(context).pop();
+          ShowMessage().showToast('Failed to accept ID: $e');
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+        decoration: BoxDecoration(
+          color: Constants.GREEN_COLOR,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 5,
+              offset: const Offset(1, 2),
+            ),
+          ],
+        ),
+        child: Text(
+          'Accept',
+          style: Styles().textStyle(16, Styles.bold, Constants.WHITE_COLOR),
+        ),
       ),
     );
   }

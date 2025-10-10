@@ -46,8 +46,7 @@ class ResetCapacityButton extends StatelessWidget {
                 Text(
                   'Reset\nCapacity',
                   textAlign: TextAlign.center,
-                  style:
-                      Styles().textStyle(10, Styles.w600Weight, Colors.white),
+                  style: Styles().textStyle(10, Styles.semiBold, Colors.white),
                 ),
               ],
             ),

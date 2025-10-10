@@ -4,10 +4,10 @@ import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:pasada_driver_side/presentation/pages/start/utils/start_constants.dart';
 import 'package:pasada_driver_side/presentation/routes/app_routes.dart';
 
-class OptimizedWelcomePage extends StatelessWidget {
+class WelcomePage extends StatelessWidget {
   final VoidCallback onLoginPressed;
 
-  const OptimizedWelcomePage({
+  const WelcomePage({
     super.key,
     required this.onLoginPressed,
   });
@@ -68,7 +68,8 @@ class WelcomeMessage extends StatelessWidget {
         ),
         Text(
           'Welcome to Pasada Driver',
-          style: Styles().textStyle(15, FontWeight.w500, Styles.customBlack),
+          style:
+              Styles().textStyle(15, FontWeight.w500, Styles.customBlackFont),
         ),
       ],
     );

@@ -65,8 +65,7 @@ class ConfirmPickupButton extends StatelessWidget {
                 ],
                 Text(
                   isLoading ? 'Processing…' : 'Confirm Pickup',
-                  style:
-                      Styles().textStyle(18, Styles.w600Weight, Colors.white),
+                  style: Styles().textStyle(18, Styles.semiBold, Colors.white),
                 ),
               ],
             ),

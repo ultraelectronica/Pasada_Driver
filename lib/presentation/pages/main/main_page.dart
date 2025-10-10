@@ -91,7 +91,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Constants.WHITE_COLOR,
+      // backgroundColor: Constants.BLACK_COLOR,
       body: IndexedStack(index: _currentIndex, children: pages),
       bottomNavigationBar: _buildBottomNavBar(),
     );
@@ -123,9 +123,9 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
       showSelectedLabels: true,
       showUnselectedLabels: false,
       selectedLabelStyle:
-          Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
+          Styles().textStyle(12, Styles.bold, Styles.customBlackFont),
       unselectedLabelStyle:
-          Styles().textStyle(12, Styles.w700Weight, Styles.customBlack),
+          Styles().textStyle(12, Styles.bold, Styles.customBlackFont),
       selectedItemColor: Constants.GREEN_COLOR,
       type: BottomNavigationBarType.fixed,
       items: navigation.entries

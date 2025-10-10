@@ -6,6 +6,7 @@ import 'package:location/location.dart';
 import 'package:pasada_driver_side/common/constants/message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/common/utils/result.dart';
+import 'package:pasada_driver_side/presentation/providers/quota/quota_provider.dart';
 
 class DriverProvider with ChangeNotifier {
   // Driver identification
@@ -20,7 +21,7 @@ class DriverProvider with ChangeNotifier {
   String _routeName = 'N/A';
 
   // Driver status
-  String _driverStatus = 'Online';
+  String _driverStatus = 'Idling';
   String? _lastDriverStatus;
   bool _isDriving = false;
 
@@ -34,6 +35,8 @@ class DriverProvider with ChangeNotifier {
   int _passengerSittingCapacity = 0;
 
   final SupabaseClient supabase = Supabase.instance.client;
+
+  final QuotaProvider quotaProvider = QuotaProvider();
 
   // Getters
   String get driverID => _driverID;
@@ -417,7 +420,7 @@ class DriverProvider with ChangeNotifier {
   Future<void> writeLoginTime(BuildContext context) async {
     try {
       final driverIdInt = int.tryParse(_driverID);
-      
+
       final response = await supabase
           .from('driverActivityLog')
           .insert({

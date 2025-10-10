@@ -20,9 +20,13 @@ class Constants {
   static Color GREEN_COLOR = const Color(0xFF00CC58);
   static Color GREEN_COLOR_LIGHT = const Color(0xFFA3E7C1);
   static Color GREEN_COLOR_DARK = const Color(0xFF0F311E);
+
   static Color WHITE_COLOR_LIGHT_DARK = const Color(0xFFCCEEDB);
   static Color WHITE_COLOR = const Color(0xFFF5F5F5);
+
+  static Color GREY_COLOR = Colors.grey.shade300;
+
   static Color BLACK_COLOR = const Color(0xFF121212);
-  static Color SWITCH_GREY_COLOR = const Color(0xFF383838);
-  static Color SWITCH_GREY_COLOR_DARK = const Color(0xFF848484);
+  static Color SWITCH_GREY_COLOR_DARK = const Color(0xFF383838);
+  static Color SWITCH_GREY_COLOR = const Color(0xFF848484);
 }

@@ -8,6 +8,7 @@ import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart';
 import 'package:pasada_driver_side/presentation/pages/profile/utils/profile_constants.dart';
+import 'package:pasada_driver_side/common/constants/constants.dart';
 
 // --- Custom Clipper for Background Shape ---
 class ProfileBackgroundClipper extends CustomClipper<Path> {
@@ -181,7 +182,7 @@ class ProfilePageState extends State<ProfilePage> {
       );
     }
 
-    return Scaffold(backgroundColor: Styles.customWhite, body: bodyContent);
+    return Scaffold(backgroundColor: Constants.WHITE_COLOR, body: bodyContent);
   }
 
   // --- Helper Widgets ---
@@ -189,7 +190,7 @@ class ProfilePageState extends State<ProfilePage> {
   Widget _buildDriverName(String driverName) {
     return Text(
       driverName,
-      style: Styles().textStyle(22, Styles.w700Weight, Styles.customWhite),
+      style: Styles().textStyle(22, Styles.bold, Constants.WHITE_COLOR),
       textAlign: TextAlign.center,
     );
   }
@@ -201,7 +202,7 @@ class ProfilePageState extends State<ProfilePage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.white, // White background for the chip
+          color: Constants.WHITE_COLOR, // White background for the chip
           borderRadius: BorderRadius.circular(20),
           boxShadow: const [
             BoxShadow(
@@ -225,8 +226,8 @@ class ProfilePageState extends State<ProfilePage> {
             const SizedBox(width: 8),
             Text(
               driverStatus,
-              style: Styles().textStyle(14, Styles.w500Weight,
-                  Styles.customBlack // Dark text for status
+              style: Styles().textStyle(14, Styles.medium,
+                  Styles.customBlackFont // Dark text for status
                   ),
             ),
           ],
@@ -308,7 +309,7 @@ class ProfilePageState extends State<ProfilePage> {
           child: Text(
             text,
             style:
-                Styles().textStyle(14, Styles.normalWeight, Styles.customBlack),
+                Styles().textStyle(14, Styles.normal, Styles.customBlackFont),
           ),
         ),
       ],
@@ -384,7 +385,7 @@ class ProfilePageState extends State<ProfilePage> {
       icon: const Icon(Icons.logout, color: Colors.red),
       label: Text(
         'Log out',
-        style: Styles().textStyle(16, Styles.w600Weight, Colors.red),
+        style: Styles().textStyle(16, Styles.semiBold, Colors.red),
       ),
       style: OutlinedButton.styleFrom(
         foregroundColor: Colors.red,
@@ -406,12 +407,12 @@ class ProfilePageState extends State<ProfilePage> {
           title: Text(
             'Confirm Log out',
             style:
-                Styles().textStyle(20, Styles.w600Weight, Styles.customBlack),
+                Styles().textStyle(20, Styles.semiBold, Styles.customBlackFont),
           ),
           content: Text(
             'Are you sure you want to log out?',
             style:
-                Styles().textStyle(16, Styles.normalWeight, Styles.customBlack),
+                Styles().textStyle(16, Styles.normal, Styles.customBlackFont),
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
@@ -423,8 +424,7 @@ class ProfilePageState extends State<ProfilePage> {
               },
               child: Text(
                 'Cancel',
-                style: Styles()
-                    .textStyle(16, Styles.w500Weight, Colors.grey[700]!),
+                style: Styles().textStyle(16, Styles.medium, Colors.grey[700]!),
               ),
             ),
             TextButton(
@@ -441,7 +441,7 @@ class ProfilePageState extends State<ProfilePage> {
               },
               child: Text(
                 'Confirm',
-                style: Styles().textStyle(16, Styles.w500Weight, Colors.red),
+                style: Styles().textStyle(16, Styles.medium, Colors.red),
               ),
             ),
           ],
@@ -472,7 +472,7 @@ class ProfilePageState extends State<ProfilePage> {
                 child: Text(
                   'Change Status',
                   style: Styles()
-                      .textStyle(18, Styles.w600Weight, Styles.customBlack),
+                      .textStyle(18, Styles.semiBold, Styles.customBlackFont),
                 ),
               ),
               statusOption('Online'),
@@ -505,7 +505,7 @@ class ProfilePageState extends State<ProfilePage> {
     return ListTile(
       leading: Icon(Icons.circle, color: statusColors[status]),
       title: Text(status,
-          style: Styles().textStyle(16, Styles.w500Weight, Styles.customBlack)),
+          style: Styles().textStyle(16, Styles.medium, Styles.customBlackFont)),
       onTap: () {
         if (status != 'Driving') {
           context.read<DriverProvider>().setIsDriving(false);
