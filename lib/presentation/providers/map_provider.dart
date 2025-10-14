@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:location/location.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
-import 'package:pasada_driver_side/common/constants/message.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/domain/services/polyline_service.dart';
@@ -202,28 +201,28 @@ class MapProvider with ChangeNotifier {
 
   // Removed auto flip: route changes are now explicit via RouteSetupPage.
   // Keep a public API to set a route by ID explicitly.
-  Future<void> setRouteById({required int routeId, required DriverProvider driverProv}) async {
-    if (routeId <= 0) {
-      _handleError('Invalid route ID: $routeId');
-      return;
-    }
-    try {
-      driverProv.setRouteID(routeId);
-      await getRouteCoordinates(routeId);
-      await supabase
-          .from('vehicleTable')
-          .update({'route_id': routeId}).eq('vehicle_id', driverProv.vehicleID);
-      await supabase
-          .from('driverTable')
-          .update({'currentroute_id': routeId}).eq('driver_id', driverProv.driverID);
-      _pickupLocation = null;
-      notifyListeners();
-      ShowMessage().showToast('Route changed successfully');
-    } catch (e) {
-      _handleError('Failed to set route: $e');
-      ShowMessage().showToast('Failed to set route: $e');
-    }
-  }
+  // Future<void> setRouteById({required int routeId, required DriverProvider driverProv}) async {
+  //   if (routeId <= 0) {
+  //     _handleError('Invalid route ID: $routeId');
+  //     return;
+  //   }
+  //   try {
+  //     driverProv.setRouteID(routeId);
+  //     await getRouteCoordinates(routeId);
+  //     await supabase
+  //         .from('vehicleTable')
+  //         .update({'route_id': routeId}).eq('vehicle_id', driverProv.vehicleID);
+  //     await supabase
+  //         .from('driverTable')
+  //         .update({'currentroute_id': routeId}).eq('driver_id', driverProv.driverID);
+  //     _pickupLocation = null;
+  //     notifyListeners();
+  //     ShowMessage().showToast('Route changed successfully');
+  //   } catch (e) {
+  //     _handleError('Failed to set route: $e');
+  //     ShowMessage().showToast('Failed to set route: $e');
+  //   }
+  // }
 
   // ───────────────────────── helpers ─────────────────────────
   void _updateState(RouteState s, String? err) {

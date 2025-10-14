@@ -110,7 +110,7 @@ class FloatingCapacity extends StatelessWidget {
               Text(
                 text,
                 style: Styles()
-                    .textStyle(22, Styles.w600Weight, Styles.customBlack),
+                    .textStyle(22, Styles.semiBold, Styles.customBlackFont),
               ),
               if (canIncrement) ...[
                 const SizedBox(width: 8),

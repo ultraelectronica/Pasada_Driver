@@ -58,7 +58,8 @@ class SeatCapacityControl extends StatelessWidget {
             : await PassengerCapacity().manualIncrementSitting(context);
 
         if (result.success) {
-          SnackBarUtils.showManualAdded(context, seatType);
+          SnackBarUtils.pop(context, '$seatType passenger added manually',
+              backgroundColor: Colors.blue);
         } else {
           String errorMessage = 'Failed to add passenger';
           Color errorColor = Colors.red;
@@ -88,7 +89,9 @@ class SeatCapacityControl extends StatelessWidget {
                   : await PassengerCapacity().manualDecrementSitting(context);
 
               if (result.success) {
-                SnackBarUtils.showManualRemoved(context, seatType);
+                SnackBarUtils.pop(
+                    context, '$seatType passenger removed manually',
+                    backgroundColor: Colors.red);
               } else {
                 String errorMessage = 'Failed to remove passenger';
                 Color errorColor = Colors.red;

@@ -40,7 +40,7 @@ class StatCard extends StatelessWidget {
             Text(title,
                 textAlign: TextAlign.center,
                 style: Styles()
-                    .textStyle(13, FontWeight.w600, Styles.customBlack)),
+                    .textStyle(13, FontWeight.w600, Styles.customBlackFont)),
             const SizedBox(height: 8),
             Text(value,
                 style: Styles().textStyle(28, FontWeight.w700, color.shade700)),

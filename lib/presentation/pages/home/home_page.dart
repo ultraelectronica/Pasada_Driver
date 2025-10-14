@@ -25,6 +25,7 @@ import 'package:pasada_driver_side/presentation/pages/home/widgets/total_capacit
 import 'package:pasada_driver_side/presentation/pages/home/widgets/reset_capacity_button.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/confirm_pickup_control.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/complete_ride_control.dart';
+import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -101,7 +102,8 @@ class HomePageState extends State<HomePage> {
           final driverProv = context.read<DriverProvider>();
           final mapProv = context.read<MapProvider>();
           // Only prompt if no route is set. If loading, allow it to finish; if error, allow user to select.
-          if (driverProv.routeID <= 0 || mapProv.routeState == RouteState.error) {
+          if (driverProv.routeID <= 0 ||
+              mapProv.routeState == RouteState.error) {
             // ignore: use_build_context_synchronously
             await RouteSelectionSheet.show(context);
           }
@@ -136,10 +138,10 @@ class HomePageState extends State<HomePage> {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    final passengerCapacity =
-        context.select<DriverProvider, int>((provider) => provider.passengerCapacity);
-    final driverStatus =
-        context.select<DriverProvider, String>((provider) => provider.driverStatus);
+    final passengerCapacity = context
+        .select<DriverProvider, int>((provider) => provider.passengerCapacity);
+    final driverStatus = context
+        .select<DriverProvider, String>((provider) => provider.driverStatus);
 
     return Scaffold(
       body: SizedBox(
@@ -204,7 +206,7 @@ class HomePageState extends State<HomePage> {
               ),
 
             // PASSENGER SITTING CAPACITY - Can be incremented manually
-            if (driverStatus == 'Driving' ) 
+            if (driverStatus == 'Driving')
               SeatCapacityControl(
                 screenHeight: screenHeight,
                 screenWidth: screenWidth,
@@ -258,7 +260,7 @@ class HomePageState extends State<HomePage> {
                           Text(
                             'Finding Passengers...',
                             style: Styles().textStyle(
-                                16, Styles.w600Weight, Styles.customBlack),
+                                16, Styles.semiBold, Styles.customBlackFont),
                           ),
                         ],
                       ),
@@ -300,18 +302,15 @@ class HomePageState extends State<HomePage> {
                   final result =
                       await PassengerCapacity().resetCapacityToZero(context);
                   if (result.success) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Capacity reset to zero successfully'),
-                      backgroundColor: Colors.green,
-                      duration: Duration(seconds: 2),
-                    ));
+                    SnackBarUtils.showSuccess(
+                      context,
+                      'Capacity reset to zero successfully',
+                    );
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(
-                          'Failed to reset capacity: ${result.errorMessage}'),
-                      backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 3),
-                    ));
+                    SnackBarUtils.showError(
+                      context,
+                      'Failed to reset capacity: ${result.errorMessage}',
+                    );
                   }
                 }
               },

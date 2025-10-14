@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_capacity.dart';
+import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
@@ -38,11 +38,8 @@ class TotalCapacityIndicator extends StatelessWidget {
       onTap: () {
         // Refresh from DB
         PassengerCapacity().getPassengerCapacityToDB(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('Capacity refreshed'),
-          backgroundColor: Constants.GREEN_COLOR,
-          duration: const Duration(seconds: 2),
-        ));
+        SnackBarUtils.pop(context, 'Capacity refreshed',
+            backgroundColor: Colors.blue);
       },
     );
   }

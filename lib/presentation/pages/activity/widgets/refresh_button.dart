@@ -39,7 +39,8 @@ class RefreshButton extends StatelessWidget {
             : const Icon(Icons.refresh),
         label: Text(
           isRefreshing ? 'Refreshing...' : 'Refresh Bookings',
-          style: Styles().textStyle(14, FontWeight.w400, Styles.customBlack),
+          style:
+              Styles().textStyle(14, FontWeight.w400, Styles.customBlackFont),
         ),
       ),
     );

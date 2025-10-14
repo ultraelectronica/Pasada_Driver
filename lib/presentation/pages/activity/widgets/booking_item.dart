@@ -23,7 +23,7 @@ class BookingItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -34,7 +34,7 @@ class BookingItem extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: statusColor.withValues(alpha:0.1),
+              color: statusColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(statusIcon, color: statusColor, size: 24),
@@ -45,8 +45,8 @@ class BookingItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Booking #${booking.id}',
-                    style: Styles()
-                        .textStyle(16, FontWeight.w600, Styles.customBlack)),
+                    style: Styles().textStyle(
+                        16, FontWeight.w600, Styles.customBlackFont)),
                 const SizedBox(height: 4),
                 _buildStatusChip(booking.rideStatus, statusColor),
                 const SizedBox(height: 8),

@@ -47,7 +47,7 @@ class FloatingStatusSwitch extends StatelessWidget {
                   isDriving ? 'Driving' : 'Online',
                   style: Styles().textStyle(
                     14,
-                    Styles.w600Weight,
+                    Styles.semiBold,
                     isDriving ? Constants.GREEN_COLOR_DARK : Colors.grey[700]!,
                   ),
                 ),
@@ -55,8 +55,8 @@ class FloatingStatusSwitch extends StatelessWidget {
                   value: isDriving,
                   activeColor: Constants.GREEN_COLOR,
                   activeTrackColor: Constants.GREEN_COLOR_LIGHT,
-                  inactiveThumbColor: Constants.SWITCH_GREY_COLOR,
-                  inactiveTrackColor: Constants.SWITCH_GREY_COLOR_DARK,
+                  inactiveThumbColor: Constants.SWITCH_GREY_COLOR_DARK,
+                  inactiveTrackColor: Constants.SWITCH_GREY_COLOR,
                   trackOutlineWidth: WidgetStateProperty.all(1.5),
                   onChanged: (value) {
                     if (value) {
@@ -75,7 +75,8 @@ class FloatingStatusSwitch extends StatelessWidget {
     );
   }
 
-  void _switchToDriving(BuildContext context, DriverProvider driverProvider) async {
+  void _switchToDriving(
+      BuildContext context, DriverProvider driverProvider) async {
     final mapProvider = context.read<MapProvider>();
 
     // Guard: require a valid, loaded route
