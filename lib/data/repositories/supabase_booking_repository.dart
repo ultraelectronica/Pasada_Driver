@@ -156,6 +156,59 @@ class SupabaseBookingRepository implements BookingRepository {
     );
   }
 
+  @override
+  Future<bool> updateIdAccepted(String bookingId, bool accepted) async {
+    return _withRetry<bool>(
+      () => _updateIdAcceptedInternal(bookingId, accepted),
+      'updateIdAccepted',
+      maxRetries: BookingConstants.defaultMaxRetries,
+    );
+  }
+
+  Future<bool> _updateIdAcceptedInternal(
+      String bookingId, bool accepted) async {
+    try {
+      final response = await _supabase
+          .from('bookings')
+          .update({BookingConstants.fieldIsIdAccepted: accepted})
+          .eq(BookingConstants.fieldBookingId, bookingId)
+          .select(
+              '${BookingConstants.fieldBookingId}, ${BookingConstants.fieldIsIdAccepted}')
+          .timeout(
+            const Duration(seconds: AppConfig.databaseOperationTimeout),
+            onTimeout: () =>
+                throw TimeoutException('Database operation timed out'),
+          );
+      if (kDebugMode) {
+        debugPrint('updateIdAccepted rows: ${response.length}');
+        if (response.isNotEmpty) {
+          debugPrint('updateIdAccepted first row: ${response.first}');
+        }
+      }
+      return response.isNotEmpty;
+    } on TimeoutException {
+      if (kDebugMode) {
+        debugPrint('Timeout when updating id acceptance');
+      }
+      throw BookingException(
+        message: 'Operation timed out',
+        type: BookingConstants.errorTypeTimeout,
+        operation: 'updateIdAccepted',
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error updating id acceptance: $e');
+      }
+      throw BookingException(
+        message: e.toString(),
+        type: e is PostgrestException
+            ? BookingConstants.errorTypeDatabase
+            : BookingConstants.errorTypeUnknown,
+        operation: 'updateIdAccepted',
+      );
+    }
+  }
+
   Future<bool> _updateBookingStatusInternal(
       String bookingId, String newStatus) async {
     try {

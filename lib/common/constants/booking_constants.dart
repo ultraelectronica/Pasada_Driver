@@ -24,6 +24,7 @@ class BookingConstants {
   static const String fieldDropoffLng = 'dropoff_lng';
   static const String fieldSeatType = 'seat_type';
   static const String fieldPassengerIdImagePath = 'passenger_id_image_path';
+  static const String fieldIsIdAccepted = 'is_id_accepted';
 
   // Default values
   static const String defaultSeatType = 'Sitting';

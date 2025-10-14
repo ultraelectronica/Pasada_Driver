@@ -14,6 +14,9 @@ abstract class BookingRepository {
   /// Update the ride status of a particular booking.
   Future<bool> updateBookingStatus(String bookingId, String newStatus);
 
+  /// Update the ID acceptance flag for a particular booking.
+  Future<bool> updateIdAccepted(String bookingId, bool accepted);
+
   /// Real-time stream of the driver's active bookings.
   Stream<List<Booking>> activeBookingsStream(String driverId);
 }
