@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/complete_ride_button.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/quota/quota_provider.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
 
@@ -54,6 +55,8 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
             if (!mounted) return;
             if (capacityResult.success) {
               SnackBarUtils.showSuccess(context, 'Ride completed successfully');
+              context.read<QuotaProvider>().fetchQuota(context);
+              // quotaProvider.setQuota(context);
             } else {
               // rollback booking status if capacity update failed
               await passengerProvider
