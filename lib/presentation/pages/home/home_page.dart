@@ -167,7 +167,7 @@ class HomePageState extends State<HomePage> {
                 ),
               ),
 
-            // FLOATING MESSAGE BUTTON
+            // FLOATING REFRESH BOOKING BUTTON
             FloatingRefreshBookingButton(
               screenHeight: screenHeight,
               screenWidth: screenWidth,
@@ -181,7 +181,7 @@ class HomePageState extends State<HomePage> {
               screenWidth: screenWidth,
             ),
 
-            // Floating Route Button (right side)
+            // Floating Route Button
             FloatingRouteButton(
               screenHeight: screenHeight,
               screenWidth: screenWidth,
