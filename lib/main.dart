@@ -13,12 +13,18 @@ import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/presentation/routes/app_routes.dart';
 import 'package:pasada_driver_side/common/logging.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:pasada_driver_side/Services/notificationService.dart';
 
 // Future for assets preloading
 late final Future<List<AssetImage>> _preloadedAssets;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase and register FCM background handler before runApp
+  await NotificationService.ensureFirebaseInitialized();
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   // Enable always-on display
   WakelockPlus.enable();
@@ -35,6 +41,9 @@ Future<void> main() async {
 
     // Wait for critical initialization to finish before proceeding
     await _preloadedAssets;
+
+    // Initialize notifications (permissions, token, listeners)
+    await NotificationService.instance.initialize();
 
     // Boot the widget tree with providers wired up
     runApp(const AppProviders(child: MyApp()));
