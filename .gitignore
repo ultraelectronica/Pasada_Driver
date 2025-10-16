@@ -90,3 +90,4 @@ coverage/
 
 # Root Gradle cache
 /.gradle/
+android/app/google-services.json
