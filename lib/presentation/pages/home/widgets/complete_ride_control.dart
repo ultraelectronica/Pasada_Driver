@@ -43,11 +43,13 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
         try {
           debugPrint('[COMPLETE] Start completion for booking: $bookingId');
           String? passengerIdImagePath;
+          bool? isIdAccepted;
           try {
             final booking =
                 passengerProvider.bookings.firstWhere((b) => b.id == bookingId);
             seatType = booking.seatType;
             passengerIdImagePath = booking.passengerIdImagePath;
+            isIdAccepted = booking.isIdAccepted;
             debugPrint(
                 '[COMPLETE] Loaded booking details. seatType=$seatType hasIdImage=${passengerIdImagePath != null && passengerIdImagePath.isNotEmpty}');
           } catch (_) {}
@@ -65,14 +67,18 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
             if (capacityResult.success) {
               debugPrint(
                   '[COMPLETE] Capacity decrement success. Considering auto-accept...');
-              // Auto-accept discount ID if a discount request (ID image) exists
+              // Auto-accept discount ID only if request exists and decision is still pending
               try {
                 if (passengerIdImagePath != null &&
-                    passengerIdImagePath.isNotEmpty) {
+                    passengerIdImagePath.isNotEmpty &&
+                    isIdAccepted == null) {
                   debugPrint(
                       '[COMPLETE] Auto-accepting discount ID for booking: $bookingId');
                   await IdAcceptanceController().acceptID(bookingId);
                   debugPrint('[COMPLETE] Auto-accept invoked.');
+                } else {
+                  debugPrint(
+                      '[COMPLETE] Skipping auto-accept. hasIdImage=${passengerIdImagePath != null && passengerIdImagePath.isNotEmpty} isIdAccepted=$isIdAccepted');
                 }
               } catch (_) {}
               SnackBarUtils.showSuccess(context, 'Ride completed successfully');

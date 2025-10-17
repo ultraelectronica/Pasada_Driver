@@ -7,6 +7,8 @@ import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:pasada_driver_side/common/constants/message.dart';
 import 'package:pasada_driver_side/Services/id_image_fetch_service.dart';
 import 'dart:typed_data';
+import 'package:provider/provider.dart';
+import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 
 /// Widget to display the list of nearby passengers (top 3, sorted by distance).
 class PassengerListWidget extends StatelessWidget {
@@ -35,6 +37,10 @@ class PassengerListWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final routeName = context.select<MapProvider, String?>(
+      (provider) => provider.routeName,
+    );
+
     // Create a new list and sort by distance (ascending)
     final List<PassengerStatus> sortedPassengers = List.from(passengers)
       ..sort((a, b) => a.distance.compareTo(b.distance));
@@ -57,7 +63,7 @@ class PassengerListWidget extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Header
-          _buildHeader(context),
+          _buildHeader(context, routeName),
           const Divider(height: 1, thickness: 1, color: Colors.grey),
 
           // Total number of pickups and dropoffs
@@ -87,7 +93,7 @@ class PassengerListWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, String? routeName) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       child: Row(
@@ -98,7 +104,14 @@ class PassengerListWidget extends StatelessWidget {
                 Styles().textStyle(15, Styles.semiBold, Styles.customBlackFont),
           ),
           const Spacer(),
-          Icon(Icons.swipe_down_alt, size: 16, color: Colors.grey[500]),
+          Text(
+            routeName == null || routeName.isEmpty
+                ? 'No route selected'
+                : routeName,
+            style:
+                Styles().textStyle(15, Styles.semiBold, Styles.customBlackFont),
+          ),
+          Icon(Icons.swipe_down_alt, size: 16, color: Colors.grey[600]),
         ],
       ),
     );

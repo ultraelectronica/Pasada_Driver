@@ -168,12 +168,12 @@ class HomePageState extends State<HomePage> {
               ),
 
             // FLOATING REFRESH BOOKING BUTTON
-            FloatingRefreshBookingButton(
-              screenHeight: screenHeight,
-              screenWidth: screenWidth,
-              isLoading: _isLoadingBookings,
-              onRefresh: () => fetchBookings(context),
-            ),
+            // FloatingRefreshBookingButton(
+            //   screenHeight: screenHeight,
+            //   screenWidth: screenWidth,
+            //   isLoading: _isLoadingBookings,
+            //   onRefresh: () => fetchBookings(context),
+            // ),
 
             // Floating Status Switch
             FloatingStatusSwitch(
