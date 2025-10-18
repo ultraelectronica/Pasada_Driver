@@ -17,6 +17,12 @@ abstract class BookingRepository {
   /// Update the ID acceptance flag for a particular booking.
   Future<bool> updateIdAccepted(String bookingId, bool accepted);
 
+  /// Fetch current fare for a booking (returns null if absent)
+  Future<int?> fetchFare(String bookingId);
+
+  /// Update fare for a booking (stored as integer cents or whole currency as per schema)
+  Future<bool> updateFare(String bookingId, int newFare);
+
   /// Real-time stream of the driver's active bookings.
   Stream<List<Booking>> activeBookingsStream(String driverId);
 }
