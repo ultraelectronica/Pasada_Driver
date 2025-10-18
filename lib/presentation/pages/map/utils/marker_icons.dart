@@ -22,9 +22,9 @@ class MarkerIcons {
 
   static Future<void> _load() async {
     // Use bytes approach to avoid BuildContext/MediaQuery usage here
-    pinGreen = await _fromAsset('assets/png/green_pin.png', width: 80);
-    pinOrange = await _fromAsset('assets/png/orange_pin.png', width: 80);
-    pinRed = await _fromAsset('assets/png/red_pin.png', width: 80);
+    pinGreen = await _fromAsset('assets/png/green_pin.png', width: 60);
+    pinOrange = await _fromAsset('assets/png/orange_pin.png', width: 60);
+    pinRed = await _fromAsset('assets/png/red_pin.png', width: 60);
   }
 
   static Future<BitmapDescriptor> _fromAsset(String assetPath,

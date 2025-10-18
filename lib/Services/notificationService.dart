@@ -19,7 +19,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Firebase must be initialized in background isolates as well.
   await NotificationService.ensureFirebaseInitialized();
   if (kDebugMode) {
-    debugPrint('[FCM][BG] title=${message.notification?.title} data=${message.data}');
+    debugPrint(
+        '[FCM][BG] title=${message.notification?.title} data=${message.data}');
   }
 }
 
@@ -66,8 +67,24 @@ class NotificationService {
     await _requestPermissionsIfNeeded();
 
     // Get and log token for debugging (consider sending to backend)
-    final token = await _messaging.getToken();
-    if (kDebugMode) debugPrint('[FCM] token=$token');
+    // Handle SERVICE_NOT_AVAILABLE error gracefully (common in emulators)
+    try {
+      final token = await _messaging.getToken();
+      if (kDebugMode) debugPrint('[FCM] token=$token');
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[FCM] Failed to get token: $e');
+        if (e.toString().contains('SERVICE_NOT_AVAILABLE')) {
+          debugPrint('[FCM] This typically means:');
+          debugPrint(
+              '[FCM] 1. Running on emulator without Google Play Services');
+          debugPrint('[FCM] 2. Device lacks Google Play Services');
+          debugPrint('[FCM] 3. Network connectivity issue');
+          debugPrint('[FCM] The app will continue without push notifications.');
+        }
+      }
+      // Continue initialization even if token retrieval fails
+    }
 
     // Foreground presentation options (Apple)
     await _messaging.setForegroundNotificationPresentationOptions(
@@ -83,9 +100,13 @@ class NotificationService {
     FirebaseMessaging.onMessageOpenedApp.listen(_onMessageOpenedApp);
 
     // Handle the case where the app was launched by tapping a notification
-    final initial = await _messaging.getInitialMessage();
-    if (initial != null) {
-      _handleNotificationNavigation(initial);
+    try {
+      final initial = await _messaging.getInitialMessage();
+      if (initial != null) {
+        _handleNotificationNavigation(initial);
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('[FCM] Failed to get initial message: $e');
     }
 
     _initialized = true;
@@ -133,7 +154,8 @@ class NotificationService {
 
   void _onForegroundMessage(RemoteMessage message) {
     if (kDebugMode) {
-      debugPrint('[FCM][FG] title=${message.notification?.title} data=${message.data}');
+      debugPrint(
+          '[FCM][FG] title=${message.notification?.title} data=${message.data}');
     }
 
     // On Android, show a local notification to emulate system notification while in foreground
@@ -186,13 +208,20 @@ class NotificationService {
   }
 
   /// Public helper to get the current FCM token
-  Future<String?> getToken() => _messaging.getToken();
+  Future<String?> getToken() async {
+    try {
+      return await _messaging.getToken();
+    } catch (e) {
+      if (kDebugMode) debugPrint('[FCM] Failed to get token: $e');
+      return null;
+    }
+  }
 
   /// Subscribe to a topic
-  Future<void> subscribeToTopic(String topic) => _messaging.subscribeToTopic(topic);
+  Future<void> subscribeToTopic(String topic) =>
+      _messaging.subscribeToTopic(topic);
 
   /// Unsubscribe from a topic
-  Future<void> unsubscribeFromTopic(String topic) => _messaging.unsubscribeFromTopic(topic);
+  Future<void> unsubscribeFromTopic(String topic) =>
+      _messaging.unsubscribeFromTopic(topic);
 }
-
-
