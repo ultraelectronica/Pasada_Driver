@@ -5,6 +5,7 @@ import 'package:location/location.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:pasada_driver_side/presentation/pages/map/utils/marker_icons.dart';
 import 'package:pasada_driver_side/domain/services/polyline_service.dart';
 import 'dart:collection';
 import 'dart:convert';
@@ -89,7 +90,8 @@ class MapProvider with ChangeNotifier {
   String? get polylineError => _polylineError;
   List<LatLng> get polylineCoords => _polylineCoords;
 
-  final LinkedHashMap<int, RouteData> _routeCache = LinkedHashMap<int, RouteData>();
+  final LinkedHashMap<int, RouteData> _routeCache =
+      LinkedHashMap<int, RouteData>();
   static const int _maxRouteCacheSize = 20;
   final SupabaseClient supabase = Supabase.instance.client;
 
@@ -126,6 +128,12 @@ class MapProvider with ChangeNotifier {
   void setPickUpLocation(LatLng loc) {
     if (loc.latitude == 0 && loc.longitude == 0) return;
     _pickupLocation = loc;
+    _refreshMarkers();
+    notifyListeners();
+  }
+
+  void clearBookingMarkerLocation() {
+    _pickupLocation = null;
     _refreshMarkers();
     notifyListeners();
   }
@@ -284,7 +292,29 @@ class MapProvider with ChangeNotifier {
   // ───────────────────────── initialization ─────────────────────────
   Future<bool> initialize(BuildContext context) async {
     try {
+      // Preload marker icons (no BuildContext dependency)
+      await MarkerIcons.ensureLoaded();
       final location = Location();
+      // Ensure service enabled
+      bool serviceEnabled = await location.serviceEnabled();
+      if (!serviceEnabled) {
+        serviceEnabled = await location.requestService();
+        if (!serviceEnabled) {
+          _handleError('Location services disabled');
+          return false;
+        }
+      }
+
+      // Ensure permission granted
+      PermissionStatus permission = await location.hasPermission();
+      if (permission == PermissionStatus.denied) {
+        permission = await location.requestPermission();
+        if (permission != PermissionStatus.granted) {
+          _handleError('Location permission not granted');
+          return false;
+        }
+      }
+
       final locData = await location.getLocation();
       if (locData.latitude != null && locData.longitude != null) {
         setCurrentLocation(LatLng(locData.latitude!, locData.longitude!));
@@ -383,23 +413,12 @@ class MapProvider with ChangeNotifier {
   void _refreshMarkers() {
     final m = <Marker>{};
 
-    // Current location
-    if (_currentLocation != null) {
-      m.add(_createMarker(
-        id: 'CurrentLocation',
-        pos: _currentLocation!,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
-        title: 'Current Location',
-        zIndex: 2,
-      ));
-    }
-
     // Route markers
     if (originLocation != null) {
       m.add(_createMarker(
           id: 'StartingLocation',
           pos: originLocation!,
-          icon:
+          icon: MarkerIcons.pinGreen ??
               BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
           title: 'Starting Point'));
     }
@@ -407,32 +426,33 @@ class MapProvider with ChangeNotifier {
       m.add(_createMarker(
           id: 'EndingLocation',
           pos: endingLocation!,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          icon: MarkerIcons.pinRed ??
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
           title: 'Destination'));
     }
-    if (intermediateLoc1 != null) {
-      m.add(_createMarker(
-          id: 'Intermediate1',
-          pos: intermediateLoc1!,
-          icon:
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
-          title: 'Waypoint 1'));
-    }
-    if (intermediateLoc2 != null) {
-      m.add(_createMarker(
-          id: 'Intermediate2',
-          pos: intermediateLoc2!,
-          icon:
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
-          title: 'Waypoint 2'));
-    }
+    // if (intermediateLoc1 != null) {
+    //   m.add(_createMarker(
+    //       id: 'Intermediate1',
+    //       pos: intermediateLoc1!,
+    //       icon: MarkerIcons.pinOrange ??
+    //           BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
+    //       title: 'Waypoint 1'));
+    // }
+    // if (intermediateLoc2 != null) {
+    //   m.add(_createMarker(
+    //       id: 'Intermediate2',
+    //       pos: intermediateLoc2!,
+    //       icon: MarkerIcons.pinOrange ??
+    //           BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
+    //       title: 'Waypoint 2'));
+    // }
 
     // Pickup
     if (_pickupLocation != null) {
       m.add(_createMarker(
           id: 'Pickup',
           pos: _pickupLocation!,
-          icon:
+          icon: MarkerIcons.pinGreen ??
               BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
           title: 'Pickup Location',
           zIndex: 3));

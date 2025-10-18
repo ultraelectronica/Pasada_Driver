@@ -30,7 +30,7 @@ class WelcomePage extends StatelessWidget {
                   StartConstants.welcomeLogoSizeFraction,
               child: Image.asset(
                 'assets/png/PasadaLogo.png',
-                color: Colors.black,
+                color: Colors.grey.shade900,
               ),
             ),
           ),
@@ -63,13 +63,12 @@ class WelcomeMessage extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Hi there!',
-          style: Styles().textStyle(40.0, FontWeight.w700, Colors.black),
+          'Hello Manong!',
+          style: Styles().textStyle(40.0, Styles.bold, Colors.black),
         ),
         Text(
           'Welcome to Pasada Driver',
-          style:
-              Styles().textStyle(15, FontWeight.w500, Styles.customBlackFont),
+          style: Styles().textStyle(18, Styles.normal, Styles.customBlackFont),
         ),
       ],
     );

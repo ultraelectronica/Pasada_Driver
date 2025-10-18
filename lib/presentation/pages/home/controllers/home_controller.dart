@@ -10,6 +10,7 @@ import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 import 'package:pasada_driver_side/presentation/pages/map/map_page.dart';
 import 'package:flutter/material.dart';
+import 'package:pasada_driver_side/presentation/pages/map/utils/marker_icons.dart';
 
 /// Encapsulates **non-UI** logic for the Home page: proximity checks, periodic
 /// booking fetches, and map-marker updates.
@@ -255,8 +256,12 @@ class HomeController extends ChangeNotifier {
       if (passenger.booking.rideStatus == BookingConstants.statusAccepted) {
         // Show pickup and future drop-off markers.
         final pickupIcon = passenger.isNearPickup
-            ? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen)
-            : BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
+            ? (MarkerIcons.pinGreen ??
+                BitmapDescriptor.defaultMarkerWithHue(
+                    BitmapDescriptor.hueGreen))
+            : (MarkerIcons.pinOrange ??
+                BitmapDescriptor.defaultMarkerWithHue(
+                    BitmapDescriptor.hueAzure));
         mapState.addCustomMarker(
           id: 'pickup_${passenger.booking.id}',
           position: passenger.booking.pickupLocation,
@@ -267,7 +272,8 @@ class HomeController extends ChangeNotifier {
         mapState.addCustomMarker(
           id: 'dropoff_future_${passenger.booking.id}',
           position: passenger.booking.dropoffLocation,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRose),
+          icon: MarkerIcons.pinOrange ??
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRose),
           title: 'Future Dropoff',
           zIndex: 2.0,
           alpha: 0.7,
@@ -275,8 +281,11 @@ class HomeController extends ChangeNotifier {
       } else {
         // Ongoing – drop-off markers.
         final dropoffIcon = passenger.isNearDropoff
-            ? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange)
-            : BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
+            ? (MarkerIcons.pinOrange ??
+                BitmapDescriptor.defaultMarkerWithHue(
+                    BitmapDescriptor.hueOrange))
+            : (MarkerIcons.pinRed ??
+                BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed));
         mapState.addCustomMarker(
           id: 'dropoff_${passenger.booking.id}',
           position: passenger.booking.dropoffLocation,

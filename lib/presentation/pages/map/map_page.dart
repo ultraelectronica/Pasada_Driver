@@ -12,7 +12,6 @@ import 'package:pasada_driver_side/presentation/pages/map/models/map_state.dart'
 import 'package:pasada_driver_side/presentation/pages/map/utils/map_constants.dart';
 import 'package:pasada_driver_side/presentation/pages/map/widgets/google_map_view.dart';
 import 'package:pasada_driver_side/presentation/pages/map/widgets/custom_location_button.dart';
-import 'package:pasada_driver_side/presentation/pages/map/widgets/map_loading_view.dart';
 import 'package:pasada_driver_side/presentation/pages/map/widgets/map_error_view.dart';
 import 'package:pasada_driver_side/presentation/pages/map/widgets/map_status_indicator.dart';
 
@@ -78,6 +77,14 @@ class MapPageState extends State<MapPage> {
       final ok = await context.read<MapProvider>().initialize(context);
       if (!ok) {
         throw Exception('Error: MapProvider initialization failed');
+      }
+
+      // Use provider's current location immediately so the map renders
+      final prov = context.read<MapProvider>();
+      if (prov.currentLocation != null) {
+        _updateMapState(_mapState.copyWith(
+          currentLocation: prov.currentLocation,
+        ));
       }
 
       // Start location tracking once provider has data
@@ -289,16 +296,19 @@ class MapPageState extends State<MapPage> {
     return Scaffold(
       body: Stack(
         children: [
-          // Show loading view if location not yet available
-          if (_mapState.currentLocation == null)
-            const MapLoadingView()
           // Show error view if initialization failed
-          else if (_mapState.hasError)
+          if (_mapState.hasError)
             MapErrorView(
               errorMessage: _mapState.errorMessage,
               onRetry: _initializeMap,
             )
-          // Show map when location is available
+          // Show loading indicator until we have a real current location
+          else if (_mapState.currentLocation == null)
+            const MapStatusIndicator(
+              initState: MapInitState.loadingLocation,
+              isVisible: true,
+            )
+          // Show map once current location exists
           else
             GoogleMapView(
               initialLocation: _mapState.currentLocation!,
