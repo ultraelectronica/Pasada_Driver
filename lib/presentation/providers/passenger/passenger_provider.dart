@@ -89,8 +89,9 @@ class PassengerProvider with ChangeNotifier {
       _bookings = list;
       _error = _streamService.error;
       _errorType = _streamService.errorType;
-      if (!_bookingsStreamController.isClosed)
+      if (!_bookingsStreamController.isClosed) {
         _bookingsStreamController.add(list);
+      }
       notifyListeners();
     });
   }
@@ -117,8 +118,9 @@ class PassengerProvider with ChangeNotifier {
   void setBookings(List<Booking> list) {
     if (_isDisposed) return;
     _bookings = list;
-    if (!_bookingsStreamController.isClosed)
+    if (!_bookingsStreamController.isClosed) {
       _bookingsStreamController.add(list);
+    }
     notifyListeners();
   }
 
@@ -137,8 +139,10 @@ class PassengerProvider with ChangeNotifier {
     // debounce
     final now = DateTime.now();
     if (_lastFetchTime != null &&
-        now.difference(_lastFetchTime!).inSeconds < AppConfig.fetchDebounceTime)
+        now.difference(_lastFetchTime!).inSeconds <
+            AppConfig.fetchDebounceTime) {
       return;
+    }
 
     _isProcessingBookings = true;
     notifyListeners();

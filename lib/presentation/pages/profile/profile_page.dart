@@ -316,6 +316,7 @@ class ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  // TODO: unused_element
   // ignore: unused_element
   Widget _buildActionsCard() {
     return Card(
@@ -506,15 +507,8 @@ class ProfilePageState extends State<ProfilePage> {
       leading: Icon(Icons.circle, color: statusColors[status]),
       title: Text(status,
           style: Styles().textStyle(16, Styles.medium, Styles.customBlackFont)),
-      onTap: () {
-        if (status != 'Driving') {
-          context.read<DriverProvider>().setIsDriving(false);
-          // ShowMessage()
-          //     .showToast(context.read<DriverProvider>().isDriving.toString());
-        }
-        context.read<DriverProvider>().updateStatusToDB(status);
-        context.read<DriverProvider>().setDriverStatus(status);
-
+      onTap: () async {
+        await context.read<DriverProvider>().updateStatusToDB(status);
         Navigator.of(context).pop();
       },
     );

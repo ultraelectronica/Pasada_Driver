@@ -70,10 +70,12 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
                   '[COMPLETE] Capacity decrement success. Considering auto-accept...');
               // Clear any lingering pickup marker and passenger markers
               try {
-                if (mounted)
+                if (mounted) {
                   context.read<MapProvider>().clearBookingMarkerLocation();
-                if (mounted)
+                }
+                if (mounted) {
                   context.read<MapProvider>().clearPassengerMarkers();
+                }
               } catch (_) {}
               // Auto-accept discount ID only if request exists and decision is still pending
               try {

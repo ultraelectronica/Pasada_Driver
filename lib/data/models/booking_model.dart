@@ -62,7 +62,7 @@ class Booking {
     final imagePath =
         json[BookingConstants.fieldPassengerIdImagePath] as String?;
     if (kDebugMode) {
-      debugPrint('Booking ${bookingId}: passengerIdImagePath = $imagePath');
+      debugPrint('Booking $bookingId: passengerIdImagePath = $imagePath');
     }
     final bool? isIdAccepted =
         json.containsKey(BookingConstants.fieldIsIdAccepted)

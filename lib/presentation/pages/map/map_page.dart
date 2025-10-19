@@ -126,9 +126,9 @@ class MapPageState extends State<MapPage> {
     _locationSubscription = LocationTracker.instance.locationStream.listen(
       (LocationData newLocation) {
         if (!mounted) return;
-        if (newLocation.latitude == null || newLocation.longitude == null)
+        if (newLocation.latitude == null || newLocation.longitude == null) {
           return;
-
+        }
         final newLatLng = LatLng(newLocation.latitude!, newLocation.longitude!);
         _handleLocationUpdate(newLatLng, newLocation);
       },
@@ -185,11 +185,12 @@ class MapPageState extends State<MapPage> {
     if (end == null) return;
 
     final List<LatLng> waypoints = [];
-    if (mapProv.intermediateLoc1 != null)
+    if (mapProv.intermediateLoc1 != null) {
       waypoints.add(mapProv.intermediateLoc1!);
-    if (mapProv.intermediateLoc2 != null)
+    }
+    if (mapProv.intermediateLoc2 != null) {
       waypoints.add(mapProv.intermediateLoc2!);
-
+    }
     await mapProv.generatePolyline(
       start: currentLocation,
       end: end,
