@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pasada_driver_side/Services/auth_service.dart';
+import 'package:pasada_driver_side/Services/notification_service.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/Services/password_util.dart';
 import 'package:pasada_driver_side/common/constants/text_styles.dart';
@@ -164,6 +165,8 @@ class _LogInState extends State<LogIn> {
         //logs the login time of the driver
         await context.read<DriverProvider>().writeLoginTime(context);
 
+        //shows the welcome notification
+        NotificationService.instance.showWelcomeNotification(context);
         // move to the main page once the driver successfuly logs in
         if (mounted) {
           Navigator.pushReplacement(
@@ -248,12 +251,14 @@ class _LogInState extends State<LogIn> {
         _setPassengerCapacity();
         debugPrint('Passenger capacity set');
 
+        // Get driver credentials
+        await context.read<DriverProvider>().getDriverCreds();
+
         // Update driver status
-        _updateStatusToDB();
+        // _updateStatusToDB();
+        await context.read<DriverProvider>().updateStatusToDB('Online');
         debugPrint('Driver status updated');
 
-        // Get driver credentials
-        await _setDriverCreds();
         debugPrint('Driver credentials fetched');
 
         // Get route coordinates using MapProvider
@@ -275,15 +280,6 @@ class _LogInState extends State<LogIn> {
       ShowMessage()
           .showToast('Error initializing driver info. Please try again.');
     }
-  }
-
-  void _updateStatusToDB() {
-    context.read<DriverProvider>().setDriverStatus('Online');
-    context.read<DriverProvider>().updateStatusToDB('Online');
-  }
-
-  Future<void> _setDriverCreds() async {
-    await context.read<DriverProvider>().getDriverCreds();
   }
 
   void _setPassengerCapacity() {

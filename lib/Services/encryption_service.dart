@@ -299,7 +299,7 @@ class EncryptionService {
   // Utility: quick self-test to ensure encryption/decryption works
   Future<bool> testEncryption() async {
     try {
-      final sample = 'encryption-self-test';
+      const sample = 'encryption-self-test';
       final enc = await encryptUserData(sample);
       final dec = await decryptUserData(enc);
       return dec == sample;

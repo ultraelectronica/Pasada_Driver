@@ -61,8 +61,9 @@ class _ConfirmPickupControlState extends State<ConfirmPickupControl> {
                   context, 'Passenger picked up successfully');
               // Clear pickup marker once ride begins
               try {
-                if (mounted)
+                if (mounted) {
                   context.read<MapProvider>().clearBookingMarkerLocation();
+                }
               } catch (_) {}
             } else {
               // rollback booking status if capacity update failed

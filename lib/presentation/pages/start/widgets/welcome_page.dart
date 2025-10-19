@@ -83,10 +83,14 @@ class NextPageButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
-      onPressed: onPressed ??
-          () {
-            Navigator.pushReplacementNamed(context, AppRoute.login.path);
-          },
+      onPressed: () {
+        // NotificationService.instance.showTestNotification(context);
+        if (onPressed != null) {
+          onPressed!();
+        } else {
+          Navigator.pushReplacementNamed(context, AppRoute.login.path);
+        }
+      },
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.black,
         minimumSize: Size(

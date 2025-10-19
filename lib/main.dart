@@ -14,7 +14,7 @@ import 'package:pasada_driver_side/presentation/routes/app_routes.dart';
 import 'package:pasada_driver_side/common/logging.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:pasada_driver_side/Services/notificationService.dart';
+import 'package:pasada_driver_side/Services/notification_service.dart';
 
 // Future for assets preloading
 late final Future<List<AssetImage>> _preloadedAssets;
@@ -44,6 +44,12 @@ Future<void> main() async {
 
     // Initialize notifications (permissions, token, listeners)
     await NotificationService.instance.initialize();
+
+    //TODO: check this part later.
+    //Show test notification on app start (development only)
+    // if (kDebugMode) {
+    //   await NotificationService.instance.showTestNotification();
+    // }
 
     // Boot the widget tree with providers wired up
     runApp(const AppProviders(child: MyApp()));

@@ -53,7 +53,7 @@ class FloatingStatusSwitch extends StatelessWidget {
                 ),
                 Switch(
                   value: isDriving,
-                  activeColor: Constants.GREEN_COLOR,
+                  activeThumbColor: Constants.GREEN_COLOR,
                   activeTrackColor: Constants.GREEN_COLOR_LIGHT,
                   inactiveThumbColor: Constants.SWITCH_GREY_COLOR_DARK,
                   inactiveTrackColor: Constants.SWITCH_GREY_COLOR,
