@@ -200,7 +200,7 @@ class _AuthPagesViewState extends State<AuthPagesView> {
       decoration: BoxDecoration(
           shape: BoxShape.rectangle,
           borderRadius: BorderRadius.circular(5),
-          color: isActive ? Colors.black : Colors.grey),
+          color: isActive ? Colors.white : Colors.grey.shade300),
     );
   }
 }

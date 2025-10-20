@@ -166,7 +166,9 @@ class _LogInState extends State<LogIn> {
         await context.read<DriverProvider>().writeLoginTime(context);
 
         //shows the welcome notification
-        NotificationService.instance.showWelcomeNotification(context);
+        NotificationService.instance.showWelcomeNotification(
+            'Welcome Manong ${response['full_name']}!',
+            'Welcome sa Pasada Driver.');
         // move to the main page once the driver successfuly logs in
         if (mounted) {
           Navigator.pushReplacement(
@@ -321,27 +323,38 @@ class _LogInState extends State<LogIn> {
           return SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: screenHeight * 0.15),
-                      _buildHeader(screenHeight * 0.15, 0),
-                      SizedBox(height: screenHeight * 0.1),
-                      _buildDriverIDText(),
-                      SizedBox(height: screenHeight * 0.01),
-                      _buildDriverIDInput(screenHeight * 0.06),
-                      SizedBox(height: screenHeight * 0.02),
-                      _buildPasswordText(),
-                      SizedBox(height: screenHeight * 0.01),
-                      _buildPasswordInput(screenHeight * 0.06),
-                      SizedBox(height: screenHeight * 0.15),
-                      _buildLogInButton(screenHeight * 0.06, isLoading),
-                      SizedBox(height: screenHeight * 0.1),
-                    ],
+              child: SafeArea(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/png/log_in_page_bg.png'),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  child: Center(
+                    child: Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: horizontalPadding),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: screenHeight * 0.15),
+                          _buildHeader(screenHeight * 0.15, 0),
+                          SizedBox(height: screenHeight * 0.1),
+                          _buildDriverIDText(),
+                          SizedBox(height: screenHeight * 0.01),
+                          _buildDriverIDInput(screenHeight * 0.06),
+                          SizedBox(height: screenHeight * 0.02),
+                          _buildPasswordText(),
+                          SizedBox(height: screenHeight * 0.01),
+                          _buildPasswordInput(screenHeight * 0.06),
+                          SizedBox(height: screenHeight * 0.15),
+                          _buildLogInButton(screenHeight * 0.06, isLoading),
+                          SizedBox(height: screenHeight * 0.1),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -361,7 +374,7 @@ class _LogInState extends State<LogIn> {
       child: ElevatedButton(
         onPressed: isLoading ? null : _logIn,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+          backgroundColor: Colors.white,
           shadowColor: Colors.black,
           elevation: 5,
           shape: RoundedRectangleBorder(
@@ -378,7 +391,7 @@ class _LogInState extends State<LogIn> {
             : Text(
                 'Log in',
                 style:
-                    Styles().textStyle(20, Styles.bold, Styles.customWhiteFont),
+                    Styles().textStyle(20, Styles.bold, Styles.customBlackFont),
               ),
       ),
     );
@@ -450,12 +463,13 @@ class _LogInState extends State<LogIn> {
     return Row(
       children: [
         Text(
-          'Enter your ',
-          style: Styles().textStyle(14, Styles.normal, Styles.customBlackFont),
+          'Enter your  ',
+          style:
+              Styles().textStyle(15, Styles.semiBold, Styles.customWhiteFont),
         ),
         Text(
           'Password',
-          style: Styles().textStyle(14, Styles.bold, Styles.customBlackFont),
+          style: Styles().textStyle(17, Styles.bold, Styles.customWhiteFont),
         ),
       ],
     );
@@ -465,12 +479,13 @@ class _LogInState extends State<LogIn> {
     return Row(
       children: [
         Text(
-          'Enter your ',
-          style: Styles().textStyle(14, Styles.normal, Styles.customBlackFont),
+          'Enter your  ',
+          style:
+              Styles().textStyle(15, Styles.semiBold, Styles.customWhiteFont),
         ),
         Text(
           'Driver ID',
-          style: Styles().textStyle(14, Styles.bold, Styles.customBlackFont),
+          style: Styles().textStyle(17, Styles.bold, Styles.customWhiteFont),
         ),
       ],
     );
@@ -531,17 +546,17 @@ class _LogInState extends State<LogIn> {
         Container(
           alignment: Alignment.center,
           width: iconSize,
-          height: iconSize,
+          height: iconSize * .5,
           child: Image.asset(
-            'assets/png/PasadaLogo.png',
-            color: Colors.black,
+            'assets/png/pasada_logo.png',
+            color: Colors.white,
           ),
         ),
         Container(
           margin: EdgeInsets.only(top: topMargin),
           child: Text(
             'Log-in to your account',
-            style: Styles().textStyle(18, Styles.bold, Styles.customBlackFont),
+            style: Styles().textStyle(18, Styles.bold, Styles.customWhiteFont),
           ),
         ),
       ],
