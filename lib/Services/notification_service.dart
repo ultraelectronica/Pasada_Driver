@@ -227,13 +227,12 @@ class NotificationService {
       _messaging.unsubscribeFromTopic(topic);
 
   /// Shows notification without Firebase
-  Future<void> showWelcomeNotification(BuildContext context) async {
+  Future<void> showWelcomeNotification(String title, String body) async {
     try {
-      final driverProv = Provider.of<DriverProvider>(context, listen: false);
       await _local.show(
         DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        'Welcome Manong ${driverProv.driverFullName}',
-        'Welcome to Pasada Driver',
+        title,
+        body,
         const NotificationDetails(
           android: AndroidNotificationDetails(
             'default_high_importance',

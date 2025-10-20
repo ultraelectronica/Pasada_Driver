@@ -166,7 +166,9 @@ class _LogInState extends State<LogIn> {
         await context.read<DriverProvider>().writeLoginTime(context);
 
         //shows the welcome notification
-        NotificationService.instance.showWelcomeNotification(context);
+        NotificationService.instance.showWelcomeNotification(
+            'Welcome Manong ${response['full_name']}!',
+            'Welcome sa Pasada Driver.');
         // move to the main page once the driver successfuly logs in
         if (mounted) {
           Navigator.pushReplacement(
