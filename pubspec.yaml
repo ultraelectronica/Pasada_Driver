@@ -98,6 +98,9 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/png/pasada_welcome_page_bg.png
+    - assets/png/log_in_page_bg.png
+    - assets/png/pasada_logo.png
     - assets/png/PasadaLogo.png
     - assets/png/
 

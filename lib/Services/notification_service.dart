@@ -3,10 +3,7 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
-import 'package:provider/provider.dart';
 
 /// Top-level background handler required by Firebase Messaging.
 ///

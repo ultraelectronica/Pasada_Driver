@@ -14,42 +14,61 @@ class WelcomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // Logo
-        Padding(
-          padding: EdgeInsets.only(
-              top: Constants(context).screenHeight *
-                  StartConstants.welcomeLogoTopFraction),
-          child: Center(
-            child: SizedBox(
-              width: Constants(context).screenWidth *
-                  StartConstants.welcomeLogoSizeFraction,
-              height: Constants(context).screenWidth *
-                  StartConstants.welcomeLogoSizeFraction,
-              child: Image.asset(
-                'assets/png/PasadaLogo.png',
-                color: Colors.grey.shade900,
+    return SafeArea(
+      child: Stack(
+        children: [
+          // Background image
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/png/pasada_welcome_page_bg.png'),
+                fit: BoxFit.cover,
               ),
             ),
           ),
-        ),
+          // Gradient overlay
+          // Container(
+          //   decoration: BoxDecoration(
+          //     gradient: LinearGradient(
+          //       begin:
+          //           Alignment.topLeft * 2, // Extends beyond the top left corner
+          //       end: Alignment.bottomRight,
+          //       colors: const [
+          //         Color(0xFF00CC58), // Custom green color
+          //         Color(0xFF88CB0C), // Custom yellow-green color
+          //       ],
+          //     ),
+          //   ),
+          // ),
+          // Content
+          SizedBox(
+            width: double.infinity,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Top spacer to push content down
+                const Spacer(flex: 2),
 
-        // Welcome message
-        const WelcomeMessage(),
+                // Welcome message
+                const WelcomeMessage(),
 
-        // Next button
-        Padding(
-          padding: EdgeInsets.only(
-            bottom: Constants(context).screenHeight *
-                StartConstants.nextButtonVerticalPaddingFraction,
-            top: Constants(context).screenHeight *
-                StartConstants.nextButtonVerticalPaddingFraction,
+                const Spacer(flex: 1),
+
+                // Next button
+                Padding(
+                  padding: EdgeInsets.only(
+                    bottom: Constants(context).screenHeight *
+                        StartConstants.nextButtonVerticalPaddingFraction,
+                    top: Constants(context).screenHeight *
+                        StartConstants.nextButtonVerticalPaddingFraction,
+                  ),
+                  child: NextPageButton(onPressed: onLoginPressed),
+                ),
+              ],
+            ),
           ),
-          child: NextPageButton(onPressed: onLoginPressed),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -61,14 +80,17 @@ class WelcomeMessage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           'Hello Manong!',
-          style: Styles().textStyle(40.0, Styles.bold, Colors.black),
+          style: Styles().textStyle(40.0, Styles.bold, Styles.customWhiteFont),
         ),
+        const SizedBox(height: 5),
         Text(
           'Welcome to Pasada Driver',
-          style: Styles().textStyle(18, Styles.normal, Styles.customBlackFont),
+          style:
+              Styles().textStyle(18, Styles.semiBold, Styles.customWhiteFont),
         ),
       ],
     );
@@ -92,7 +114,7 @@ class NextPageButton extends StatelessWidget {
         }
       },
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.white,
         minimumSize: Size(
             Constants(context).screenWidth * 0.1,
             Constants(context).screenHeight *
@@ -103,11 +125,8 @@ class NextPageButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(20.0),
         ),
       ),
-      child: const Icon(
-        Icons.arrow_forward_ios_rounded,
-        color: Colors.white,
-        size: 20.0,
-      ),
+      child: const Icon(Icons.arrow_forward_ios_rounded,
+          color: Colors.black, size: 20.0, grade: 100),
     );
   }
 }

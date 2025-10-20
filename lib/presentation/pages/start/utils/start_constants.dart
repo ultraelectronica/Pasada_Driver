@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 /// it easy to tweak the onboarding design in one place.
 class StartConstants {
   // Layout fractions
-  static const double welcomeLogoTopFraction = 0.15;
-  static const double welcomeLogoSizeFraction = 0.4;
+  // static const double welcomeLogoTopFraction = 0.15;
+  // static const double welcomeLogoSizeFraction = 0.4;
   static const double nextButtonVerticalPaddingFraction = 0.1;
   static const double pageIndicatorBottomFraction = 0.05;
 
