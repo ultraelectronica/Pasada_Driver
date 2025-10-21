@@ -17,7 +17,7 @@ import 'package:pasada_driver_side/presentation/pages/home/controllers/home_cont
 import 'package:pasada_driver_side/presentation/pages/home/models/passenger_status.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/passenger_list_widget.dart';
 // import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_refresh_booking_button.dart';
-import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_status_switch.dart';
+import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_start_driving_button.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_route_button.dart';
 import 'package:pasada_driver_side/presentation/pages/route_setup/route_selection_sheet.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/seat_capacity_control.dart';
@@ -175,11 +175,12 @@ class HomePageState extends State<HomePage> {
             //   onRefresh: () => fetchBookings(context),
             // ),
 
-            // Floating Status Switch
-            FloatingStatusSwitch(
-              screenHeight: screenHeight,
-              screenWidth: screenWidth,
-            ),
+            // Floating Start Driving Button
+            if (driverStatus != 'Driving')
+              FloatingStartDrivingButton(
+                screenHeight: screenHeight,
+                screenWidth: screenWidth,
+              ),
 
             // Floating Route Button
             FloatingRouteButton(
@@ -188,12 +189,13 @@ class HomePageState extends State<HomePage> {
             ),
 
             // PASSENGER CAPACITY (TOTAL) - Just refreshes data
-            TotalCapacityIndicator(
-              screenHeight: screenHeight,
-              screenWidth: screenWidth,
-              bottomFraction: HomeConstants.capacityTotalBottomFraction,
-              rightFraction: HomeConstants.sideButtonRightFraction,
-            ),
+            if (driverStatus == 'Driving')
+              TotalCapacityIndicator(
+                screenHeight: screenHeight,
+                screenWidth: screenWidth,
+                bottomFraction: HomeConstants.capacityTotalBottomFraction,
+                rightFraction: HomeConstants.sideButtonRightFraction,
+              ),
 
             // PASSENGER STANDING CAPACITY - Can be incremented manually
             if (driverStatus == 'Driving')

@@ -4,6 +4,7 @@ import 'package:pasada_driver_side/Services/auth_service.dart';
 import 'package:pasada_driver_side/Services/notification_service.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/Services/password_util.dart';
+import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:pasada_driver_side/common/constants/message.dart';
 import 'package:pasada_driver_side/presentation/pages/main/main_page.dart';
@@ -391,7 +392,7 @@ class _LogInState extends State<LogIn> {
             : Text(
                 'Log in',
                 style:
-                    Styles().textStyle(20, Styles.bold, Styles.customBlackFont),
+                    Styles().textStyle(20, Styles.bold, Constants.GREEN_COLOR),
               ),
       ),
     );
