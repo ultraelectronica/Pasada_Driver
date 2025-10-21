@@ -23,7 +23,6 @@ class DriverProvider with ChangeNotifier {
   // Driver status
   String _driverStatus = 'Idling';
   String? _lastDriverStatus;
-  bool _isDriving = false;
 
   // Loading & Error state (for 3-state UI)
   bool _isLoading = false;
@@ -49,7 +48,6 @@ class DriverProvider with ChangeNotifier {
   int get passengerCapacity => _passengerCapacity;
   int get passengerStandingCapacity => _passengerStandingCapacity;
   int get passengerSittingCapacity => _passengerSittingCapacity;
-  bool get isDriving => _isDriving;
   String? get driverFullName => _driverFullName;
   String get driverNumber => _driverNumber;
 
@@ -110,11 +108,6 @@ class DriverProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setIsDriving(bool value) {
-    _isDriving = value;
-    notifyListeners();
-  }
-
   // ───────────────────────── location update ─────────────────────────
   Future<void> updateCurrentLocation(LocationData newLocation) async {
     try {
@@ -167,7 +160,9 @@ class DriverProvider with ChangeNotifier {
     try {
       // Guard: require driver id
       if (_driverID.isEmpty) {
-        if (kDebugMode) debugPrint('updateStatusToDB: missing driverID');
+        if (kDebugMode) {
+          print('[Error] updateStatusToDB: missing driverID');
+        }
         return;
       }
 

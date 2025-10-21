@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/confirm_pickup_button.dart';
+import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
@@ -58,6 +59,12 @@ class _ConfirmPickupControlState extends State<ConfirmPickupControl> {
             if (capacityResult.success) {
               SnackBarUtils.showSuccess(
                   context, 'Passenger picked up successfully');
+              // Clear pickup marker once ride begins
+              try {
+                if (mounted) {
+                  context.read<MapProvider>().clearBookingMarkerLocation();
+                }
+              } catch (_) {}
             } else {
               // rollback booking status if capacity update failed
               await passengerProvider

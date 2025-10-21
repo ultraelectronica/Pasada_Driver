@@ -50,25 +50,46 @@ dependencies:
   http: ^0.13.5
   intl: ^0.20.2
   location: ^7.0.1
+  meta: ^1.16.0
   path_provider: ^2.1.5
   provider: ^6.1.1
+  shared_preferences: ^2.3.3
   supabase_flutter: ^2.0.0
   url_launcher: ^6.3.1
   wakelock_plus: ^1.3.2
   webview_flutter: ^4.10.0
 
 dev_dependencies:
+  flutter_launcher_icons: ^0.13.1
+
+  flutter_test:
+    sdk: flutter
+
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^4.0.0
-  flutter_test:
-    sdk: flutter
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/png/pasada_app_icon.png"
+  remove_alpha_ios: true
+  remove_alpha_android: true
+  remove_alpha_web: true
+  remove_alpha_windows: true
+  remove_alpha_linux: true
+  remove_alpha_macos: true
+  remove_alpha_fuchsia: true
+  remove_alpha_wasm: true
+  remove_alpha_dart: true
+
+
 # The following section is specific to Flutter packages.
 flutter:
   # The following line ensures that the Material Icons font is
@@ -77,7 +98,11 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/png/pasada_welcome_page_bg.png
+    - assets/png/log_in_page_bg.png
+    - assets/png/pasada_logo.png
     - assets/png/PasadaLogo.png
+    - assets/png/
 
     - assets/svg/PasadaJeep.svg
     - assets/svg/PasadaLogo.svg

@@ -40,7 +40,8 @@ class SupabaseBookingRepository implements BookingRepository {
           '${BookingConstants.fieldDropoffLat}, '
           '${BookingConstants.fieldDropoffLng}, '
           '${BookingConstants.fieldSeatType}, '
-          '${BookingConstants.fieldPassengerIdImagePath}';
+          '${BookingConstants.fieldPassengerIdImagePath}, '
+          '${BookingConstants.fieldIsIdAccepted}';
 
       const statusFilter =
           '${BookingConstants.fieldRideStatus}.eq.${BookingConstants.statusRequested},'
@@ -152,6 +153,104 @@ class SupabaseBookingRepository implements BookingRepository {
     return _withRetry<bool>(
       () => _updateBookingStatusInternal(bookingId, newStatus),
       'updateBookingStatus',
+      maxRetries: BookingConstants.defaultMaxRetries,
+    );
+  }
+
+  @override
+  Future<bool> updateIdAccepted(String bookingId, bool accepted) async {
+    return _withRetry<bool>(
+      () => _updateIdAcceptedInternal(bookingId, accepted),
+      'updateIdAccepted',
+      maxRetries: BookingConstants.defaultMaxRetries,
+    );
+  }
+
+  Future<bool> _updateIdAcceptedInternal(
+      String bookingId, bool accepted) async {
+    try {
+      final response = await _supabase
+          .from('bookings')
+          .update({BookingConstants.fieldIsIdAccepted: accepted})
+          .eq(BookingConstants.fieldBookingId, bookingId)
+          .select(
+              '${BookingConstants.fieldBookingId}, ${BookingConstants.fieldIsIdAccepted}')
+          .timeout(
+            const Duration(seconds: AppConfig.databaseOperationTimeout),
+            onTimeout: () =>
+                throw TimeoutException('Database operation timed out'),
+          );
+      if (kDebugMode) {
+        debugPrint('updateIdAccepted rows: ${response.length}');
+        if (response.isNotEmpty) {
+          debugPrint('updateIdAccepted first row: ${response.first}');
+        }
+      }
+      return response.isNotEmpty;
+    } on TimeoutException {
+      if (kDebugMode) {
+        debugPrint('Timeout when updating id acceptance');
+      }
+      throw BookingException(
+        message: 'Operation timed out',
+        type: BookingConstants.errorTypeTimeout,
+        operation: 'updateIdAccepted',
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error updating id acceptance: $e');
+      }
+      throw BookingException(
+        message: e.toString(),
+        type: e is PostgrestException
+            ? BookingConstants.errorTypeDatabase
+            : BookingConstants.errorTypeUnknown,
+        operation: 'updateIdAccepted',
+      );
+    }
+  }
+
+  @override
+  Future<int?> fetchFare(String bookingId) async {
+    return _withRetry<int?>(
+      () async {
+        final response = await _supabase
+            .from('bookings')
+            .select(BookingConstants.fieldFare)
+            .eq(BookingConstants.fieldBookingId, bookingId)
+            .limit(1)
+            .maybeSingle()
+            .timeout(
+              const Duration(seconds: AppConfig.databaseOperationTimeout),
+              onTimeout: () =>
+                  throw TimeoutException('Database operation timed out'),
+            );
+        if (response == null) return null;
+        final num? fare = response[BookingConstants.fieldFare] as num?;
+        return fare?.toInt();
+      },
+      'fetchFare',
+      maxRetries: BookingConstants.defaultMaxRetries,
+    );
+  }
+
+  @override
+  Future<bool> updateFare(String bookingId, int newFare) async {
+    return _withRetry<bool>(
+      () async {
+        final response = await _supabase
+            .from('bookings')
+            .update({BookingConstants.fieldFare: newFare})
+            .eq(BookingConstants.fieldBookingId, bookingId)
+            .select(BookingConstants.fieldBookingId)
+            .timeout(
+              const Duration(seconds: AppConfig.databaseOperationTimeout),
+              onTimeout: () =>
+                  throw TimeoutException('Database operation timed out'),
+            );
+        return response.isNotEmpty;
+      },
+      'updateFare',
       maxRetries: BookingConstants.defaultMaxRetries,
     );
   }

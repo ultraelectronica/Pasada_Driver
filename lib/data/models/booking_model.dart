@@ -11,6 +11,7 @@ class Booking {
   final LatLng dropoffLocation;
   final String seatType;
   final String? passengerIdImagePath;
+  final bool? isIdAccepted;
 
   // Optional calculated fields
   final double? distanceToDriver;
@@ -23,6 +24,7 @@ class Booking {
     required this.dropoffLocation,
     required this.seatType,
     this.passengerIdImagePath,
+    this.isIdAccepted,
     this.distanceToDriver,
   });
 
@@ -60,8 +62,12 @@ class Booking {
     final imagePath =
         json[BookingConstants.fieldPassengerIdImagePath] as String?;
     if (kDebugMode) {
-      debugPrint('Booking ${bookingId}: passengerIdImagePath = $imagePath');
+      debugPrint('Booking $bookingId: passengerIdImagePath = $imagePath');
     }
+    final bool? isIdAccepted =
+        json.containsKey(BookingConstants.fieldIsIdAccepted)
+            ? (json[BookingConstants.fieldIsIdAccepted] as bool?)
+            : null;
 
     return Booking(
       id: bookingId.toString(),
@@ -78,6 +84,7 @@ class Booking {
       seatType: json[BookingConstants.fieldSeatType] as String? ??
           BookingConstants.defaultSeatType,
       passengerIdImagePath: imagePath,
+      isIdAccepted: isIdAccepted,
     );
   }
 
@@ -93,6 +100,7 @@ class Booking {
       BookingConstants.fieldDropoffLng: dropoffLocation.longitude,
       BookingConstants.fieldSeatType: seatType,
       BookingConstants.fieldPassengerIdImagePath: passengerIdImagePath,
+      BookingConstants.fieldIsIdAccepted: isIdAccepted,
     };
   }
 
@@ -105,6 +113,7 @@ class Booking {
     LatLng? dropoffLocation,
     String? seatType,
     String? passengerIdImagePath,
+    bool? isIdAccepted,
     double? distanceToDriver,
   }) {
     return Booking(
@@ -115,6 +124,7 @@ class Booking {
       dropoffLocation: dropoffLocation ?? this.dropoffLocation,
       seatType: seatType ?? this.seatType,
       passengerIdImagePath: passengerIdImagePath ?? this.passengerIdImagePath,
+      isIdAccepted: isIdAccepted ?? this.isIdAccepted,
       distanceToDriver: distanceToDriver ?? this.distanceToDriver,
     );
   }
@@ -166,7 +176,7 @@ class Booking {
     return 'Booking(id: $id, passengerId: $passengerId, status: $rideStatus, '
         'pickup: (${pickupLocation.latitude}, ${pickupLocation.longitude}), '
         'dropoff: (${dropoffLocation.latitude}, ${dropoffLocation.longitude}), '
-        'seatType: $seatType, passengerIdImagePath: $passengerIdImagePath, distance: $distanceToDriver)';
+        'seatType: $seatType, passengerIdImagePath: $passengerIdImagePath, isIdAccepted: $isIdAccepted, distance: $distanceToDriver)';
   }
 
   @override

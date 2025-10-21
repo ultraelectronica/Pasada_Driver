@@ -82,7 +82,8 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   void _onTap(int idx) {
     setState(() {
       _currentIndex = idx;
-      if (_currentIndex == 0 && !context.read<DriverProvider>().isDriving) {
+      if (_currentIndex == 0 &&
+          context.read<DriverProvider>().driverStatus != 'Driving') {
         hasShownDrivingPrompt = false;
       }
     });

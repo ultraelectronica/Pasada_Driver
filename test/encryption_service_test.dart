@@ -23,7 +23,7 @@ void main() {
     });
 
     test('should detect encrypted data correctly', () {
-      final plainText = 'test data';
+      const plainText = 'test data';
       final encryptedV2 = 'ENC_V2:${base64.encode(utf8.encode(plainText))}';
       final encryptedV3 = 'ENC_V3:${base64.encode(utf8.encode(plainText))}';
 
@@ -33,7 +33,7 @@ void main() {
     });
 
     test('should detect encrypted image data correctly', () {
-      final plainImage =
+      const plainImage =
           'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
       final encryptedV2 = 'ENC_V2:${base64.encode(utf8.encode(plainImage))}';
       final encryptedV3 = 'ENC_V3:${base64.encode(utf8.encode(plainImage))}';
@@ -45,7 +45,7 @@ void main() {
 
     test('should handle base64 image data without encryption', () {
       // Test with a simple 1x1 PNG image in base64
-      final base64Image =
+      const base64Image =
           'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
       expect(encryptionService.isEncryptedImage(base64Image), isFalse);
