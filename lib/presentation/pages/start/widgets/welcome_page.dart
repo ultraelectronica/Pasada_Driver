@@ -125,8 +125,11 @@ class NextPageButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(20.0),
         ),
       ),
-      child: const Icon(Icons.arrow_forward_ios_rounded,
-          color: Colors.black, size: 20.0, grade: 100),
+      child: Icon(
+        Icons.chevron_right,
+        color: Constants.GREEN_COLOR,
+        size: 40.0,
+      ),
     );
   }
 }

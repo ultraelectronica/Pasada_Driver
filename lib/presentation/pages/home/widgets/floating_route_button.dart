@@ -50,7 +50,7 @@ class FloatingRouteButton extends StatelessWidget {
                     backgroundColor: Colors.white,
                     foregroundColor: Styles.customBlackFont,
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
@@ -61,14 +61,18 @@ class FloatingRouteButton extends StatelessWidget {
                       : () async {
                           await RouteSelectionSheet.show(context);
                         },
-                  icon: Icon(Icons.alt_route, color: Constants.GREEN_COLOR),
+                  icon: Icon(
+                    Icons.alt_route,
+                    color: Constants.GREEN_COLOR,
+                    size: 25,
+                  ),
                   label: Text(
                     routeName == null || routeName.isEmpty
                         ? 'Select Route'
                         : routeName,
                     overflow: TextOverflow.ellipsis,
                     style: Styles()
-                        .textStyle(14, Styles.semiBold, Styles.customBlackFont),
+                        .textStyle(15, Styles.semiBold, Styles.customBlackFont),
                   ),
                 ),
               ),
