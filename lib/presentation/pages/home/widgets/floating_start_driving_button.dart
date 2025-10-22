@@ -194,6 +194,8 @@ class FloatingStartDrivingButton extends StatelessWidget {
     }
 
     await driverProvider.updateStatusToDB('Driving');
+    // Ensure the new status is preserved if app is backgrounded immediately
+    driverProvider.setLastDriverStatus('Driving');
 
     // Trigger initial bookings fetch
     // Note: downstream flows depend on Driving status now being set
@@ -218,6 +220,8 @@ class FloatingStartDrivingButton extends StatelessWidget {
     }
 
     driverProvider.updateStatusToDB('Online');
+    // Ensure the new status is preserved if app is backgrounded immediately
+    driverProvider.setLastDriverStatus('Online');
 
     SnackBarUtils.show(context, 'Status set to Online', Colors.grey[700]!);
   }

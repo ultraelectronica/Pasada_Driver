@@ -13,7 +13,6 @@ class ActivityPage extends StatefulWidget {
 }
 
 class ActivityPageState extends State<ActivityPage> {
-
   final NumberFormat _numberFormat = NumberFormat.decimalPattern();
   String _formatPeso(int value) => '₱${_numberFormat.format(value)}';
 
@@ -50,122 +49,137 @@ class ActivityPageState extends State<ActivityPage> {
         : 0.0;
     return Scaffold(
       // backgroundColor: Colors.grey.shade300,
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _buildTitle(),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: Constants.BLACK_COLOR.withValues(alpha: 0.2),
-                            width: 1),
-                        // boxShadow: [
-                        //   BoxShadow(
-                        //     color: Constants.BLACK_COLOR.withValues(alpha: 0.1),
-                        //     blurRadius: 15,
-                        //     offset: const Offset(0, 15),
-                        //   ),
-                        // ],
-                      ),
-                      child: Column(
-                        children: [
-                          // Circular progress section
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            child: _earningMetric(
-                              label: 'Today\'s Earnings',
-                              color: Constants.GREEN_COLOR,
-                              progress: todayProgress,
-                              currentEarnings: todayEarnings,
-                              targetEarnings: todayTargetEarnings,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        // color: Constants.WHITE_COLOR,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: Constants.BLACK_COLOR.withValues(alpha: 0.2),
-                            width: 1),
-                        // boxShadow: [
-                        //   BoxShadow(
-                        //     color: Constants.BLACK_COLOR.withValues(alpha: 0.1),
-                        //     blurRadius: 15,
-                        //     offset: const Offset(0, 15),
-                        //   ),
-                        // ],
-                      ),
-                      child: Column(
-                        children: [
-                          // Circular progress section
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            child: _earningMetric(
-                              label: 'Weekly Earnings',
-                              color: Colors.blue,
-                              progress: weeklyProgress,
-                              currentEarnings: weeklyEarnings,
-                              targetEarnings: weeklyTargetEarnings,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  // color: Constants.WHITE_COLOR,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color: Constants.BLACK_COLOR.withValues(alpha: 0.2),
-                      width: 1),
-                  // boxShadow: [
-                  //   BoxShadow(
-                  //     color: Constants.BLACK_COLOR.withValues(alpha: 0.1),
-                  //     blurRadius: 15,
-                  //     offset: const Offset(0, 15),
-                  //   ),
-                  // ],
-                ),
-                child: Column(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                //TODO: check for applicable gradient here in the future
+                Colors.white,
+                Colors.white
+                // Color(0xFF88CB0C),
+                // Color.fromARGB(255, 255, 255, 255),
+              ]),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _buildTitle(),
+                const SizedBox(height: 16),
+                Row(
                   children: [
-                    // Circular progress section
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      child: _earningMetric(
-                        label: 'Monthly Earnings',
-                        color: Colors.red,
-                        progress: monthlyProgress,
-                        currentEarnings: monthlyEarnings,
-                        targetEarnings: monthlyTargetEarnings,
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color:
+                                  Constants.BLACK_COLOR.withValues(alpha: 0.2),
+                              width: 1),
+                          // boxShadow: [
+                          //   BoxShadow(
+                          //     color: Constants.BLACK_COLOR.withValues(alpha: 0.1),
+                          //     blurRadius: 15,
+                          //     offset: const Offset(0, 15),
+                          //   ),
+                          // ],
+                        ),
+                        child: Column(
+                          children: [
+                            // Circular progress section
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              child: _earningMetric(
+                                label: 'Today\'s Earnings',
+                                color: Constants.GREEN_COLOR,
+                                progress: todayProgress,
+                                currentEarnings: todayEarnings,
+                                targetEarnings: todayTargetEarnings,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color:
+                                  Constants.BLACK_COLOR.withValues(alpha: 0.2),
+                              width: 1),
+                          // boxShadow: [
+                          //   BoxShadow(
+                          //     color: Constants.BLACK_COLOR.withValues(alpha: 0.1),
+                          //     blurRadius: 15,
+                          //     offset: const Offset(0, 15),
+                          //   ),
+                          // ],
+                        ),
+                        child: Column(
+                          children: [
+                            // Circular progress section
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              child: _earningMetric(
+                                label: 'Weekly Earnings',
+                                color: Colors.blue,
+                                progress: weeklyProgress,
+                                currentEarnings: weeklyEarnings,
+                                targetEarnings: weeklyTargetEarnings,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: Constants.BLACK_COLOR.withValues(alpha: 0.2),
+                        width: 1),
+                    // boxShadow: [
+                    //   BoxShadow(
+                    //     color: Constants.BLACK_COLOR.withValues(alpha: 0.1),
+                    //     blurRadius: 15,
+                    //     offset: const Offset(0, 15),
+                    //   ),
+                    // ],
+                  ),
+                  child: Column(
+                    children: [
+                      // Circular progress section
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        child: _earningMetric(
+                          label: 'Monthly Earnings',
+                          color: Colors.red,
+                          progress: monthlyProgress,
+                          currentEarnings: monthlyEarnings,
+                          targetEarnings: monthlyTargetEarnings,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
