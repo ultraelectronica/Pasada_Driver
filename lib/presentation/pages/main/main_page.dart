@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -22,7 +23,9 @@ class MainPage extends StatefulWidget {
 class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   int _currentIndex = 0;
   Timer? _timer;
+  Timer? _inactiveDebounceTimer;
   bool hasShownDrivingPrompt = true;
+  AppLifecycleState? _lastLifecycleState;
 
   final List<Widget> pages = const [
     HomeScreen(),
@@ -40,6 +43,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     _timer?.cancel();
+    _inactiveDebounceTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -48,28 +52,103 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     final driverProv = context.read<DriverProvider>();
-    if (state == AppLifecycleState.resumed) {
-      final String statusToRestore =
-          driverProv.lastDriverStatus ?? driverProv.driverStatus;
-      driverProv.updateStatusToDB(statusToRestore);
-      ShowMessage().showToast('App resumed');
-      if (driverProv.lastDriverStatus == 'Driving') {
-        SchedulerBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            context.read<PassengerProvider>().getBookingRequestsID(context);
-          }
-        });
-      } else {
-        hasShownDrivingPrompt = false;
-      }
-    } else if (state == AppLifecycleState.paused) {
-      driverProv.setLastDriverStatus(driverProv.driverStatus);
-      driverProv.updateStatusToDB('Idling');
-      if (driverProv.driverStatus == 'Driving') {
-        hasShownDrivingPrompt = false;
-      }
-      ShowMessage().showToast('App paused');
+
+    if (kDebugMode) {
+      print('[Lifecycle] State changed from $_lastLifecycleState to $state');
     }
+
+    // Handle transitions to inactive state (notification opened, app switching, etc.)
+    if (state == AppLifecycleState.inactive) {
+      // Only save status and go to Idling if coming from resumed state
+      if (_lastLifecycleState == AppLifecycleState.resumed) {
+        final String currentStatus = driverProv.driverStatus;
+        // Only save and update if not already Idling
+        if (currentStatus != 'Idling') {
+          // Save the status immediately
+          driverProv.setLastDriverStatus(currentStatus);
+
+          // Debounce: Only update to Idling if inactive for more than 400ms
+          // This prevents quick accidental taps from changing status
+          _inactiveDebounceTimer?.cancel();
+          _inactiveDebounceTimer = Timer(const Duration(milliseconds: 400), () {
+            // Only update if still inactive/not resumed
+            if (mounted && _lastLifecycleState == AppLifecycleState.inactive) {
+              driverProv.updateStatusToDB('Idling', preserveLastStatus: true);
+              if (kDebugMode) {
+                print('[Lifecycle] Inactive (debounced) - Updated to Idling');
+              }
+            }
+          });
+
+          if (kDebugMode) {
+            print(
+                '[Lifecycle] Inactive - Scheduled Idling update (400ms delay)');
+          }
+        }
+      }
+    }
+    // Handle app fully going to background
+    else if (state == AppLifecycleState.paused) {
+      // Cancel any pending inactive timer since we're going to background
+      _inactiveDebounceTimer?.cancel();
+
+      final String currentStatus = driverProv.driverStatus;
+      // Save and update if not already Idling
+      if (currentStatus != 'Idling') {
+        driverProv.setLastDriverStatus(currentStatus);
+        driverProv.updateStatusToDB('Idling', preserveLastStatus: true);
+        if (currentStatus == 'Driving') {
+          hasShownDrivingPrompt = false;
+        }
+        ShowMessage().showToast('App paused - Saved status: $currentStatus');
+      }
+    }
+    // Handle app resuming to foreground
+    else if (state == AppLifecycleState.resumed) {
+      // Cancel any pending inactive timer since we're resuming
+      _inactiveDebounceTimer?.cancel();
+
+      // Only restore status if we have a saved one and it's different from Idling
+      final String? savedStatus = driverProv.lastDriverStatus;
+      if (savedStatus != null &&
+          savedStatus != 'Idling' &&
+          driverProv.driverStatus == 'Idling') {
+        driverProv.updateStatusToDB(savedStatus);
+        ShowMessage().showToast('App resumed - Status: $savedStatus');
+        if (savedStatus == 'Driving') {
+          SchedulerBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              context.read<PassengerProvider>().getBookingRequestsID(context);
+            }
+          });
+        } else {
+          hasShownDrivingPrompt = false;
+        }
+      } else if (savedStatus != null && savedStatus != 'Idling') {
+        // If we resumed before the debounce timer fired, status was never changed
+        // Just log this for debugging
+        if (kDebugMode) {
+          print(
+              '[Lifecycle] Resumed quickly - Status unchanged (debounce worked!)');
+        }
+      }
+    }
+    // Handle hidden state (Flutter 3.13+)
+    else if (state == AppLifecycleState.hidden) {
+      // Cancel any pending inactive timer
+      _inactiveDebounceTimer?.cancel();
+
+      final String currentStatus = driverProv.driverStatus;
+      if (currentStatus != 'Idling') {
+        driverProv.setLastDriverStatus(currentStatus);
+        driverProv.updateStatusToDB('Idling', preserveLastStatus: true);
+        if (kDebugMode) {
+          print('[Lifecycle] Hidden - Saved status: $currentStatus');
+        }
+      }
+    }
+
+    _lastLifecycleState = state;
   }
 
   void _startTimer() {

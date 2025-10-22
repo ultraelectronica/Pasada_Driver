@@ -96,6 +96,8 @@ class _AuthGateState extends State<AuthGate> {
               debugPrint(
                   'AuthGate: Updating status to Online (after selection)');
               await driverProvider.updateStatusToDB('Online');
+              // Ensure the new status is preserved if app is backgrounded immediately
+              driverProvider.setLastDriverStatus('Online');
               mapProvider.setRouteID(selected);
               await passengerProvider.getBookingRequestsID(context);
             }

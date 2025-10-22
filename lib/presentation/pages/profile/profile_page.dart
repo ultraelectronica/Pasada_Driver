@@ -508,8 +508,14 @@ class ProfilePageState extends State<ProfilePage> {
       title: Text(status,
           style: Styles().textStyle(16, Styles.medium, Styles.customBlackFont)),
       onTap: () async {
-        await context.read<DriverProvider>().updateStatusToDB(status);
-        Navigator.of(context).pop();
+        final driverProv = context.read<DriverProvider>();
+        await driverProv.updateStatusToDB(status);
+        // Ensure the new status is also set as lastDriverStatus
+        // to prevent race condition if app is backgrounded immediately
+        driverProv.setLastDriverStatus(status);
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
       },
     );
   }

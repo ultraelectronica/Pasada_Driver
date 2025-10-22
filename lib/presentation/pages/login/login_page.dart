@@ -259,7 +259,10 @@ class _LogInState extends State<LogIn> {
 
         // Update driver status
         // _updateStatusToDB();
-        await context.read<DriverProvider>().updateStatusToDB('Online');
+        final driverProv = context.read<DriverProvider>();
+        await driverProv.updateStatusToDB('Online');
+        // Ensure the new status is preserved if app is backgrounded immediately
+        driverProv.setLastDriverStatus('Online');
         debugPrint('Driver status updated');
 
         debugPrint('Driver credentials fetched');
