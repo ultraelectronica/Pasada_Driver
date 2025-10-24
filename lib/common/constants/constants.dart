@@ -17,6 +17,9 @@ class Constants {
   static double CONTAINER_HEIGHT = 50;
   static double BOX_SHADOW = 5;
 
+  static Color GRADIENT_COLOR_1 = const Color(0xFF00CC58);
+  static Color GRADIENT_COLOR_2 = const Color(0xFF88CB0C);
+
   static Color GREEN_COLOR = const Color(0xFF00CC58);
   static Color GREEN_COLOR_LIGHT = const Color(0xFFA3E7C1);
   static Color GREEN_COLOR_DARK = const Color(0xFF0F311E);

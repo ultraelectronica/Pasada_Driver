@@ -412,7 +412,7 @@ class _LogInState extends State<LogIn> {
         decoration: InputDecoration(
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.0),
-            borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+            borderSide: const BorderSide(color: Colors.grey, width: 2.0),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.0),
@@ -505,7 +505,7 @@ class _LogInState extends State<LogIn> {
         decoration: InputDecoration(
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.0),
-            borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+            borderSide: const BorderSide(color: Colors.grey, width: 2.0),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.0),
