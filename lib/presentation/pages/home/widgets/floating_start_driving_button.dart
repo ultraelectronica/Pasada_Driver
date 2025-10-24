@@ -22,11 +22,8 @@ class FloatingStartDrivingButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDriving = context
-        .select<DriverProvider, bool>((p) => p.driverStatus == 'Driving');
-    final int totalPassengers = context.select<DriverProvider, int>(
-        (p) => p.passengerStandingCapacity + p.passengerSittingCapacity);
     final driverProvider = context.read<DriverProvider>();
+    
     return Positioned(
       bottom: screenHeight * 0.115,
       left: screenWidth * 0.02,
@@ -207,22 +204,5 @@ class FloatingStartDrivingButton extends StatelessWidget {
     SnackBarUtils.show(context, 'Status set to Driving', Constants.GREEN_COLOR);
   }
 
-  void _trySwitchToOnline(BuildContext context, DriverProvider driverProvider,
-      int totalPassengers) {
-    if (totalPassengers > 0) {
-      SnackBarUtils.show(
-        context,
-        'Cannot go Online: Vehicle still has $totalPassengers passenger${totalPassengers > 1 ? "s" : ""}',
-        Colors.red,
-        duration: const Duration(seconds: 3),
-      );
-      return;
-    }
 
-    driverProvider.updateStatusToDB('Online');
-    // Ensure the new status is preserved if app is backgrounded immediately
-    driverProvider.setLastDriverStatus('Online');
-
-    SnackBarUtils.show(context, 'Status set to Online', Colors.grey[700]!);
-  }
 }
