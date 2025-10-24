@@ -418,12 +418,11 @@ class DriverProvider with ChangeNotifier {
   /// Updates the time that the driver logs into the app
   Future<void> writeLoginTime(BuildContext context) async {
     try {
-      final driverIdInt = int.tryParse(_driverID);
 
       final response = await supabase
           .from('driverActivityLog')
           .insert({
-            'driver_id': driverIdInt,
+            'driver_id': _driverID,
             'login_timestamp': DateTime.now().toUtc().toIso8601String(),
             'status': 'WAITING'
           })

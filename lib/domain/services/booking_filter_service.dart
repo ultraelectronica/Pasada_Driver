@@ -16,9 +16,9 @@ class BookingFilterService {
     try {
       if (bookings.isEmpty) return [];
       if (!LocationService.isValidLocation(driverLocation) ||
-          !LocationService.isValidLocation(destinationLocation)){
-            return [];
-          }
+          !LocationService.isValidLocation(destinationLocation)) {
+        return [];
+      }
 
       final requested = bookings
           .where((b) => b.rideStatus == requiredStatus && b.isValid)
