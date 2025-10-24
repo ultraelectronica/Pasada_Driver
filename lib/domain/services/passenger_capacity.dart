@@ -163,13 +163,14 @@ class PassengerCapacity {
         }
       }
 
-      if (!_validateCapacityLimits(newStanding, newSitting, operation)) {
-        return CapacityOperationResult(
-          success: false,
-          errorType: ERROR_CAPACITY_EXCEEDED,
-          errorMessage: 'Operation would exceed capacity limits',
-        );
-      }
+      // TODO: Uncomment this if need na i check yung capacity
+      // if (!_validateCapacityLimits(newStanding, newSitting, operation)) {
+      //   return CapacityOperationResult(
+      //     success: false,
+      //     errorType: ERROR_CAPACITY_EXCEEDED,
+      //     errorMessage: 'Operation would exceed capacity limits',
+      //   );
+      // }
       if (!_validateNonNegative(newTotal, newStanding, newSitting, operation)) {
         return CapacityOperationResult(
           success: false,

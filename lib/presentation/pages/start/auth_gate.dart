@@ -52,7 +52,6 @@ class _AuthGateState extends State<AuthGate> {
     });
 
     if (!hasSession && kDebugMode) {
-      ShowMessage().showToast('No local session data detected');
       logDebug('No local session data detected');
     }
 
