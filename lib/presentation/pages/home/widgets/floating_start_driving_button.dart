@@ -80,7 +80,7 @@ class FloatingStartDrivingButton extends StatelessWidget {
                         ),
                         onPressed: () => Navigator.pop(context),
                         child: Text(
-                          'Mamaya',
+                          'Later',
                           style: Styles()
                               .textStyle(16, Styles.semiBold, Colors.black),
                         ),

@@ -161,7 +161,7 @@ class _LogInState extends State<LogIn> {
         //saves the session token to the local storage
         await saveSession(enteredDriverID, response);
 
-        ShowMessage().showToastTop('Welcome Manong ${response['full_name']}!');
+        // ShowMessage().showToastTop('Welcome Manong ${response['full_name']}!');
 
         //logs the login time of the driver
         await context.read<DriverProvider>().writeLoginTime(context);
@@ -327,37 +327,35 @@ class _LogInState extends State<LogIn> {
           return SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: SafeArea(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage('assets/png/log_in_page_bg.png'),
-                      fit: BoxFit.cover,
-                    ),
+              child: Container(
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage('assets/png/log_in_page_bg.png'),
+                    fit: BoxFit.cover,
                   ),
-                  child: Center(
-                    child: Padding(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: horizontalPadding),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(height: screenHeight * 0.15),
-                          _buildHeader(screenHeight * 0.15, 0),
-                          SizedBox(height: screenHeight * 0.1),
-                          _buildDriverIDText(),
-                          SizedBox(height: screenHeight * 0.01),
-                          _buildDriverIDInput(screenHeight * 0.06),
-                          SizedBox(height: screenHeight * 0.02),
-                          _buildPasswordText(),
-                          SizedBox(height: screenHeight * 0.01),
-                          _buildPasswordInput(screenHeight * 0.06),
-                          SizedBox(height: screenHeight * 0.15),
-                          _buildLogInButton(screenHeight * 0.06, isLoading),
-                          SizedBox(height: screenHeight * 0.1),
-                        ],
-                      ),
+                ),
+                child: Center(
+                  child: Padding(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: screenHeight * 0.15),
+                        _buildHeader(screenHeight * 0.15, 0),
+                        SizedBox(height: screenHeight * 0.1),
+                        _buildDriverIDText(),
+                        SizedBox(height: screenHeight * 0.01),
+                        _buildDriverIDInput(screenHeight * 0.06),
+                        SizedBox(height: screenHeight * 0.02),
+                        _buildPasswordText(),
+                        SizedBox(height: screenHeight * 0.01),
+                        _buildPasswordInput(screenHeight * 0.06),
+                        SizedBox(height: screenHeight * 0.15),
+                        _buildLogInButton(screenHeight * 0.06, isLoading),
+                        SizedBox(height: screenHeight * 0.1),
+                      ],
                     ),
                   ),
                 ),

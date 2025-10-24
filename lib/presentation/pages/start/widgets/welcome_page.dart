@@ -14,61 +14,59 @@ class WelcomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Stack(
-        children: [
-          // Background image
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/png/pasada_welcome_page_bg.png'),
-                fit: BoxFit.cover,
-              ),
+    return Stack(
+      children: [
+        // Background image
+        Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/png/pasada_welcome_page_bg.png'),
+              fit: BoxFit.cover,
             ),
           ),
-          // Gradient overlay
-          // Container(
-          //   decoration: BoxDecoration(
-          //     gradient: LinearGradient(
-          //       begin:
-          //           Alignment.topLeft * 2, // Extends beyond the top left corner
-          //       end: Alignment.bottomRight,
-          //       colors: const [
-          //         Color(0xFF00CC58), // Custom green color
-          //         Color(0xFF88CB0C), // Custom yellow-green color
-          //       ],
-          //     ),
-          //   ),
-          // ),
-          // Content
-          SizedBox(
-            width: double.infinity,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Top spacer to push content down
-                const Spacer(flex: 2),
+        ),
+        // Gradient overlay
+        // Container(
+        //   decoration: BoxDecoration(
+        //     gradient: LinearGradient(
+        //       begin:
+        //           Alignment.topLeft * 2, // Extends beyond the top left corner
+        //       end: Alignment.bottomRight,
+        //       colors: const [
+        //         Color(0xFF00CC58), // Custom green color
+        //         Color(0xFF88CB0C), // Custom yellow-green color
+        //       ],
+        //     ),
+        //   ),
+        // ),
+        // Content
+        SizedBox(
+          width: double.infinity,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Top spacer to push content down
+              const Spacer(flex: 2),
 
-                // Welcome message
-                const WelcomeMessage(),
+              // Welcome message
+              const WelcomeMessage(),
 
-                const Spacer(flex: 1),
+              const Spacer(flex: 1),
 
-                // Next button
-                Padding(
-                  padding: EdgeInsets.only(
-                    bottom: Constants(context).screenHeight *
-                        StartConstants.nextButtonVerticalPaddingFraction,
-                    top: Constants(context).screenHeight *
-                        StartConstants.nextButtonVerticalPaddingFraction,
-                  ),
-                  child: NextPageButton(onPressed: onLoginPressed),
+              // Next button
+              Padding(
+                padding: EdgeInsets.only(
+                  bottom: Constants(context).screenHeight *
+                      StartConstants.nextButtonVerticalPaddingFraction,
+                  top: Constants(context).screenHeight *
+                      StartConstants.nextButtonVerticalPaddingFraction,
                 ),
-              ],
-            ),
+                child: NextPageButton(onPressed: onLoginPressed),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
