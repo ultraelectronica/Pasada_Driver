@@ -5,7 +5,7 @@ import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 /// Model representing a booking with all necessary details
 class Booking {
   final String id;
-  final String passengerId;
+  final String? passengerId; // Nullable for manual bookings
   final String rideStatus;
   final LatLng pickupLocation;
   final LatLng dropoffLocation;
@@ -18,7 +18,7 @@ class Booking {
 
   const Booking({
     required this.id,
-    required this.passengerId,
+    this.passengerId, // Nullable for manual bookings
     required this.rideStatus,
     required this.pickupLocation,
     required this.dropoffLocation,
@@ -43,10 +43,7 @@ class Booking {
       throw ArgumentError(
           'Missing required field: ${BookingConstants.fieldBookingId}');
     }
-    if (passengerId == null) {
-      throw ArgumentError(
-          'Missing required field: ${BookingConstants.fieldPassengerId}');
-    }
+    // Note: passengerId can be null for manual bookings
     if (rideStatus == null) {
       throw ArgumentError(
           'Missing required field: ${BookingConstants.fieldRideStatus}');
@@ -71,7 +68,7 @@ class Booking {
 
     return Booking(
       id: bookingId.toString(),
-      passengerId: passengerId.toString(),
+      passengerId: passengerId?.toString(), // Nullable for manual bookings
       rideStatus: rideStatus as String,
       pickupLocation: LatLng(
         (pickupLat as num).toDouble(),
@@ -132,12 +129,14 @@ class Booking {
   /// Check if booking is in a valid state
   bool get isValid {
     return id.isNotEmpty &&
-        passengerId.isNotEmpty &&
         rideStatus.isNotEmpty &&
         _isValidStatus(rideStatus) &&
         _isValidLocation(pickupLocation) &&
         _isValidLocation(dropoffLocation);
   }
+
+  /// Check if this is a manual booking (no passenger account)
+  bool get isManualBooking => passengerId == null || passengerId!.isEmpty;
 
   /// Check if ride status is valid
   bool _isValidStatus(String status) {

@@ -156,7 +156,8 @@ class DriverProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateStatusToDB(String newStatus) async {
+  Future<void> updateStatusToDB(String newStatus,
+      {bool preserveLastStatus = false}) async {
     try {
       // Guard: require driver id
       if (_driverID.isEmpty) {
@@ -191,7 +192,10 @@ class DriverProvider with ChangeNotifier {
         ShowMessage().showToast('Updated status: $updated');
       }
 
-      _lastDriverStatus = _driverStatus;
+      // Only update lastDriverStatus if we're not preserving it for resume logic
+      if (!preserveLastStatus) {
+        _lastDriverStatus = _driverStatus;
+      }
       _driverStatus = _toTitleCase(normalized);
       notifyListeners();
     } catch (e) {
@@ -414,12 +418,11 @@ class DriverProvider with ChangeNotifier {
   /// Updates the time that the driver logs into the app
   Future<void> writeLoginTime(BuildContext context) async {
     try {
-      final driverIdInt = int.tryParse(_driverID);
 
       final response = await supabase
           .from('driverActivityLog')
           .insert({
-            'driver_id': driverIdInt,
+            'driver_id': _driverID,
             'login_timestamp': DateTime.now().toUtc().toIso8601String(),
             'status': 'WAITING'
           })

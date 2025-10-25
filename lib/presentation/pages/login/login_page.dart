@@ -4,6 +4,7 @@ import 'package:pasada_driver_side/Services/auth_service.dart';
 import 'package:pasada_driver_side/Services/notification_service.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/Services/password_util.dart';
+import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:pasada_driver_side/common/constants/message.dart';
 import 'package:pasada_driver_side/presentation/pages/main/main_page.dart';
@@ -160,7 +161,7 @@ class _LogInState extends State<LogIn> {
         //saves the session token to the local storage
         await saveSession(enteredDriverID, response);
 
-        ShowMessage().showToastTop('Welcome Manong ${response['full_name']}!');
+        // ShowMessage().showToastTop('Welcome Manong ${response['full_name']}!');
 
         //logs the login time of the driver
         await context.read<DriverProvider>().writeLoginTime(context);
@@ -258,7 +259,10 @@ class _LogInState extends State<LogIn> {
 
         // Update driver status
         // _updateStatusToDB();
-        await context.read<DriverProvider>().updateStatusToDB('Online');
+        final driverProv = context.read<DriverProvider>();
+        await driverProv.updateStatusToDB('Online');
+        // Ensure the new status is preserved if app is backgrounded immediately
+        driverProv.setLastDriverStatus('Online');
         debugPrint('Driver status updated');
 
         debugPrint('Driver credentials fetched');
@@ -323,37 +327,35 @@ class _LogInState extends State<LogIn> {
           return SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: SafeArea(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage('assets/png/log_in_page_bg.png'),
-                      fit: BoxFit.cover,
-                    ),
+              child: Container(
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage('assets/png/log_in_page_bg.png'),
+                    fit: BoxFit.cover,
                   ),
-                  child: Center(
-                    child: Padding(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: horizontalPadding),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(height: screenHeight * 0.15),
-                          _buildHeader(screenHeight * 0.15, 0),
-                          SizedBox(height: screenHeight * 0.1),
-                          _buildDriverIDText(),
-                          SizedBox(height: screenHeight * 0.01),
-                          _buildDriverIDInput(screenHeight * 0.06),
-                          SizedBox(height: screenHeight * 0.02),
-                          _buildPasswordText(),
-                          SizedBox(height: screenHeight * 0.01),
-                          _buildPasswordInput(screenHeight * 0.06),
-                          SizedBox(height: screenHeight * 0.15),
-                          _buildLogInButton(screenHeight * 0.06, isLoading),
-                          SizedBox(height: screenHeight * 0.1),
-                        ],
-                      ),
+                ),
+                child: Center(
+                  child: Padding(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: screenHeight * 0.15),
+                        _buildHeader(screenHeight * 0.15, 0),
+                        SizedBox(height: screenHeight * 0.1),
+                        _buildDriverIDText(),
+                        SizedBox(height: screenHeight * 0.01),
+                        _buildDriverIDInput(screenHeight * 0.06),
+                        SizedBox(height: screenHeight * 0.02),
+                        _buildPasswordText(),
+                        SizedBox(height: screenHeight * 0.01),
+                        _buildPasswordInput(screenHeight * 0.06),
+                        SizedBox(height: screenHeight * 0.15),
+                        _buildLogInButton(screenHeight * 0.06, isLoading),
+                        SizedBox(height: screenHeight * 0.1),
+                      ],
                     ),
                   ),
                 ),
@@ -391,7 +393,7 @@ class _LogInState extends State<LogIn> {
             : Text(
                 'Log in',
                 style:
-                    Styles().textStyle(20, Styles.bold, Styles.customBlackFont),
+                    Styles().textStyle(20, Styles.bold, Constants.GREEN_COLOR),
               ),
       ),
     );
@@ -408,7 +410,7 @@ class _LogInState extends State<LogIn> {
         decoration: InputDecoration(
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.0),
-            borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+            borderSide: const BorderSide(color: Colors.grey, width: 2.0),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.0),
@@ -501,7 +503,7 @@ class _LogInState extends State<LogIn> {
         decoration: InputDecoration(
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.0),
-            borderSide: const BorderSide(color: Colors.grey, width: 1.0),
+            borderSide: const BorderSide(color: Colors.grey, width: 2.0),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.0),

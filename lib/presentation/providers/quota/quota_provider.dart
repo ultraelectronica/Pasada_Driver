@@ -53,24 +53,17 @@ class QuotaProvider extends ChangeNotifier {
   Future<void> setQuota(BuildContext context) async {
     try {
       final driverProvider = context.read<DriverProvider>();
-      String driverIdStr = driverProvider.driverID;
+      String driverID = driverProvider.driverID;
 
       // Ensure driver ID is loaded before proceeding
-      if (driverIdStr.isEmpty) {
+      if (driverID.isEmpty) {
         final loaded = await driverProvider.loadFromSecureStorage(context);
         if (!loaded || driverProvider.driverID.isEmpty) {
           debugPrint(
               'Error: Driver ID is empty on fetchQuota (after load attempt)');
           return;
         }
-        driverIdStr = driverProvider.driverID;
-      }
-
-      final int? driverID = int.tryParse(driverIdStr);
-      if (driverID == null) {
-        debugPrint(
-            'Error: Invalid driver ID format on fetchQuota: $driverIdStr');
-        return;
+        driverID = driverProvider.driverID;
       }
 
       // Compute local period starts
@@ -141,24 +134,17 @@ class QuotaProvider extends ChangeNotifier {
   Future<void> fetchQuota(BuildContext context) async {
     try {
       final driverProvider = context.read<DriverProvider>();
-      String driverIdStr = driverProvider.driverID;
+      String driverID = driverProvider.driverID;
 
       // Ensure driver ID is loaded before proceeding
-      if (driverIdStr.isEmpty) {
+      if (driverID.isEmpty) {
         final loaded = await driverProvider.loadFromSecureStorage(context);
         if (!loaded || driverProvider.driverID.isEmpty) {
           debugPrint(
               'Error: Driver ID is empty on fetchQuota (after load attempt)');
           return;
         }
-        driverIdStr = driverProvider.driverID;
-      }
-
-      final int? driverID = int.tryParse(driverIdStr);
-      if (driverID == null) {
-        debugPrint(
-            'Error: Invalid driver ID format on fetchQuota: $driverIdStr');
-        return;
+        driverID = driverProvider.driverID;
       }
 
       final response = await supabase

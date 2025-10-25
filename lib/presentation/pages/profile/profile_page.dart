@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart';
 import 'package:pasada_driver_side/presentation/pages/profile/utils/profile_constants.dart';
 import 'package:pasada_driver_side/common/constants/constants.dart';
+import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
 
 // --- Custom Clipper for Background Shape ---
 class ProfileBackgroundClipper extends CustomClipper<Path> {
@@ -60,6 +61,26 @@ class ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+  }
+
+  bool _trySwitchToOnline(BuildContext context, DriverProvider driverProvider,
+      int totalPassengers, String status) {
+    if (totalPassengers > 0) {
+      SnackBarUtils.show(
+        context,
+        'Cannot go Online: Vehicle still has $totalPassengers passenger${totalPassengers > 1 ? "s" : ""}',
+        Colors.red,
+        duration: const Duration(seconds: 3),
+      );
+      return false;
+    }
+
+    // driverProvider.updateStatusToDB(status);
+    // // Ensure the new status is preserved if app is backgrounded immediately
+    // driverProvider.setLastDriverStatus(status);
+
+    // SnackBarUtils.show(context, 'Status set to $status', Colors.grey[700]!);
+    return true;
   }
 
   @override
@@ -508,8 +529,26 @@ class ProfilePageState extends State<ProfilePage> {
       title: Text(status,
           style: Styles().textStyle(16, Styles.medium, Styles.customBlackFont)),
       onTap: () async {
-        await context.read<DriverProvider>().updateStatusToDB(status);
-        Navigator.of(context).pop();
+        final driverProv = context.read<DriverProvider>();
+        final int totalPassengers = driverProv.passengerStandingCapacity +
+            driverProv.passengerSittingCapacity;
+        debugPrint('Total passengers: $totalPassengers');
+
+        final bool canSwitch =
+            _trySwitchToOnline(context, driverProv, totalPassengers, status);
+        if (canSwitch) {
+          await driverProv.updateStatusToDB(status);
+          // Ensure the new status is also set as lastDriverStatus
+          // to prevent race condition if app is backgrounded immediately
+          driverProv.setLastDriverStatus(status);
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
+        } else {
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
+        }
       },
     );
   }
