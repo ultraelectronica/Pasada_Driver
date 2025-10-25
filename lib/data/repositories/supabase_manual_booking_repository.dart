@@ -3,6 +3,9 @@ import 'package:pasada_driver_side/data/repositories/manual_booking_repository.d
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pasada_driver_side/common/utils/booking_id_generator.dart';
+import 'package:pasada_driver_side/domain/services/fare_recalculation.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:pasada_driver_side/common/geo/location_service.dart';
 
 /// Supabase implementation for creating manual bookings
 class SupabaseManualBookingRepository implements ManualBookingRepository {
@@ -87,7 +90,8 @@ class SupabaseManualBookingRepository implements ManualBookingRepository {
           routeId: routeId,
           bookingData: bookingData,
           passengerType: 'Senior Citizen',
-          farePerPassenger: _calculateFarePerType('senior', bookingData),
+          farePerPassenger:
+              _calculateFarePerType('senior citizen', bookingData),
         );
         bookingsToInsert.add(record);
       }
@@ -151,7 +155,8 @@ class SupabaseManualBookingRepository implements ManualBookingRepository {
       'dropoff_lng': bookingData.destinationStop.stopLng,
       'start_time':
           '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}',
-      'fare': farePerPassenger,
+      'fare':
+          farePerPassenger.toInt(), // Store as integer without decimal point
       'passenger_id':
           null, // Manual booking - no passenger account (NULL is valid for manual bookings)
       'seat_type': bookingData.seatType, // Standing or Sitting
@@ -165,27 +170,48 @@ class SupabaseManualBookingRepository implements ManualBookingRepository {
     };
   }
 
-  /// Calculate fare per passenger based on type
-  /// Adjust these rates according to your business logic
+  /// Calculate fare per passenger based on type and distance
+  /// Uses FareService for distance-based calculation with proper discounts
   double _calculateFarePerType(
       String passengerType, ManualBookingData bookingData) {
-    // If you want to distribute the total fare equally
-    if (bookingData.totalPassengers > 0) {
-      return bookingData.totalFare / bookingData.totalPassengers;
-    }
+    try {
+      // Calculate distance between pickup and destination
+      final pickupLatLng = LatLng(
+        bookingData.pickupStop.stopLat,
+        bookingData.pickupStop.stopLng,
+      );
+      final destinationLatLng = LatLng(
+        bookingData.destinationStop.stopLat,
+        bookingData.destinationStop.stopLng,
+      );
 
-    // Or use fixed rates per type
-    switch (passengerType) {
-      case 'regular':
-        return 15.0;
-      case 'student':
-        return 12.0; // 20% discount
-      case 'senior':
-        return 12.0; // 20% discount
-      case 'pwd':
-        return 12.0; // 20% discount
-      default:
-        return 15.0;
+      final distanceInMeters =
+          LocationService.calculateDistance(pickupLatLng, destinationLatLng);
+
+      // Convert to kilometers
+      final distanceInKm =
+          distanceInMeters.isFinite ? distanceInMeters / 1000.0 : 0.0;
+
+      // Calculate base fare using FareService and round it
+      final baseFare =
+          FareService.calculateFare(distanceInKm).round().toDouble();
+
+      // Apply discount for eligible passenger types
+      switch (passengerType.toLowerCase()) {
+        case 'regular':
+          return baseFare; // No discount
+        case 'student':
+        case 'senior citizen':
+        case 'pwd':
+          // Apply 20% discount and round the result
+          return FareService.applyDiscount(baseFare).round().toDouble();
+        default:
+          return baseFare;
+      }
+    } catch (e) {
+      debugPrint('Error calculating fare per type: $e');
+      // Fallback to base fare if calculation fails
+      return FareService.baseFare;
     }
   }
 }
