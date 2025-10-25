@@ -9,6 +9,9 @@ import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/data/models/allowed_stop_model.dart';
 import 'package:pasada_driver_side/data/models/manual_booking_data.dart';
 import 'package:pasada_driver_side/data/repositories/supabase_manual_booking_repository.dart';
+import 'package:pasada_driver_side/domain/services/fare_recalculation.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:pasada_driver_side/common/geo/location_service.dart';
 
 class TotalCapacityIndicator extends StatelessWidget {
   const TotalCapacityIndicator({
@@ -80,12 +83,60 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
 
   final _manualBookingRepository = SupabaseManualBookingRepository();
 
+  /// Calculate distance between pickup and destination in kilometers
+  double? get tripDistanceInKm {
+    if (selectedPickup == null || selectedDestination == null) {
+      return null;
+    }
+
+    try {
+      final pickupLatLng = LatLng(
+        selectedPickup!.stopLat,
+        selectedPickup!.stopLng,
+      );
+      final destinationLatLng = LatLng(
+        selectedDestination!.stopLat,
+        selectedDestination!.stopLng,
+      );
+
+      final distanceInMeters =
+          LocationService.calculateDistance(pickupLatLng, destinationLatLng);
+
+      if (!distanceInMeters.isFinite) {
+        return null;
+      }
+
+      return distanceInMeters / 1000.0; // Convert to kilometers
+    } catch (e) {
+      debugPrint('Error calculating trip distance: $e');
+      return null;
+    }
+  }
+
+  /// Calculate base fare for the trip (without discounts)
+  double get baseTripFare {
+    final distance = tripDistanceInKm;
+
+    if (distance == null || distance <= 0) {
+      return FareService.baseFare; // Return minimum base fare
+    }
+
+    return FareService.calculateFare(distance).round().toDouble();
+  }
+
+  /// Calculate discounted fare (20% off for students, seniors, PWD)
+  double get discountedTripFare {
+    return FareService.applyDiscount(baseTripFare).round().toDouble();
+  }
+
+  /// Calculate total fare for all passengers
   double get totalFare {
-    // Calculate based on your fare logic
-    return (regularCount * 15.0) +
-        (studentCount * 12.0) +
-        (seniorCount * 12.0) +
-        (pwdCount * 12.0);
+    // Calculate fare based on distance and passenger types
+    final regularFare = regularCount * baseTripFare;
+    final discountedFare =
+        (studentCount + seniorCount + pwdCount) * discountedTripFare;
+
+    return regularFare + discountedFare;
   }
 
   @override
@@ -144,10 +195,17 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                     // Discount Type Section
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Text(
-                        'Select Discount Type:',
-                        style: Styles()
-                            .textStyle(16, FontWeight.w500, Colors.black),
+                      child: Row(
+                        children: [
+                          Icon(Icons.discount,
+                              color: Constants.GRADIENT_COLOR_1, size: 18),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Select Passenger Type(s):',
+                            style: Styles().textStyle(
+                                16, Styles.semiBold, Styles.customBlackFont),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -302,10 +360,17 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                     // Pickup Selection
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Text(
-                        'Select Pickup:',
-                        style: Styles()
-                            .textStyle(16, FontWeight.w500, Colors.black),
+                      child: Row(
+                        children: [
+                          Icon(Icons.place,
+                              color: Constants.GRADIENT_COLOR_1, size: 18),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Select Pickup:',
+                            style: Styles().textStyle(
+                                16, Styles.semiBold, Styles.customBlackFont),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -339,10 +404,17 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                     // Destination Selection
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Text(
-                        'Select Destination:',
-                        style: Styles()
-                            .textStyle(16, FontWeight.w500, Colors.black),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.location_on,
+                              color: Colors.red, size: 18),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Select Destination:',
+                            style: Styles().textStyle(
+                                16, Styles.semiBold, Styles.customBlackFont),
+                          ),
+                        ],
                       ),
                     ),
 
@@ -365,6 +437,109 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
 
                     const SizedBox(height: 24),
 
+                    // Trip Distance Display
+                    // if (tripDistanceInKm != null)
+                    //   Container(
+                    //     padding: const EdgeInsets.all(12),
+                    //     decoration: BoxDecoration(
+                    //       color: Colors.blue[50],
+                    //       borderRadius: BorderRadius.circular(8),
+                    //       border:
+                    //           Border.all(color: Colors.blue[200]!, width: 1),
+                    //     ),
+                    //     child: Row(
+                    //       children: [
+                    //         Icon(Icons.route,
+                    //             color: Colors.blue[700], size: 20),
+                    //         const SizedBox(width: 8),
+                    //         Text(
+                    //           'Distance: ${tripDistanceInKm!.toStringAsFixed(2)} km',
+                    //           style: Styles().textStyle(
+                    //               14, FontWeight.w500, Colors.blue[900]!),
+                    //         ),
+                    //       ],
+                    //     ),
+                    //   ),
+
+                    // if (tripDistanceInKm != null) const SizedBox(height: 12),
+
+                    // Fare Breakdown
+                    if (selectedPickup != null && selectedDestination != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Constants.WHITE_COLOR,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: Constants.BLACK_COLOR.withAlpha(125),
+                              width: 1),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Fare Breakdown:',
+                                  style: Styles().textStyle(
+                                      14, Styles.bold, Styles.customBlackFont),
+                                ),
+                                Row(
+                                  children: [
+                                    Icon(Icons.route,
+                                        color: Constants.BLACK_COLOR, size: 18),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      'Distance:   ${tripDistanceInKm!.toStringAsFixed(2)} km',
+                                      style: Styles().textStyle(14, Styles.bold,
+                                          Styles.customBlackFont),
+                                    ),
+                                  ],
+                                )
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            SizedBox(
+                              height: 8,
+                              width: double.infinity,
+                              child: Divider(
+                                color: Constants.BLACK_COLOR.withAlpha(125),
+                                thickness: 1,
+                                indent: 5,
+                                endIndent: 5,
+                              ),
+                            ),
+                            if (regularCount > 0)
+                              _buildFareBreakdownRow(
+                                '$regularCount Regular',
+                                baseTripFare * regularCount,
+                              ),
+                            if (studentCount > 0)
+                              _buildFareBreakdownRow(
+                                '$studentCount Student',
+                                discountedTripFare * studentCount,
+                                isDiscount: true,
+                              ),
+                            if (seniorCount > 0)
+                              _buildFareBreakdownRow(
+                                '$seniorCount Senior',
+                                discountedTripFare * seniorCount,
+                                isDiscount: true,
+                              ),
+                            if (pwdCount > 0)
+                              _buildFareBreakdownRow(
+                                '$pwdCount PWD',
+                                discountedTripFare * pwdCount,
+                                isDiscount: true,
+                              ),
+                          ],
+                        ),
+                      ),
+
+                    if (selectedPickup != null && selectedDestination != null)
+                      const SizedBox(height: 18),
+
                     // Total Fare
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -374,7 +549,7 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                           child: Text(
                             'Total Fare:',
                             style: Styles()
-                                .textStyle(16, FontWeight.w500, Colors.black),
+                                .textStyle(16, Styles.semiBold, Colors.black),
                           ),
                         ),
                         Padding(
@@ -460,8 +635,8 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                       Text(
                         label,
                         style: Styles().textStyle(
-                            18,
-                            isHighlighted ? Styles.semiBold : Styles.normal,
+                            16,
+                            Styles.semiBold,
                             isHighlighted
                                 ? Styles.customWhiteFont
                                 : Styles.customBlackFont),
@@ -524,6 +699,47 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
     return allowedStops
         .where((stop) => (stop.stopOrder ?? 0) > pickupOrder)
         .toList();
+  }
+
+  /// Build a single row in the fare breakdown display
+  Widget _buildFareBreakdownRow(String label, double fare,
+      {bool isDiscount = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Text(
+                label,
+                style:
+                    Styles().textStyle(14, FontWeight.normal, Colors.black87),
+              ),
+              if (isDiscount)
+                Container(
+                  margin: const EdgeInsets.only(left: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.green[100],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    '20% off',
+                    style: Styles()
+                        .textStyle(11, FontWeight.bold, Constants.GREEN_COLOR),
+                  ),
+                ),
+            ],
+          ),
+          Text(
+            '₱${fare.toStringAsFixed(2)}',
+            style: Styles().textStyle(14, FontWeight.w600, Colors.black87),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildStopDropdown({
