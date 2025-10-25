@@ -7,6 +7,8 @@ import 'package:pasada_driver_side/common/constants/message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/common/utils/result.dart';
 import 'package:pasada_driver_side/presentation/providers/quota/quota_provider.dart';
+import 'package:pasada_driver_side/data/models/allowed_stop_model.dart';
+import 'package:pasada_driver_side/data/repositories/supabase_allowed_stop_repository.dart';
 
 class DriverProvider with ChangeNotifier {
   // Driver identification
@@ -33,9 +35,13 @@ class DriverProvider with ChangeNotifier {
   int _passengerStandingCapacity = 0;
   int _passengerSittingCapacity = 0;
 
-  final SupabaseClient supabase = Supabase.instance.client;
+  // Cached allowed stops for the current route
+  List<AllowedStop> _cachedAllowedStops = [];
+  bool _isLoadingStops = false;
 
+  final SupabaseClient supabase = Supabase.instance.client;
   final QuotaProvider quotaProvider = QuotaProvider();
+  final _stopRepository = SupabaseAllowedStopRepository();
 
   // Getters
   String get driverID => _driverID;
@@ -50,6 +56,8 @@ class DriverProvider with ChangeNotifier {
   int get passengerSittingCapacity => _passengerSittingCapacity;
   String? get driverFullName => _driverFullName;
   String get driverNumber => _driverNumber;
+  List<AllowedStop> get cachedAllowedStops => _cachedAllowedStops;
+  bool get isLoadingStops => _isLoadingStops;
 
   // Loading & error getters
   bool get isLoading => _isLoading;
@@ -418,7 +426,6 @@ class DriverProvider with ChangeNotifier {
   /// Updates the time that the driver logs into the app
   Future<void> writeLoginTime(BuildContext context) async {
     try {
-
       final response = await supabase
           .from('driverActivityLog')
           .insert({
@@ -436,5 +443,41 @@ class DriverProvider with ChangeNotifier {
       debugPrint('Error logging driver log in time, $e');
       debugPrint('Error Write Login Time StackTrace: $stacktrace');
     }
+  }
+
+  /// Load and cache allowed stops for the current route
+  /// This should be called when:
+  /// 1. App starts (after route is determined)
+  /// 2. Route is changed
+  Future<void> loadAndCacheAllowedStops() async {
+    _isLoadingStops = true;
+    notifyListeners();
+
+    try {
+      if (_routeID > 0) {
+        debugPrint('Loading allowed stops for route: $_routeID');
+        final stops = await _stopRepository.fetchStopsByRoute(_routeID);
+        _cachedAllowedStops = stops;
+        debugPrint('Cached ${stops.length} stops for route $_routeID');
+      } else {
+        // Fallback: fetch all active stops if no route assigned
+        debugPrint('No route ID, loading all active stops');
+        final stops = await _stopRepository.fetchAllActiveStops();
+        _cachedAllowedStops = stops;
+        debugPrint('Cached ${stops.length} active stops');
+      }
+    } catch (e) {
+      debugPrint('Error loading allowed stops: $e');
+      _cachedAllowedStops = [];
+    } finally {
+      _isLoadingStops = false;
+      notifyListeners();
+    }
+  }
+
+  /// Clear cached allowed stops (useful when logging out or route is unassigned)
+  void clearCachedAllowedStops() {
+    _cachedAllowedStops = [];
+    notifyListeners();
   }
 }

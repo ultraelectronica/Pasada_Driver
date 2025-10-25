@@ -8,7 +8,6 @@ import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/data/models/allowed_stop_model.dart';
 import 'package:pasada_driver_side/data/models/manual_booking_data.dart';
-import 'package:pasada_driver_side/data/repositories/supabase_allowed_stop_repository.dart';
 import 'package:pasada_driver_side/data/repositories/supabase_manual_booking_repository.dart';
 
 class TotalCapacityIndicator extends StatelessWidget {
@@ -79,56 +78,7 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
   AllowedStop? selectedDestination;
   String selectedSeatType = 'Sitting'; // Default to Sitting
 
-  // Data from database
-  List<AllowedStop> allowedStops = [];
-  bool isLoadingStops = true;
-
-  final _stopRepository = SupabaseAllowedStopRepository();
   final _manualBookingRepository = SupabaseManualBookingRepository();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadAllowedStops();
-  }
-
-  Future<void> _loadAllowedStops() async {
-    setState(() => isLoadingStops = true);
-
-    try {
-      // Get the driver's route ID from provider
-      final driverProvider =
-          Provider.of<DriverProvider>(context, listen: false);
-      final routeId = driverProvider.routeID;
-
-      if (routeId > 0) {
-        final stops = await _stopRepository.fetchStopsByRoute(routeId);
-        setState(() {
-          allowedStops = stops;
-          isLoadingStops = false;
-        });
-      } else {
-        // Fallback: fetch all active stops if no route assigned
-        final stops = await _stopRepository.fetchAllActiveStops();
-        setState(() {
-          allowedStops = stops;
-          isLoadingStops = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error loading allowed stops: $e');
-      setState(() => isLoadingStops = false);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to load stops. Please try again.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
 
   double get totalFare {
     // Calculate based on your fare logic
@@ -141,6 +91,11 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
   @override
   Widget build(BuildContext context) {
     final double height = MediaQuery.of(context).size.height * 0.048;
+
+    // Get cached allowed stops from DriverProvider
+    final driverProvider = Provider.of<DriverProvider>(context);
+    final allowedStops = driverProvider.cachedAllowedStops;
+    final isLoadingStops = driverProvider.isLoadingStops;
 
     return Container(
       constraints: BoxConstraints(
@@ -403,7 +358,7 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                         : _buildStopDropdown(
                             label: 'Destination',
                             value: selectedDestination,
-                            items: _getAvailableDestinations(),
+                            items: _getAvailableDestinations(allowedStops),
                             onChanged: (value) =>
                                 setState(() => selectedDestination = value),
                           ),
@@ -560,7 +515,7 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
   }
 
   /// Get available destination stops (after the selected pickup)
-  List<AllowedStop> _getAvailableDestinations() {
+  List<AllowedStop> _getAvailableDestinations(List<AllowedStop> allowedStops) {
     if (selectedPickup == null) {
       return allowedStops;
     }
