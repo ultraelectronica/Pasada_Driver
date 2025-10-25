@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_capacity.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:pasada_driver_side/common/constants/constants.dart';
+import 'package:pasada_driver_side/data/models/allowed_stop_model.dart';
+import 'package:pasada_driver_side/data/models/manual_booking_data.dart';
+import 'package:pasada_driver_side/data/repositories/supabase_allowed_stop_repository.dart';
+import 'package:pasada_driver_side/data/repositories/supabase_manual_booking_repository.dart';
 
 class TotalCapacityIndicator extends StatelessWidget {
   const TotalCapacityIndicator({
@@ -66,24 +71,64 @@ class ManualAddPassengerSheet extends StatefulWidget {
 
 class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
   // State variables
-  int regularCount = 1;
-  int studentCount = 1;
+  int regularCount = 0;
+  int studentCount = 0;
   int seniorCount = 0;
-  int pwdCount = 1;
-  String? selectedPickup;
-  String? selectedDestination;
+  int pwdCount = 0;
+  AllowedStop? selectedPickup;
+  AllowedStop? selectedDestination;
+  String selectedSeatType = 'Sitting'; // Default to Sitting
 
-  // Example data - replace with your actual data
-  final List<String> pickupLocations = [
-    'Location A',
-    'Location B',
-    'Location C'
-  ];
-  final List<String> destinations = [
-    'Destination 1',
-    'Destination 2',
-    'Destination 3'
-  ];
+  // Data from database
+  List<AllowedStop> allowedStops = [];
+  bool isLoadingStops = true;
+
+  final _stopRepository = SupabaseAllowedStopRepository();
+  final _manualBookingRepository = SupabaseManualBookingRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAllowedStops();
+  }
+
+  Future<void> _loadAllowedStops() async {
+    setState(() => isLoadingStops = true);
+
+    try {
+      // Get the driver's route ID from provider
+      final driverProvider =
+          Provider.of<DriverProvider>(context, listen: false);
+      final routeId = driverProvider.routeID;
+
+      if (routeId > 0) {
+        final stops = await _stopRepository.fetchStopsByRoute(routeId);
+        setState(() {
+          allowedStops = stops;
+          isLoadingStops = false;
+        });
+      } else {
+        // Fallback: fetch all active stops if no route assigned
+        final stops = await _stopRepository.fetchAllActiveStops();
+        setState(() {
+          allowedStops = stops;
+          isLoadingStops = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading allowed stops: $e');
+      setState(() => isLoadingStops = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load stops. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   double get totalFare {
     // Calculate based on your fare logic
@@ -188,6 +233,117 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
 
                     const SizedBox(height: 24),
 
+                    // // Seat Type Selection
+                    // Padding(
+                    //   padding: const EdgeInsets.symmetric(horizontal: 10),
+                    //   child: Text(
+                    //     'Select Seat Type:',
+                    //     style: Styles()
+                    //         .textStyle(16, FontWeight.w500, Colors.black),
+                    //   ),
+                    // ),
+                    // const SizedBox(height: 12),
+
+                    // Padding(
+                    //   padding: const EdgeInsets.symmetric(horizontal: 10),
+                    //   child: Row(
+                    //     children: [
+                    //       Expanded(
+                    //         child: GestureDetector(
+                    //           onTap: () {
+                    //             setState(() => selectedSeatType = 'Sitting');
+                    //           },
+                    //           child: Container(
+                    //             padding: const EdgeInsets.symmetric(
+                    //                 vertical: 16, horizontal: 20),
+                    //             decoration: BoxDecoration(
+                    //               color: selectedSeatType == 'Sitting'
+                    //                   ? Constants.GRADIENT_COLOR_1
+                    //                   : Colors.white,
+                    //               borderRadius: BorderRadius.circular(12),
+                    //               border: Border.all(
+                    //                 color: selectedSeatType == 'Sitting'
+                    //                     ? Constants.GRADIENT_COLOR_1
+                    //                     : Colors.grey[300]!,
+                    //                 width: 2,
+                    //               ),
+                    //             ),
+                    //             child: Row(
+                    //               mainAxisAlignment: MainAxisAlignment.center,
+                    //               children: [
+                    //                 Icon(
+                    //                   Icons.event_seat,
+                    //                   color: selectedSeatType == 'Sitting'
+                    //                       ? Colors.white
+                    //                       : Colors.grey[700],
+                    //                 ),
+                    //                 const SizedBox(width: 8),
+                    //                 Text(
+                    //                   'Sitting',
+                    //                   style: Styles().textStyle(
+                    //                     16,
+                    //                     FontWeight.w600,
+                    //                     selectedSeatType == 'Sitting'
+                    //                         ? Colors.white
+                    //                         : Colors.grey[700]!,
+                    //                   ),
+                    //                 ),
+                    //               ],
+                    //             ),
+                    //           ),
+                    //         ),
+                    //       ),
+                    //       const SizedBox(width: 12),
+                    //       Expanded(
+                    //         child: GestureDetector(
+                    //           onTap: () {
+                    //             setState(() => selectedSeatType = 'Standing');
+                    //           },
+                    //           child: Container(
+                    //             padding: const EdgeInsets.symmetric(
+                    //                 vertical: 16, horizontal: 20),
+                    //             decoration: BoxDecoration(
+                    //               color: selectedSeatType == 'Standing'
+                    //                   ? Constants.GRADIENT_COLOR_1
+                    //                   : Colors.white,
+                    //               borderRadius: BorderRadius.circular(12),
+                    //               border: Border.all(
+                    //                 color: selectedSeatType == 'Standing'
+                    //                     ? Constants.GRADIENT_COLOR_1
+                    //                     : Colors.grey[300]!,
+                    //                 width: 2,
+                    //               ),
+                    //             ),
+                    //             child: Row(
+                    //               mainAxisAlignment: MainAxisAlignment.center,
+                    //               children: [
+                    //                 Icon(
+                    //                   Icons.accessibility_new,
+                    //                   color: selectedSeatType == 'Standing'
+                    //                       ? Colors.white
+                    //                       : Colors.grey[700],
+                    //                 ),
+                    //                 const SizedBox(width: 8),
+                    //                 Text(
+                    //                   'Standing',
+                    //                   style: Styles().textStyle(
+                    //                     16,
+                    //                     FontWeight.w600,
+                    //                     selectedSeatType == 'Standing'
+                    //                         ? Colors.white
+                    //                         : Colors.grey[700]!,
+                    //                   ),
+                    //                 ),
+                    //               ],
+                    //             ),
+                    //           ),
+                    //         ),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
+                    // const SizedBox(height: 24),
+
                     // Pickup Selection
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -198,12 +354,30 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    _buildDropdown(
-                      value: selectedPickup,
-                      items: pickupLocations,
-                      onChanged: (value) =>
-                          setState(() => selectedPickup = value),
-                    ),
+                    isLoadingStops
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        : _buildStopDropdown(
+                            label: 'Pickup',
+                            value: selectedPickup,
+                            items: allowedStops,
+                            onChanged: (value) {
+                              setState(() {
+                                selectedPickup = value;
+                                // Reset destination if it's before or same as pickup
+                                if (selectedDestination != null &&
+                                    value != null &&
+                                    (selectedDestination!.stopOrder ?? 0) <=
+                                        (value.stopOrder ?? 0)) {
+                                  selectedDestination = null;
+                                }
+                              });
+                            },
+                          ),
 
                     const SizedBox(height: 16),
 
@@ -219,12 +393,20 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
 
                     const SizedBox(height: 8),
 
-                    _buildDropdown(
-                      value: selectedDestination,
-                      items: destinations,
-                      onChanged: (value) =>
-                          setState(() => selectedDestination = value),
-                    ),
+                    isLoadingStops
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        : _buildStopDropdown(
+                            label: 'Destination',
+                            value: selectedDestination,
+                            items: _getAvailableDestinations(),
+                            onChanged: (value) =>
+                                setState(() => selectedDestination = value),
+                          ),
 
                     const SizedBox(height: 24),
 
@@ -324,7 +506,7 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                         label,
                         style: Styles().textStyle(
                             18,
-                            Styles.semiBold,
+                            isHighlighted ? Styles.semiBold : Styles.normal,
                             isHighlighted
                                 ? Styles.customWhiteFont
                                 : Styles.customBlackFont),
@@ -377,10 +559,23 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
     );
   }
 
-  Widget _buildDropdown({
-    required String? value,
-    required List<String> items,
-    required Function(String?) onChanged,
+  /// Get available destination stops (after the selected pickup)
+  List<AllowedStop> _getAvailableDestinations() {
+    if (selectedPickup == null) {
+      return allowedStops;
+    }
+
+    final pickupOrder = selectedPickup!.stopOrder ?? 0;
+    return allowedStops
+        .where((stop) => (stop.stopOrder ?? 0) > pickupOrder)
+        .toList();
+  }
+
+  Widget _buildStopDropdown({
+    required String label,
+    required AllowedStop? value,
+    required List<AllowedStop> items,
+    required Function(AllowedStop?) onChanged,
   }) {
     final double height = MediaQuery.of(context).size.height * 0.048;
 
@@ -391,7 +586,7 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
         color: Constants.GRADIENT_COLOR_2,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: DropdownButton<String>(
+      child: DropdownButton<AllowedStop>(
         value: value,
         isExpanded: true,
         underline: const SizedBox(),
@@ -399,22 +594,25 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
         style: Styles().textStyle(16, FontWeight.w500, Styles.customWhiteFont),
         icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
         hint: Text(
-          'Select...',
+          items.isEmpty ? 'No stops available' : 'Select $label...',
           style:
               Styles().textStyle(16, FontWeight.w500, Styles.customWhiteFont),
         ),
-        items: items.map((String item) {
-          return DropdownMenuItem<String>(
-            value: item,
-            child: Text(item),
+        items: items.map((AllowedStop stop) {
+          return DropdownMenuItem<AllowedStop>(
+            value: stop,
+            child: Text(
+              stop.stopName,
+              overflow: TextOverflow.ellipsis,
+            ),
           );
         }).toList(),
-        onChanged: onChanged,
+        onChanged: items.isEmpty ? null : onChanged,
       ),
     );
   }
 
-  void _handleAddPassenger() {
+  Future<void> _handleAddPassenger() async {
     // Validate selections
     if (selectedPickup == null || selectedDestination == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -426,17 +624,186 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
       return;
     }
 
-    // Add your logic to add the passenger here
-    // For example, call your PassengerCapacity service
+    // Validate at least one passenger is selected
+    if (regularCount == 0 &&
+        studentCount == 0 &&
+        seniorCount == 0 &&
+        pwdCount == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please add at least one passenger'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
-    Navigator.pop(context); // Close the bottom sheet
-
-    // Show success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Passenger added successfully'),
-        backgroundColor: Colors.green,
-      ),
+    // Create the manual booking data object
+    final bookingData = ManualBookingData(
+      regularCount: regularCount,
+      studentCount: studentCount,
+      seniorCount: seniorCount,
+      pwdCount: pwdCount,
+      pickupStop: selectedPickup!,
+      destinationStop: selectedDestination!,
+      seatType: selectedSeatType,
+      totalFare: totalFare,
     );
+
+    // Log all the collected information (for debugging)
+    debugPrint('=== Manual Booking Data ===');
+    debugPrint('Total Passengers: ${bookingData.totalPassengers}');
+    debugPrint('Regular: ${bookingData.regularCount}');
+    debugPrint('Student: ${bookingData.studentCount}');
+    debugPrint('Senior: ${bookingData.seniorCount}');
+    debugPrint('PWD: ${bookingData.pwdCount}');
+    debugPrint('---');
+    debugPrint('Pickup: ${bookingData.pickupStop.stopName}');
+    debugPrint('  - ID: ${bookingData.pickupStop.allowedStopId}');
+    debugPrint('  - Address: ${bookingData.pickupStop.stopAddress}');
+    debugPrint(
+        '  - Location: ${bookingData.pickupStop.stopLat}, ${bookingData.pickupStop.stopLng}');
+    debugPrint('  - Order: ${bookingData.pickupStop.stopOrder}');
+    debugPrint('---');
+    debugPrint('Destination: ${bookingData.destinationStop.stopName}');
+    debugPrint('  - ID: ${bookingData.destinationStop.allowedStopId}');
+    debugPrint('  - Address: ${bookingData.destinationStop.stopAddress}');
+    debugPrint(
+        '  - Location: ${bookingData.destinationStop.stopLat}, ${bookingData.destinationStop.stopLng}');
+    debugPrint('  - Order: ${bookingData.destinationStop.stopOrder}');
+    debugPrint('---');
+    debugPrint('Total Fare: ₱${bookingData.totalFare.toStringAsFixed(2)}');
+    debugPrint('Created At: ${bookingData.createdAt}');
+    debugPrint('---');
+    debugPrint('JSON Data:');
+    debugPrint(bookingData.toJson().toString());
+    debugPrint('===========================');
+
+    // Get driver information from provider
+    final driverProvider = Provider.of<DriverProvider>(context, listen: false);
+    final driverId = driverProvider.driverID;
+    final routeId = driverProvider.routeID;
+
+    if (driverId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Driver ID not found. Please log in again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (routeId <= 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Route not assigned. Please contact support.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Show loading indicator
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+              SizedBox(width: 16),
+              Text('Creating bookings...'),
+            ],
+          ),
+          duration: Duration(seconds: 10),
+        ),
+      );
+    }
+
+    // Save bookings to database
+    try {
+      final createdCount = await _manualBookingRepository.createManualBookings(
+        bookingData: bookingData,
+        driverId: driverId,
+        routeId: routeId,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pop(context); // Close the bottom sheet
+
+      if (createdCount == bookingData.totalPassengers) {
+        // Success - all bookings created
+
+        // Update passenger capacity in one atomic operation (prevents race conditions)
+        final capacityResult = await PassengerCapacity().incrementCapacityBulk(
+          context,
+          bookingData.seatType,
+          bookingData.totalPassengers,
+        );
+
+        if (!capacityResult.success) {
+          debugPrint(
+              'Warning: Failed to update capacity: ${capacityResult.errorMessage}');
+        }
+
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                '✓ Successfully added ${bookingData.totalPassengers} ${bookingData.seatType} passenger(s)\n${bookingData.pickupStop.stopName} → ${bookingData.destinationStop.stopName}'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } else if (createdCount > 0) {
+        // Partial success
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Partially added: $createdCount of ${bookingData.totalPassengers} bookings created'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      } else {
+        // Failed
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to create bookings. Please try again.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error in _handleAddPassenger: $e');
+
+      if (!mounted) return;
+
+      Navigator.pop(context); // Close the bottom sheet
+
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error creating bookings: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
   }
 }

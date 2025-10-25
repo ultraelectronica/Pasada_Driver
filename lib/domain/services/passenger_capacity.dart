@@ -289,6 +289,82 @@ class PassengerCapacity {
           BuildContext context) async =>
       _atomicCapacityUpdate(context, 'decrement', 'Sitting', isManual: true);
 
+  /// Increment capacity by a specific amount (for batch operations like manual bookings)
+  Future<CapacityOperationResult> incrementCapacityBulk(
+      BuildContext context, String seatType, int count) async {
+    if (count <= 0) {
+      return CapacityOperationResult(
+        success: false,
+        errorType: ERROR_VALIDATION_FAILED,
+        errorMessage: 'Count must be greater than 0',
+      );
+    }
+
+    final driverProvider = context.read<DriverProvider>();
+    final String vehicleID = driverProvider.vehicleID;
+
+    // Backup for rollback
+    final originalTotal = driverProvider.passengerCapacity;
+    final originalStanding = driverProvider.passengerStandingCapacity;
+    final originalSitting = driverProvider.passengerSittingCapacity;
+
+    try {
+      final vehicleData = await supabase
+          .from('vehicleTable')
+          .select('passenger_capacity, standing_passenger, sitting_passenger')
+          .eq('vehicle_id', vehicleID)
+          .single();
+
+      int totalCapacity = vehicleData['passenger_capacity'] ?? 0;
+      int standingCount = vehicleData['standing_passenger'] ?? 0;
+      int sittingCount = vehicleData['sitting_passenger'] ?? 0;
+
+      int newTotal = totalCapacity + count;
+      int newStanding = standingCount;
+      int newSitting = sittingCount;
+
+      if (seatType == 'Standing') {
+        newStanding += count;
+      } else {
+        newSitting += count;
+      }
+
+      // Validation
+      if (newTotal != (newStanding + newSitting)) {
+        return CapacityOperationResult(
+          success: false,
+          errorType: ERROR_VALIDATION_FAILED,
+          errorMessage: 'Data consistency check failed',
+        );
+      }
+
+      await supabase.from('vehicleTable').update({
+        'passenger_capacity': newTotal,
+        'standing_passenger': newStanding,
+        'sitting_passenger': newSitting,
+      }).eq('vehicle_id', vehicleID);
+
+      driverProvider.setPassengerCapacity(newTotal);
+      driverProvider.setPassengerStandingCapacity(newStanding);
+      driverProvider.setPassengerSittingCapacity(newSitting);
+
+      return CapacityOperationResult(success: true, capacityData: {
+        'total': newTotal,
+        'Standing': newStanding,
+        'Sitting': newSitting,
+      });
+    } catch (e) {
+      driverProvider.setPassengerCapacity(originalTotal);
+      driverProvider.setPassengerStandingCapacity(originalStanding);
+      driverProvider.setPassengerSittingCapacity(originalSitting);
+      return CapacityOperationResult(
+        success: false,
+        errorType: ERROR_DATABASE_FAILED,
+        errorMessage: 'Database operation failed: $e',
+      );
+    }
+  }
+
   Future<CapacityOperationResult> resetCapacityToZero(
       BuildContext context) async {
     try {
