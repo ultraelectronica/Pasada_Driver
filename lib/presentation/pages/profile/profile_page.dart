@@ -69,7 +69,8 @@ class ProfilePageState extends State<ProfilePage> {
       SnackBarUtils.show(
         context,
         'Cannot go Online: Vehicle still has $totalPassengers passenger${totalPassengers > 1 ? "s" : ""}',
-        Colors.red,
+        'Drop off all passengers to designated stops before going Online',
+        backgroundColor: Colors.red,
         duration: const Duration(seconds: 3),
       );
       return false;

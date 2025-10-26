@@ -39,12 +39,16 @@ class FloatingRefreshBookingButton extends StatelessWidget {
               if (isDriving) {
                 if (!isLoading) {
                   onRefresh();
-                  SnackBarUtils.show(context, 'Refreshing booking requests...',
-                      Constants.GREEN_COLOR);
+                  SnackBarUtils.show(context, 'Refreshing booking requests',
+                      'Checking for new bookings',
+                      backgroundColor: Constants.GREEN_COLOR);
                 }
               } else {
-                SnackBarUtils.show(context,
-                    'To get bookings, switch to "Driving" mode', Colors.orange);
+                SnackBarUtils.show(
+                    context,
+                    'To get bookings, switch to "Driving" mode',
+                    'Try switching to Driving mode',
+                    backgroundColor: Colors.orange);
               }
             },
             borderRadius: BorderRadius.circular(15),

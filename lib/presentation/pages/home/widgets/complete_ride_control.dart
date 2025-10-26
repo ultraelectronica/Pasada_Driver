@@ -5,6 +5,7 @@ import 'package:pasada_driver_side/presentation/providers/passenger/passenger_pr
 import 'package:pasada_driver_side/presentation/providers/quota/quota_provider.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
+import 'package:cherry_toast/resources/arrays.dart';
 import 'package:pasada_driver_side/presentation/pages/home/controllers/id_acceptance_controller.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 
@@ -91,7 +92,13 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
                       '[COMPLETE] Skipping auto-accept. hasIdImage=${passengerIdImagePath != null && passengerIdImagePath.isNotEmpty} isIdAccepted=$isIdAccepted');
                 }
               } catch (_) {}
-              SnackBarUtils.showSuccess(context, 'Ride completed successfully');
+              SnackBarUtils.showSuccess(
+                context,
+                'Ride completed successfully',
+                'Passenger $bookingId has been dropped off successfully',
+                position: Position.top,
+                animationType: AnimationType.fromTop,
+              );
               context.read<QuotaProvider>().fetchQuota(context);
               // quotaProvider.setQuota(context);
             } else {
@@ -99,18 +106,22 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
                   '[COMPLETE][ERROR] Capacity decrement failed: ${capacityResult.errorMessage}');
               // rollback booking status if capacity update failed
               await passengerProvider.markBookingAsAccepted(bookingId);
-              SnackBarUtils.showError(context,
-                  capacityResult.errorMessage ?? 'Capacity update failed');
+              SnackBarUtils.showError(
+                  context,
+                  capacityResult.errorMessage ?? 'Capacity update failed',
+                  'Please try again');
             }
           } else {
             debugPrint('[COMPLETE][ERROR] Backend status update failed.');
-            SnackBarUtils.showError(context, 'Failed to complete ride');
+            SnackBarUtils.showError(
+                context, 'Failed to complete ride', 'Please try again');
           }
         } catch (e, st) {
           debugPrint('[COMPLETE][EXCEPTION] $e');
           debugPrint(st.toString());
           if (!mounted) return;
-          SnackBarUtils.showError(context, 'Failed to complete ride');
+          SnackBarUtils.showError(
+              context, 'Failed to complete ride', 'Please try again');
         } finally {
           if (mounted) setState(() => _isProcessing = false);
           debugPrint(

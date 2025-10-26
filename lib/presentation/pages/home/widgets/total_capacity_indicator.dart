@@ -12,6 +12,8 @@ import 'package:pasada_driver_side/data/repositories/supabase_manual_booking_rep
 import 'package:pasada_driver_side/domain/services/fare_recalculation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pasada_driver_side/common/geo/location_service.dart';
+import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
+import 'package:cherry_toast/resources/arrays.dart';
 
 class TotalCapacityIndicator extends StatelessWidget {
   const TotalCapacityIndicator({
@@ -825,11 +827,13 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
   Future<void> _handleAddPassenger() async {
     // Validate selections
     if (selectedPickup == null || selectedDestination == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select pickup and destination'),
-          backgroundColor: Colors.red,
-        ),
+      SnackBarUtils.showError(
+        context,
+        'Please select pickup and destination',
+        'Select locations before adding passengers',
+        position: Position.top,
+        animationType: AnimationType.fromTop,
+        duration: const Duration(seconds: 2),
       );
       return;
     }
@@ -839,11 +843,13 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
         studentCount == 0 &&
         seniorCount == 0 &&
         pwdCount == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please add at least one passenger'),
-          backgroundColor: Colors.orange,
-        ),
+      SnackBarUtils.showError(
+        context,
+        'Please add at least one passenger',
+        'Select passengers before adding them',
+        position: Position.top,
+        animationType: AnimationType.fromTop,
+        duration: const Duration(seconds: 2),
       );
       return;
     }
@@ -896,29 +902,33 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
 
     if (driverId.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Driver ID not found. Please log in again.'),
-            backgroundColor: Colors.red,
-          ),
+        SnackBarUtils.showError(
+          context,
+          'Driver ID not found.',
+          'Please log in again',
+          position: Position.top,
+          animationType: AnimationType.fromTop,
+          duration: const Duration(seconds: 2),
         );
+        return;
       }
-      return;
     }
 
     if (routeId <= 0) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Route not assigned. Please contact support.'),
-            backgroundColor: Colors.red,
-          ),
+        SnackBarUtils.showError(
+          context,
+          'Route not assigned.',
+          'Select a route before adding passengers',
+          position: Position.top,
+          animationType: AnimationType.fromTop,
+          duration: const Duration(seconds: 2),
         );
       }
       return;
     }
 
-    // Show loading indicator
+    // Show loading indicator (will be dismissed when operation completes)
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -951,6 +961,9 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
 
       if (!mounted) return;
 
+      // Dismiss loading indicator immediately
+      ScaffoldMessenger.of(context).clearSnackBars();
+
       Navigator.pop(context); // Close the bottom sheet
 
       if (createdCount == bookingData.totalPassengers) {
@@ -968,35 +981,34 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
               'Warning: Failed to update capacity: ${capacityResult.errorMessage}');
         }
 
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                '✓ Successfully added ${bookingData.totalPassengers} ${bookingData.seatType} passenger(s)\n${bookingData.pickupStop.stopName} → ${bookingData.destinationStop.stopName}'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
+        SnackBarUtils.showSuccess(
+          context,
+          'Bookings created successfully',
+          '${bookingData.totalPassengers} ${bookingData.seatType} passenger(s): ${bookingData.pickupStop.stopName} → ${bookingData.destinationStop.stopName}',
+          position: Position.top,
+          animationType: AnimationType.fromTop,
+          duration: const Duration(seconds: 3),
         );
       } else if (createdCount > 0) {
         // Partial success
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Partially added: $createdCount of ${bookingData.totalPassengers} bookings created'),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 4),
-          ),
+        SnackBarUtils.show(
+          context,
+          'Partial success',
+          '$createdCount of ${bookingData.totalPassengers} bookings created',
+          backgroundColor: Colors.orange,
+          position: Position.top,
+          animationType: AnimationType.fromTop,
+          duration: const Duration(seconds: 3),
         );
       } else {
         // Failed
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to create bookings. Please try again.'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
+        SnackBarUtils.showError(
+          context,
+          'Failed to create bookings',
+          'Please try again',
+          position: Position.top,
+          animationType: AnimationType.fromTop,
+          duration: const Duration(seconds: 3),
         );
       }
     } catch (e) {
@@ -1004,15 +1016,18 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
 
       if (!mounted) return;
 
+      // Dismiss loading indicator immediately
+      ScaffoldMessenger.of(context).clearSnackBars();
+
       Navigator.pop(context); // Close the bottom sheet
 
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error creating bookings: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
+      SnackBarUtils.showError(
+        context,
+        'Error creating bookings',
+        e.toString(),
+        position: Position.top,
+        animationType: AnimationType.fromTop,
+        duration: const Duration(seconds: 4),
       );
     }
   }

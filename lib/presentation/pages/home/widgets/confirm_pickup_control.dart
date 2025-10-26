@@ -5,6 +5,7 @@ import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
+import 'package:cherry_toast/resources/arrays.dart';
 
 class ConfirmPickupControl extends StatefulWidget {
   const ConfirmPickupControl({
@@ -58,7 +59,12 @@ class _ConfirmPickupControlState extends State<ConfirmPickupControl> {
             if (!mounted) return;
             if (capacityResult.success) {
               SnackBarUtils.showSuccess(
-                  context, 'Passenger picked up successfully');
+                context,
+                'Passenger picked up successfully',
+                'Operation successful',
+                position: Position.top,
+                animationType: AnimationType.fromTop,
+              );
               // Clear pickup marker once ride begins
               try {
                 if (mounted) {
@@ -69,17 +75,19 @@ class _ConfirmPickupControlState extends State<ConfirmPickupControl> {
               // rollback booking status if capacity update failed
               await passengerProvider
                   .markBookingAsAccepted(widget.nearestBookingId!);
-              SnackBarUtils.showError(context,
-                  capacityResult.errorMessage ?? 'Capacity update failed');
+              SnackBarUtils.showError(
+                  context,
+                  capacityResult.errorMessage ?? 'Capacity update failed',
+                  'Operation failed');
             }
           } else {
-            SnackBarUtils.showError(
-                context, 'Failed to confirm passenger pickup');
+            SnackBarUtils.showError(context,
+                'Failed to confirm passenger pickup', 'Operation failed');
           }
         } catch (_) {
           if (!mounted) return;
-          SnackBarUtils.showError(
-              context, 'Failed to confirm passenger pickup');
+          SnackBarUtils.showError(context, 'Failed to confirm passenger pickup',
+              'Operation failed');
         } finally {
           if (mounted) setState(() => _isProcessing = false);
         }
