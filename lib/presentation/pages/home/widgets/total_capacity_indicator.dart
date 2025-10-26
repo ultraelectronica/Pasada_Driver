@@ -357,82 +357,94 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                     // ),
                     // const SizedBox(height: 24),
 
-                    // Pickup Selection
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Row(
-                        children: [
-                          Icon(Icons.place,
-                              color: Constants.GRADIENT_COLOR_1, size: 18),
-                          const SizedBox(width: 5),
-                          Text(
-                            'Select Pickup:',
-                            style: Styles().textStyle(
-                                16, Styles.semiBold, Styles.customBlackFont),
-                          ),
-                        ],
+                    // // Pickup Selection
+                    // Padding(
+                    //   padding: const EdgeInsets.symmetric(horizontal: 10),
+                    //   child: Row(
+                    //     children: [
+                    //       Icon(Icons.place,
+                    //           color: Constants.GRADIENT_COLOR_1, size: 18),
+                    //       const SizedBox(width: 5),
+                    //       Text(
+                    //         'Select Pickup:',
+                    //         style: Styles().textStyle(
+                    //             16, Styles.semiBold, Styles.customBlackFont),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
+                    // const SizedBox(height: 8),
+                    // isLoadingStops
+                    //     ? const Center(
+                    //         child: Padding(
+                    //           padding: EdgeInsets.all(16.0),
+                    //           child: CircularProgressIndicator(),
+                    //         ),
+                    //       )
+                    //     :
+                    _buildStopDropdown(
+                      label: 'Pick-up location',
+                      value: selectedPickup,
+                      items: allowedStops,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedPickup = value;
+                          // Reset destination if it's before or same as pickup
+                          if (selectedDestination != null &&
+                              value != null &&
+                              (selectedDestination!.stopOrder ?? 0) <=
+                                  (value.stopOrder ?? 0)) {
+                            selectedDestination = null;
+                          }
+                        });
+                      },
+                      isPickup: true,
+                    ),
+
+                    // const SizedBox(height: 16),
+
+                    // // Destination Selection
+                    // Padding(
+                    //   padding: const EdgeInsets.symmetric(horizontal: 10),
+                    //   child: Row(
+                    //     children: [
+                    //       const Icon(Icons.location_on,
+                    //           color: Colors.red, size: 18),
+                    //       const SizedBox(width: 5),
+                    //       Text(
+                    //         'Select Destination:',
+                    //         style: Styles().textStyle(
+                    //             16, Styles.semiBold, Styles.customBlackFont),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
+
+                    SizedBox(
+                      height: 1,
+                      width: double.infinity,
+                      child: Divider(
+                        color: Constants.BLACK_COLOR.withAlpha(125),
+                        thickness: 1,
+                        indent: 15,
+                        endIndent: 15,
                       ),
                     ),
-                    const SizedBox(height: 8),
+
                     isLoadingStops
                         ? const Center(
                             child: Padding(
-                              padding: EdgeInsets.all(16.0),
+                              padding: EdgeInsets.all(1.0),
                               child: CircularProgressIndicator(),
                             ),
                           )
                         : _buildStopDropdown(
-                            label: 'Pickup',
-                            value: selectedPickup,
-                            items: allowedStops,
-                            onChanged: (value) {
-                              setState(() {
-                                selectedPickup = value;
-                                // Reset destination if it's before or same as pickup
-                                if (selectedDestination != null &&
-                                    value != null &&
-                                    (selectedDestination!.stopOrder ?? 0) <=
-                                        (value.stopOrder ?? 0)) {
-                                  selectedDestination = null;
-                                }
-                              });
-                            },
-                          ),
-
-                    const SizedBox(height: 16),
-
-                    // Destination Selection
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.location_on,
-                              color: Colors.red, size: 18),
-                          const SizedBox(width: 5),
-                          Text(
-                            'Select Destination:',
-                            style: Styles().textStyle(
-                                16, Styles.semiBold, Styles.customBlackFont),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    isLoadingStops
-                        ? const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: CircularProgressIndicator(),
-                            ),
-                          )
-                        : _buildStopDropdown(
-                            label: 'Destination',
+                            label: 'Drop-off location',
                             value: selectedDestination,
                             items: _getAvailableDestinations(allowedStops),
                             onChanged: (value) =>
                                 setState(() => selectedDestination = value),
+                            isPickup: false,
                           ),
 
                     const SizedBox(height: 24),
@@ -747,34 +759,61 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
     required AllowedStop? value,
     required List<AllowedStop> items,
     required Function(AllowedStop?) onChanged,
+    required bool isPickup,
   }) {
-    final double height = MediaQuery.of(context).size.height * 0.048;
+    final double height = MediaQuery.of(context).size.height * 0.045;
 
     return Container(
       height: height,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Constants.GRADIENT_COLOR_2,
+        color: Constants.WHITE_COLOR,
         borderRadius: BorderRadius.circular(12),
       ),
       child: DropdownButton<AllowedStop>(
         value: value,
         isExpanded: true,
         underline: const SizedBox(),
-        dropdownColor: Constants.GRADIENT_COLOR_2,
-        style: Styles().textStyle(16, FontWeight.w500, Styles.customWhiteFont),
-        icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
-        hint: Text(
-          items.isEmpty ? 'No stops available' : 'Select $label...',
-          style:
-              Styles().textStyle(16, FontWeight.w500, Styles.customWhiteFont),
+        dropdownColor: Constants.GREY_COLOR,
+        style: Styles().textStyle(16, Styles.semiBold, Styles.customBlackFont),
+        icon: Icon(Icons.keyboard_arrow_down, color: Constants.BLACK_COLOR),
+        // padding: const EdgeInsets.symmetric(horizontal: 0),
+        menuWidth: MediaQuery.of(context).size.width * 0.75,
+        borderRadius: BorderRadius.circular(12),
+        alignment: Alignment.center,
+        hint: Row(
+          children: [
+            Icon(isPickup ? Icons.location_on : Icons.location_on,
+                color: isPickup ? Constants.GRADIENT_COLOR_1 : Colors.red,
+                size: 25),
+            const SizedBox(width: 8),
+            Text(
+              items.isEmpty ? 'No stops available' : label,
+              style: Styles()
+                  .textStyle(17, Styles.semiBold, Styles.customBlackFont),
+            ),
+          ],
         ),
         items: items.map((AllowedStop stop) {
           return DropdownMenuItem<AllowedStop>(
             value: stop,
-            child: Text(
-              stop.stopName,
-              overflow: TextOverflow.ellipsis,
+            child: Row(
+              children: [
+                Icon(Icons.location_on,
+                    color: isPickup ? Constants.GRADIENT_COLOR_1 : Colors.red,
+                    size: 25),
+                const SizedBox(width: 8),
+                Text(
+                  stop.stopName,
+                  overflow: TextOverflow.ellipsis,
+                  style: Styles().textStyle(
+                      17,
+                      Styles.semiBold,
+                      stop == value
+                          ? Styles.customBlackFont
+                          : Styles.customBlackFont),
+                ),
+              ],
             ),
           );
         }).toList(),
