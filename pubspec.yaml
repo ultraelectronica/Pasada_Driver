@@ -29,6 +29,7 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   bcrypt: ^1.1.3
+  cherry_toast: ^1.13.0
   cryptography: ^2.7.0
   cupertino_icons: ^1.0.8
   firebase_core: ^4.2.0

@@ -23,7 +23,7 @@ class FloatingStartDrivingButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final driverProvider = context.read<DriverProvider>();
-    
+
     return Positioned(
       bottom: screenHeight * 0.115,
       left: screenWidth * 0.02,
@@ -184,7 +184,8 @@ class FloatingStartDrivingButton extends StatelessWidget {
         SnackBarUtils.show(
           context,
           'Select a route before going Driving',
-          Colors.red,
+          'Go to Route Selection to select a route',
+          backgroundColor: Colors.red,
         );
         return;
       }
@@ -201,8 +202,7 @@ class FloatingStartDrivingButton extends StatelessWidget {
     context.read<PassengerProvider>().getBookingRequestsID(context);
 
     // ignore: use_build_context_synchronously
-    SnackBarUtils.show(context, 'Status set to Driving', Constants.GREEN_COLOR);
+    SnackBarUtils.show(context, 'Status set to Driving', 'Ingat manong!',
+        backgroundColor: Constants.GREEN_COLOR);
   }
-
-
 }

@@ -26,6 +26,7 @@ import 'package:pasada_driver_side/presentation/pages/home/widgets/reset_capacit
 import 'package:pasada_driver_side/presentation/pages/home/widgets/confirm_pickup_control.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/complete_ride_control.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
+import 'package:cherry_toast/resources/arrays.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -307,11 +308,15 @@ class HomePageState extends State<HomePage> {
                     SnackBarUtils.showSuccess(
                       context,
                       'Capacity reset to zero successfully',
+                      'All passenger counts have been reset to zero',
+                      position: Position.top,
+                      animationType: AnimationType.fromTop,
                     );
                   } else {
                     SnackBarUtils.showError(
                       context,
                       'Failed to reset capacity: ${result.errorMessage}',
+                      'Please try again',
                     );
                   }
                 }
