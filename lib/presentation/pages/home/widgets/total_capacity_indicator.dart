@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_capacity.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
@@ -84,6 +83,33 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
   String selectedSeatType = 'Sitting'; // Default to Sitting
 
   final _manualBookingRepository = SupabaseManualBookingRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    // Ensure stops are loaded when sheet opens
+    _ensureStopsAreLoaded();
+  }
+
+  /// Check if stops are loaded, and if not, trigger loading
+  Future<void> _ensureStopsAreLoaded() async {
+    final driverProvider = Provider.of<DriverProvider>(context, listen: false);
+
+    // If stops are empty and not currently loading, trigger the load
+    if (driverProvider.cachedAllowedStops.isEmpty &&
+        !driverProvider.isLoadingStops) {
+      debugPrint('Manual booking sheet: Stops not loaded, triggering load...');
+      await driverProvider.loadAndCacheAllowedStops();
+
+      if (mounted) {
+        debugPrint(
+            'Manual booking sheet: Loaded ${driverProvider.cachedAllowedStops.length} stops');
+      }
+    } else {
+      debugPrint(
+          'Manual booking sheet: ${driverProvider.cachedAllowedStops.length} stops already cached');
+    }
+  }
 
   /// Calculate distance between pickup and destination in kilometers
   double? get tripDistanceInKm {
@@ -434,10 +460,20 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                     ),
 
                     isLoadingStops
-                        ? const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(1.0),
-                              child: CircularProgressIndicator(),
+                        ? Container(
+                            height: MediaQuery.of(context).size.height * 0.045,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: Constants.WHITE_COLOR,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              ),
                             ),
                           )
                         : _buildStopDropdown(
@@ -448,6 +484,44 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                                 setState(() => selectedDestination = value),
                             isPickup: false,
                           ),
+
+                    // Show info message if no stops are available after loading
+                    if (!isLoadingStops && allowedStops.isEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(top: 12),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border:
+                              Border.all(color: Colors.orange[200]!, width: 1),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline,
+                                color: Colors.orange[700], size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'No stops configured',
+                                    style: Styles().textStyle(14,
+                                        FontWeight.bold, Colors.orange[900]!),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Route ${driverProvider.routeID} has no stops configured. Please contact admin.',
+                                    style: Styles().textStyle(12,
+                                        FontWeight.normal, Colors.orange[800]!),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
 
                     const SizedBox(height: 24),
 
@@ -804,10 +878,13 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                 color: isPickup ? Constants.GRADIENT_COLOR_1 : Colors.red,
                 size: 25),
             const SizedBox(width: 8),
-            Text(
-              items.isEmpty ? 'No stops available' : label,
-              style: Styles()
-                  .textStyle(17, Styles.semiBold, Styles.customBlackFont),
+            Expanded(
+              child: Text(
+                items.isEmpty ? 'No stops available for this route' : label,
+                style: Styles().textStyle(17, Styles.semiBold,
+                    items.isEmpty ? Colors.grey[600]! : Styles.customBlackFont),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -820,15 +897,32 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                     color: isPickup ? Constants.GRADIENT_COLOR_1 : Colors.red,
                     size: 25),
                 const SizedBox(width: 8),
+                Container(
+                  width: 50,
+                  height: height / 1.5,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Constants.WHITE_COLOR,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: Constants.BLACK_COLOR.withAlpha(125), width: 1),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    stop.stopOrder.toString(),
+                    style: Styles()
+                        .textStyle(17, Styles.semiBold, Styles.customBlackFont),
+                  ),
+                ),
+                const SizedBox(
+                  width: 15,
+                ),
                 Text(
                   stop.stopName,
                   overflow: TextOverflow.ellipsis,
-                  style: Styles().textStyle(
-                      17,
-                      Styles.semiBold,
-                      stop == value
-                          ? Styles.customBlackFont
-                          : Styles.customBlackFont),
+                  style: Styles()
+                      .textStyle(17, Styles.semiBold, Styles.customBlackFont),
                 ),
               ],
             ),
