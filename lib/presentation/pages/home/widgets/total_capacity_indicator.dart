@@ -387,7 +387,7 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                     _buildStopDropdown(
                       label: 'Pick-up location',
                       value: selectedPickup,
-                      items: allowedStops,
+                      items: _getAvailablePickups(allowedStops),
                       onChanged: (value) {
                         setState(() {
                           selectedPickup = value;
@@ -701,6 +701,21 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
         ),
       ],
     );
+  }
+
+  /// Get available pickup stops (excludes the last stop which is the endpoint)
+  List<AllowedStop> _getAvailablePickups(List<AllowedStop> allowedStops) {
+    if (allowedStops.isEmpty) return allowedStops;
+
+    // Find the maximum stop order
+    final maxOrder = allowedStops
+        .map((stop) => stop.stopOrder ?? 0)
+        .reduce((a, b) => a > b ? a : b);
+
+    // Return all stops except the one with the maximum order (endpoint)
+    return allowedStops
+        .where((stop) => (stop.stopOrder ?? 0) < maxOrder)
+        .toList();
   }
 
   /// Get available destination stops (after the selected pickup)
