@@ -263,7 +263,23 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
 
                     // Regular
                     _buildDiscountTypeRow('Regular', regularCount, false, () {
-                      setState(() => regularCount++);
+                      if (PassengerCapacity.MAX_TOTAL_CAPACITY >
+                          regularCount +
+                              studentCount +
+                              seniorCount +
+                              pwdCount) {
+                        setState(() => regularCount++);
+                      } else {
+                        SnackBarUtils.showError(
+                          context,
+                          'Maximum capacity reached',
+                          'You have reached the maximum capacity.',
+                          position: Position.top,
+                          animationType: AnimationType.fromTop,
+                          duration: const Duration(seconds: 2),
+                        );
+                        return;
+                      }
                     }, () {
                       if (regularCount > 0) setState(() => regularCount--);
                     }),
@@ -272,7 +288,23 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
 
                     // Student
                     _buildDiscountTypeRow('Student', studentCount, true, () {
-                      setState(() => studentCount++);
+                      if (PassengerCapacity.MAX_TOTAL_CAPACITY >
+                          regularCount +
+                              studentCount +
+                              seniorCount +
+                              pwdCount) {
+                        setState(() => studentCount++);
+                      } else {
+                        SnackBarUtils.showError(
+                          context,
+                          'Maximum capacity reached',
+                          'You have reached the maximum capacity.',
+                          position: Position.top,
+                          animationType: AnimationType.fromTop,
+                          duration: const Duration(seconds: 2),
+                        );
+                        return;
+                      }
                     }, () {
                       if (studentCount > 0) setState(() => studentCount--);
                     }),
@@ -281,7 +313,23 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
 
                     // Senior
                     _buildDiscountTypeRow('Senior', seniorCount, true, () {
-                      setState(() => seniorCount++);
+                      if (PassengerCapacity.MAX_TOTAL_CAPACITY >
+                          regularCount +
+                              studentCount +
+                              seniorCount +
+                              pwdCount) {
+                        setState(() => seniorCount++);
+                      } else {
+                        SnackBarUtils.showError(
+                          context,
+                          'Maximum capacity reached',
+                          'You have reached the maximum capacity.',
+                          position: Position.top,
+                          animationType: AnimationType.fromTop,
+                          duration: const Duration(seconds: 2),
+                        );
+                        return;
+                      }
                     }, () {
                       if (seniorCount > 0) setState(() => seniorCount--);
                     }),
@@ -290,7 +338,23 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
 
                     // PWD
                     _buildDiscountTypeRow('PWD', pwdCount, true, () {
-                      setState(() => pwdCount++);
+                      if (PassengerCapacity.MAX_TOTAL_CAPACITY >
+                          regularCount +
+                              studentCount +
+                              seniorCount +
+                              pwdCount) {
+                        setState(() => pwdCount++);
+                      } else {
+                        SnackBarUtils.showError(
+                          context,
+                          'Maximum capacity reached',
+                          'You have reached the maximum capacity.',
+                          position: Position.top,
+                          animationType: AnimationType.fromTop,
+                          duration: const Duration(seconds: 2),
+                        );
+                        return;
+                      }
                     }, () {
                       if (pwdCount > 0) setState(() => pwdCount--);
                     }),
