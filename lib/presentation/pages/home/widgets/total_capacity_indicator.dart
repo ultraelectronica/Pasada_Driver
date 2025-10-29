@@ -13,6 +13,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pasada_driver_side/common/geo/location_service.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
 import 'package:cherry_toast/resources/arrays.dart';
+import 'package:pasada_driver_side/domain/services/seat_assignment_service.dart';
 
 class TotalCapacityIndicator extends StatelessWidget {
   const TotalCapacityIndicator({
@@ -80,7 +81,7 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
   int pwdCount = 0;
   AllowedStop? selectedPickup;
   AllowedStop? selectedDestination;
-  String selectedSeatType = 'Sitting'; // Default to Sitting
+  bool _isProcessing = false; // Prevent duplicate submissions
 
   final _manualBookingRepository = SupabaseManualBookingRepository();
 
@@ -165,6 +166,28 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
         (studentCount + seniorCount + pwdCount) * discountedTripFare;
 
     return regularFare + discountedFare;
+  }
+
+  /// Get seat assignment result based on current capacity and passenger counts
+  SeatAssignmentResult? get seatAssignment {
+    // Only calculate if we have passengers
+    if (regularCount == 0 &&
+        studentCount == 0 &&
+        seniorCount == 0 &&
+        pwdCount == 0) {
+      return null;
+    }
+
+    final driverProvider = Provider.of<DriverProvider>(context, listen: false);
+
+    return SeatAssignmentService.assignSeats(
+      currentSitting: driverProvider.passengerSittingCapacity,
+      currentStanding: driverProvider.passengerStandingCapacity,
+      pwdCount: pwdCount,
+      seniorCount: seniorCount,
+      studentCount: studentCount,
+      regularCount: regularCount,
+    );
   }
 
   @override
@@ -628,6 +651,121 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                     if (selectedPickup != null && selectedDestination != null)
                       const SizedBox(height: 18),
 
+                    // Seat Assignment Preview
+                    if (seatAssignment != null && seatAssignment!.success)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border:
+                              Border.all(color: Colors.blue[200]!, width: 1),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.airline_seat_recline_normal,
+                                    color: Colors.blue[700], size: 18),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Seat Assignment:',
+                                  style: Styles().textStyle(
+                                      14, Styles.bold, Colors.blue[900]!),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            if (seatAssignment!.totalSitting > 0)
+                              _buildSeatAssignmentRow(
+                                'Sitting',
+                                seatAssignment!.sittingAssignments!,
+                                Icons.event_seat,
+                                Constants.GRADIENT_COLOR_1,
+                              ),
+                            if (seatAssignment!.totalSitting > 0 &&
+                                seatAssignment!.totalStanding > 0)
+                              const SizedBox(height: 4),
+                            if (seatAssignment!.totalStanding > 0)
+                              _buildSeatAssignmentRow(
+                                'Standing',
+                                seatAssignment!.standingAssignments!,
+                                Icons.accessibility_new,
+                                Colors.orange[700]!,
+                              ),
+                            // Warning for priority passengers standing
+                            if (seatAssignment!.hasPriorityInStanding)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(Icons.warning_amber,
+                                        color: Colors.orange[700], size: 16),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        seatAssignment!.priorityWarningMessage!,
+                                        style: Styles().textStyle(
+                                            11,
+                                            FontWeight.w500,
+                                            Colors.orange[800]!),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+
+                    if (seatAssignment != null && seatAssignment!.success)
+                      const SizedBox(height: 18),
+
+                    // Capacity Error Display
+                    if (seatAssignment != null && !seatAssignment!.success)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 18),
+                        decoration: BoxDecoration(
+                          color: Colors.red[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.red[300]!, width: 1),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline,
+                                color: Colors.red[700], size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    seatAssignment!.errorMessage ??
+                                        'Capacity Error',
+                                    style: Styles().textStyle(
+                                        14, FontWeight.bold, Colors.red[900]!),
+                                  ),
+                                  if (seatAssignment!.errorDetails != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        seatAssignment!.errorDetails!,
+                                        style: Styles().textStyle(
+                                            12,
+                                            FontWeight.normal,
+                                            Colors.red[800]!),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                     // Total Fare
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -658,21 +796,48 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                       width: double.infinity,
                       height: height,
                       child: ElevatedButton(
-                        onPressed: _handleAddPassenger,
+                        onPressed: _isProcessing ? null : _handleAddPassenger,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Constants.GRADIENT_COLOR_2,
+                          backgroundColor: _isProcessing
+                              ? Colors.grey[400]
+                              : Constants.GRADIENT_COLOR_2,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
+                          disabledBackgroundColor: Colors.grey[400],
                         ),
-                        child: const Text(
-                          'Add Passenger',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
+                        child: _isProcessing
+                            ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'Processing...',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const Text(
+                                'Add Passenger',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
                       ),
                     ),
                   ],
@@ -845,6 +1010,37 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
     );
   }
 
+  /// Build seat assignment row showing passenger type breakdown
+  Widget _buildSeatAssignmentRow(
+    String seatTypeLabel,
+    PassengerTypeCount assignments,
+    IconData icon,
+    Color color,
+  ) {
+    final parts = <String>[];
+    if (assignments.pwd > 0) parts.add('${assignments.pwd} PWD');
+    if (assignments.senior > 0) parts.add('${assignments.senior} Senior');
+    if (assignments.student > 0) parts.add('${assignments.student} Student');
+    if (assignments.regular > 0) parts.add('${assignments.regular} Regular');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              '$seatTypeLabel (${assignments.total}): ${parts.join(", ")}',
+              style: Styles().textStyle(12, FontWeight.w500, Colors.black87),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStopDropdown({
     required String label,
     required AllowedStop? value,
@@ -934,6 +1130,9 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
   }
 
   Future<void> _handleAddPassenger() async {
+    // Prevent duplicate submissions
+    if (_isProcessing) return;
+
     // Validate selections
     if (selectedPickup == null || selectedDestination == null) {
       SnackBarUtils.showError(
@@ -962,47 +1161,6 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
       );
       return;
     }
-
-    // Create the manual booking data object
-    final bookingData = ManualBookingData(
-      regularCount: regularCount,
-      studentCount: studentCount,
-      seniorCount: seniorCount,
-      pwdCount: pwdCount,
-      pickupStop: selectedPickup!,
-      destinationStop: selectedDestination!,
-      seatType: selectedSeatType,
-      totalFare: totalFare,
-    );
-
-    // Log all the collected information (for debugging)
-    debugPrint('=== Manual Booking Data ===');
-    debugPrint('Total Passengers: ${bookingData.totalPassengers}');
-    debugPrint('Regular: ${bookingData.regularCount}');
-    debugPrint('Student: ${bookingData.studentCount}');
-    debugPrint('Senior: ${bookingData.seniorCount}');
-    debugPrint('PWD: ${bookingData.pwdCount}');
-    debugPrint('---');
-    debugPrint('Pickup: ${bookingData.pickupStop.stopName}');
-    debugPrint('  - ID: ${bookingData.pickupStop.allowedStopId}');
-    debugPrint('  - Address: ${bookingData.pickupStop.stopAddress}');
-    debugPrint(
-        '  - Location: ${bookingData.pickupStop.stopLat}, ${bookingData.pickupStop.stopLng}');
-    debugPrint('  - Order: ${bookingData.pickupStop.stopOrder}');
-    debugPrint('---');
-    debugPrint('Destination: ${bookingData.destinationStop.stopName}');
-    debugPrint('  - ID: ${bookingData.destinationStop.allowedStopId}');
-    debugPrint('  - Address: ${bookingData.destinationStop.stopAddress}');
-    debugPrint(
-        '  - Location: ${bookingData.destinationStop.stopLat}, ${bookingData.destinationStop.stopLng}');
-    debugPrint('  - Order: ${bookingData.destinationStop.stopOrder}');
-    debugPrint('---');
-    debugPrint('Total Fare: ₱${bookingData.totalFare.toStringAsFixed(2)}');
-    debugPrint('Created At: ${bookingData.createdAt}');
-    debugPrint('---');
-    debugPrint('JSON Data:');
-    debugPrint(bookingData.toJson().toString());
-    debugPrint('===========================');
 
     // Get driver information from provider
     final driverProvider = Provider.of<DriverProvider>(context, listen: false);
@@ -1037,98 +1195,191 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
       return;
     }
 
-    // Show loading indicator (will be dismissed when operation completes)
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
-              SizedBox(width: 16),
-              Text('Creating bookings...'),
-            ],
-          ),
-          duration: Duration(seconds: 10),
-        ),
+    // Calculate seat assignments based on priority
+    final assignmentResult = SeatAssignmentService.assignSeats(
+      currentSitting: driverProvider.passengerSittingCapacity,
+      currentStanding: driverProvider.passengerStandingCapacity,
+      pwdCount: pwdCount,
+      seniorCount: seniorCount,
+      studentCount: studentCount,
+      regularCount: regularCount,
+    );
+
+    // Check for capacity errors
+    if (!assignmentResult.success) {
+      SnackBarUtils.showError(
+        context,
+        assignmentResult.errorMessage ?? 'Capacity Error',
+        assignmentResult.errorDetails ?? 'Cannot add passengers',
+        position: Position.top,
+        animationType: AnimationType.fromTop,
+        duration: const Duration(seconds: 3),
       );
+      return;
     }
 
-    // Save bookings to database
+    debugPrint('=== Manual Booking - Seat Assignment ===');
+    debugPrint('Sitting: ${assignmentResult.sittingAssignments}');
+    debugPrint('Standing: ${assignmentResult.standingAssignments}');
+    debugPrint('=========================================');
+
+    // Set processing state to disable button and show loading
+    setState(() {
+      _isProcessing = true;
+    });
+
+    // Create bookings and track results
+    int totalCreated = 0;
+    int totalExpected = assignmentResult.totalPassengers;
+
     try {
-      final createdCount = await _manualBookingRepository.createManualBookings(
-        bookingData: bookingData,
-        driverId: driverId,
-        routeId: routeId,
-      );
+      // Create sitting passenger bookings
+      if (assignmentResult.totalSitting > 0) {
+        final sittingBooking = ManualBookingData(
+          regularCount: assignmentResult.sittingAssignments!.regular,
+          studentCount: assignmentResult.sittingAssignments!.student,
+          seniorCount: assignmentResult.sittingAssignments!.senior,
+          pwdCount: assignmentResult.sittingAssignments!.pwd,
+          pickupStop: selectedPickup!,
+          destinationStop: selectedDestination!,
+          seatType: 'Sitting',
+          totalFare:
+              _calculateFareForAssignment(assignmentResult.sittingAssignments!),
+        );
+
+        debugPrint(
+            'Creating ${assignmentResult.totalSitting} sitting bookings...');
+        final sittingCount =
+            await _manualBookingRepository.createManualBookings(
+          bookingData: sittingBooking,
+          driverId: driverId,
+          routeId: routeId,
+        );
+        totalCreated += sittingCount;
+        debugPrint('Created $sittingCount sitting bookings');
+      }
+
+      // Create standing passenger bookings
+      if (assignmentResult.totalStanding > 0) {
+        final standingBooking = ManualBookingData(
+          regularCount: assignmentResult.standingAssignments!.regular,
+          studentCount: assignmentResult.standingAssignments!.student,
+          seniorCount: assignmentResult.standingAssignments!.senior,
+          pwdCount: assignmentResult.standingAssignments!.pwd,
+          pickupStop: selectedPickup!,
+          destinationStop: selectedDestination!,
+          seatType: 'Standing',
+          totalFare: _calculateFareForAssignment(
+              assignmentResult.standingAssignments!),
+        );
+
+        debugPrint(
+            'Creating ${assignmentResult.totalStanding} standing bookings...');
+        final standingCount =
+            await _manualBookingRepository.createManualBookings(
+          bookingData: standingBooking,
+          driverId: driverId,
+          routeId: routeId,
+        );
+        totalCreated += standingCount;
+        debugPrint('Created $standingCount standing bookings');
+      }
 
       if (!mounted) return;
 
-      // Dismiss loading indicator immediately
-      ScaffoldMessenger.of(context).clearSnackBars();
+      // Handle results
+      if (totalCreated == totalExpected) {
+        // Success - update capacity BEFORE closing bottom sheet
+        debugPrint(
+            'Updating capacity: ${assignmentResult.totalSitting} sitting, ${assignmentResult.totalStanding} standing');
 
-      Navigator.pop(context); // Close the bottom sheet
-
-      if (createdCount == bookingData.totalPassengers) {
-        // Success - all bookings created
-
-        // Update passenger capacity in one atomic operation (prevents race conditions)
-        final capacityResult = await PassengerCapacity().incrementCapacityBulk(
-          context,
-          bookingData.seatType,
-          bookingData.totalPassengers,
-        );
-
-        if (!capacityResult.success) {
-          debugPrint(
-              'Warning: Failed to update capacity: ${capacityResult.errorMessage}');
+        if (assignmentResult.totalSitting > 0) {
+          final sittingResult = await PassengerCapacity().incrementCapacityBulk(
+            context,
+            'Sitting',
+            assignmentResult.totalSitting,
+          );
+          if (!sittingResult.success) {
+            debugPrint(
+                'Warning: Failed to update sitting capacity: ${sittingResult.errorMessage}');
+          } else {
+            debugPrint(
+                'Successfully updated sitting capacity: +${assignmentResult.totalSitting}');
+          }
         }
 
-        SnackBarUtils.showSuccess(
-          context,
-          'Bookings created successfully',
-          '${bookingData.totalPassengers} ${bookingData.seatType} passenger(s): ${bookingData.pickupStop.stopName} → ${bookingData.destinationStop.stopName}',
-          position: Position.top,
-          animationType: AnimationType.fromTop,
-          duration: const Duration(seconds: 3),
+        if (assignmentResult.totalStanding > 0) {
+          final standingResult =
+              await PassengerCapacity().incrementCapacityBulk(
+            context,
+            'Standing',
+            assignmentResult.totalStanding,
+          );
+          if (!standingResult.success) {
+            debugPrint(
+                'Warning: Failed to update standing capacity: ${standingResult.errorMessage}');
+          } else {
+            debugPrint(
+                'Successfully updated standing capacity: +${assignmentResult.totalStanding}');
+          }
+        }
+
+        // Close the bottom sheet AFTER capacity updates
+        if (mounted) {
+          Navigator.pop(context);
+        }
+
+        // Build success message with seat breakdown
+        final seatSummary = SeatAssignmentService.generateAssignmentSummary(
+          sitting: assignmentResult.sittingAssignments!,
+          standing: assignmentResult.standingAssignments!,
         );
-      } else if (createdCount > 0) {
+
+        if (mounted) {
+          SnackBarUtils.showSuccess(
+            context,
+            'Bookings created successfully',
+            '$totalCreated passenger(s) added\n$seatSummary\n${selectedPickup!.stopName} → ${selectedDestination!.stopName}',
+            position: Position.top,
+            animationType: AnimationType.fromTop,
+            duration: const Duration(seconds: 4),
+          );
+        }
+      } else if (totalCreated > 0) {
         // Partial success
-        SnackBarUtils.show(
-          context,
-          'Partial success',
-          '$createdCount of ${bookingData.totalPassengers} bookings created',
-          backgroundColor: Colors.orange,
-          position: Position.top,
-          animationType: AnimationType.fromTop,
-          duration: const Duration(seconds: 3),
-        );
+        if (mounted) {
+          Navigator.pop(context);
+          SnackBarUtils.show(
+            context,
+            'Partial success',
+            '$totalCreated of $totalExpected bookings created',
+            backgroundColor: Colors.orange,
+            position: Position.top,
+            animationType: AnimationType.fromTop,
+            duration: const Duration(seconds: 3),
+          );
+        }
       } else {
         // Failed
-        SnackBarUtils.showError(
-          context,
-          'Failed to create bookings',
-          'Please try again',
-          position: Position.top,
-          animationType: AnimationType.fromTop,
-          duration: const Duration(seconds: 3),
-        );
+        if (mounted) {
+          Navigator.pop(context);
+          SnackBarUtils.showError(
+            context,
+            'Failed to create bookings',
+            'Please try again',
+            position: Position.top,
+            animationType: AnimationType.fromTop,
+            duration: const Duration(seconds: 3),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error in _handleAddPassenger: $e');
 
       if (!mounted) return;
 
-      // Dismiss loading indicator immediately
-      ScaffoldMessenger.of(context).clearSnackBars();
-
-      Navigator.pop(context); // Close the bottom sheet
+      // Close the bottom sheet on error
+      Navigator.pop(context);
 
       SnackBarUtils.showError(
         context,
@@ -1138,6 +1389,22 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
         animationType: AnimationType.fromTop,
         duration: const Duration(seconds: 4),
       );
+    } finally {
+      // Always reset processing state
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
+  }
+
+  /// Calculate fare for a specific seat assignment
+  double _calculateFareForAssignment(PassengerTypeCount assignment) {
+    final regularFare = assignment.regular * baseTripFare;
+    final discountedFare =
+        (assignment.student + assignment.senior + assignment.pwd) *
+            discountedTripFare;
+    return regularFare + discountedFare;
   }
 }
