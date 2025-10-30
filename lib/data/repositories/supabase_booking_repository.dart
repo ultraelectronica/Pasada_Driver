@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:pasada_driver_side/common/config/app_config.dart';
 import 'package:pasada_driver_side/data/models/booking_model.dart';
+import 'package:pasada_driver_side/data/models/booking_receipt_model.dart';
 import 'package:pasada_driver_side/common/exceptions/booking_exception.dart';
 import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 
@@ -334,6 +335,94 @@ class SupabaseBookingRepository implements BookingRepository {
         type: BookingConstants.errorTypeUnknown,
         operation: 'activeBookingsStream',
       ));
+    }
+  }
+
+  @override
+  Future<List<BookingReceipt>> fetchTodayBookings(String driverId) async {
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+    return fetchBookingsByDateRange(driverId, startOfDay, endOfDay);
+  }
+
+  @override
+  Future<List<BookingReceipt>> fetchBookingsByDateRange(
+    String driverId,
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    return _withRetry<List<BookingReceipt>>(
+      () => _fetchBookingsByDateRangeInternal(driverId, startDate, endDate),
+      'fetchBookingsByDateRange',
+      maxRetries: BookingConstants.defaultMaxRetries,
+    );
+  }
+
+  Future<List<BookingReceipt>> _fetchBookingsByDateRangeInternal(
+    String driverId,
+    DateTime startDate,
+    DateTime endDate,
+  ) async {
+    if (kDebugMode) {
+      debugPrint(
+          'Fetching bookings for driver: $driverId from $startDate to $endDate');
+    }
+
+    try {
+      // Select all fields needed for receipt
+      final response = await _supabase
+          .from('bookings')
+          .select('*')
+          .eq(BookingConstants.fieldDriverId, driverId)
+          .gte('created_at', startDate.toIso8601String())
+          .lte('created_at', endDate.toIso8601String())
+          .order('created_at', ascending: false)
+          .timeout(
+            const Duration(seconds: AppConfig.databaseOperationTimeout),
+            onTimeout: () =>
+                throw TimeoutException('Database operation timed out'),
+          );
+
+      if (kDebugMode) {
+        debugPrint('Retrieved ${response.length} bookings for date range');
+        if (response.isNotEmpty) {
+          debugPrint('First booking data: ${response.first}');
+        }
+      }
+
+      return List<Map<String, dynamic>>.from(response)
+          .map((json) => BookingReceipt.fromJson(json))
+          .toList();
+    } on TimeoutException {
+      if (kDebugMode) {
+        debugPrint('Timeout when fetching bookings by date range');
+      }
+      throw BookingException(
+        message: 'Operation timed out',
+        type: BookingConstants.errorTypeTimeout,
+        operation: 'fetchBookingsByDateRange',
+      );
+    } on PostgrestException catch (e) {
+      if (kDebugMode) {
+        debugPrint(
+            'Database error fetching bookings by date range: ${e.message}');
+      }
+      throw BookingException(
+        message: e.message,
+        type: BookingConstants.errorTypeDatabase,
+        operation: 'fetchBookingsByDateRange',
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Unknown error fetching bookings by date range: $e');
+      }
+      throw BookingException(
+        message: e.toString(),
+        type: BookingConstants.errorTypeUnknown,
+        operation: 'fetchBookingsByDateRange',
+      );
     }
   }
 

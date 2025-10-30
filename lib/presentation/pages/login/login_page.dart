@@ -15,6 +15,7 @@ import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart';
 import 'package:pasada_driver_side/common/utils/result.dart';
+import 'package:pasada_driver_side/Services/encryption_service.dart';
 
 class LogIn extends StatefulWidget {
   final PageController? pageController;
@@ -161,15 +162,20 @@ class _LogInState extends State<LogIn> {
         //saves the session token to the local storage
         await saveSession(enteredDriverID, response);
 
-        // ShowMessage().showToastTop('Welcome Manong ${response['full_name']}!');
+        // Decrypt name if needed for user-facing text
+        String displayName = response['full_name']?.toString() ?? '';
+        try {
+          final encryption = EncryptionService();
+          // initializeApp() already initializes encryption; decrypt safely here
+          displayName = await encryption.decryptUserData(displayName);
+        } catch (_) {}
 
         //logs the login time of the driver
         await context.read<DriverProvider>().writeLoginTime(context);
 
         //shows the welcome notification
         NotificationService.instance.showWelcomeNotification(
-            'Welcome Manong ${response['full_name']}!',
-            'Welcome sa Pasada Driver.');
+            'Welcome Manong $displayName!', 'Welcome sa Pasada Driver.');
         // move to the main page once the driver successfuly logs in
         if (mounted) {
           Navigator.pushReplacement(
