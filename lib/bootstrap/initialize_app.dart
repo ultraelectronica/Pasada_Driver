@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:pasada_driver_side/Services/permissions.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pasada_driver_side/Services/encryption_service.dart';
 import 'package:pasada_driver_side/common/logging.dart';
 
 /// Performs application bootstrap tasks such as loading environment variables,
@@ -29,7 +30,11 @@ Future<List<AssetImage>> initializeApp() async {
   // 3. Ensure required OS-level permissions
   await CheckPermissions().checkPermissions();
 
-  // 4. Build the list of frequently-used assets to preload
+  // 4. Initialize encryption service (loads env key and device key)
+  final encryptionService = EncryptionService();
+  await encryptionService.initialize();
+
+  // 5. Build the list of frequently-used assets to preload
   final List<AssetImage> assetsToPreload = [
     const AssetImage('assets/png/PasadaLogo.png'),
     // TODO: Add additional assets here as needed

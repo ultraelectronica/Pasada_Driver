@@ -9,12 +9,14 @@ import 'package:pasada_driver_side/common/utils/result.dart';
 import 'package:pasada_driver_side/presentation/providers/quota/quota_provider.dart';
 import 'package:pasada_driver_side/data/models/allowed_stop_model.dart';
 import 'package:pasada_driver_side/data/repositories/supabase_allowed_stop_repository.dart';
+import 'package:pasada_driver_side/Services/encryption_service.dart';
 
 class DriverProvider with ChangeNotifier {
   // Driver identification
   String _driverID = '';
   String _driverFullName = 'firstName';
   String _driverNumber = '00000000000';
+  String _driverLicenseNumber = '';
 
   // Vehicle and route information
   String _vehicleID = 'N/A';
@@ -56,6 +58,7 @@ class DriverProvider with ChangeNotifier {
   int get passengerSittingCapacity => _passengerSittingCapacity;
   String? get driverFullName => _driverFullName;
   String get driverNumber => _driverNumber;
+  String get driverLicenseNumber => _driverLicenseNumber;
   List<AllowedStop> get cachedAllowedStops => _cachedAllowedStops;
   bool get isLoadingStops => _isLoadingStops;
 
@@ -262,7 +265,7 @@ class DriverProvider with ChangeNotifier {
     try {
       final response = await supabase
           .from('driverTable')
-          .select('full_name, driver_number')
+          .select('full_name, driver_number, driver_license_number')
           .eq('driver_id', _driverID)
           .single();
 
@@ -272,8 +275,48 @@ class DriverProvider with ChangeNotifier {
         print(response.toString());
       }
 
-      _driverFullName = response['full_name'].toString();
-      _driverNumber = response['driver_number'].toString();
+      final encryption = EncryptionService();
+
+      // Read raw values from DB
+      final rawFullName = response['full_name']?.toString() ?? '';
+      final rawDriverNumber = response['driver_number']?.toString() ?? '';
+      final rawLicense = response['driver_license_number']?.toString() ?? '';
+
+      // Decrypt for provider usage if encrypted; otherwise use as-is
+      final decFullName = await encryption.decryptUserData(rawFullName);
+      final decDriverNumber = await encryption.decryptUserData(rawDriverNumber);
+      final decLicense = await encryption.decryptUserData(rawLicense);
+
+      _driverFullName = decFullName;
+      _driverNumber = decDriverNumber;
+      _driverLicenseNumber = decLicense;
+
+      // If any field is plaintext (not starting with ENC_V2:/ENC_V3:), encrypt and write back once
+      final Map<String, dynamic> fieldsToUpdate = {};
+      if (rawFullName.isNotEmpty && !encryption.isEncrypted(rawFullName)) {
+        fieldsToUpdate['full_name'] =
+            await encryption.encryptUserData(rawFullName);
+      }
+      if (rawDriverNumber.isNotEmpty &&
+          !encryption.isEncrypted(rawDriverNumber)) {
+        fieldsToUpdate['driver_number'] =
+            await encryption.encryptUserData(rawDriverNumber);
+      }
+      if (rawLicense.isNotEmpty && !encryption.isEncrypted(rawLicense)) {
+        fieldsToUpdate['driver_license_number'] =
+            await encryption.encryptUserData(rawLicense);
+      }
+
+      if (fieldsToUpdate.isNotEmpty) {
+        try {
+          await supabase
+              .from('driverTable')
+              .update(fieldsToUpdate)
+              .eq('driver_id', _driverID);
+        } catch (e) {
+          debugPrint('DriverProvider: failed to backfill encryption: $e');
+        }
+      }
     } catch (e) {
       ShowMessage().showToast('Error fetching driver creds: $e');
       if (kDebugMode) {
