@@ -61,7 +61,8 @@ class SupabaseBookingRepository implements BookingRepository {
           );
 
       if (kDebugMode) {
-        debugPrint('Retrieved ${response.length} active bookings');
+        debugPrint('Retrieved: ${response.length} active bookings');
+        debugPrint('Retrieved: $response');
         // Debug: Print the first booking to see what fields are actually returned
         if (response.isNotEmpty) {
           debugPrint('First booking data: ${response.first}');
@@ -298,68 +299,151 @@ class SupabaseBookingRepository implements BookingRepository {
   @override
   Stream<List<Booking>> activeBookingsStream(String driverId) {
     try {
-      // Note: We don't filter by driver_id at the stream level because when
-      // driver_id changes to null, we won't receive that update.
-      // We DO filter by status to reduce the data load (only active bookings).
-      return _supabase
-          .from('bookings')
-          .stream(primaryKey: [BookingConstants.fieldBookingId]).inFilter(
-              BookingConstants.fieldRideStatus, [
+      // STEP 1: Setup - Create the stream controller that we'll use to emit booking lists
+      final controller = StreamController<List<Booking>>();
+
+      // This filter is for filtering out the bookings in the stream
+      final twoDaysAgo =
+          DateTime.now().subtract(const Duration(days: 2)).toIso8601String();
+
+      // STEP 2: Create two tracking maps/sets
+      final activeBookings = <String, Booking>{};
+
+      // This set tracks which booking IDs have EVER been assigned to this driver
+      final trackedBookingIds = <String>{};
+
+      // STEP 3: Define what statuses are considered "active"
+      const activeStatuses = [
         BookingConstants.statusRequested,
         BookingConstants.statusAccepted,
         BookingConstants.statusOngoing,
-      ]).map((response) {
-        final data = List<Map<String, dynamic>>.from(response);
-        final filteredData = data.where((booking) {
-          // First, ensure driver_id matches and is not null/empty
-          final bookingDriverId = booking[BookingConstants.fieldDriverId];
+      ];
 
-          // If driver_id is null, empty, or doesn't match this driver, exclude it
-          // This handles the case where passenger removes the driver
-          if (bookingDriverId == null ||
-              bookingDriverId.toString().trim().isEmpty ||
-              bookingDriverId.toString() != driverId) {
-            if (kDebugMode) {
-              final bookingId = booking[BookingConstants.fieldBookingId];
-              debugPrint(
-                  'Filtering out booking $bookingId - driver_id mismatch or null');
+      // STEP 4: Subscribe to the Supabase stream
+      // IMPORTANT: This stream emits ALL bookings from the table every time ANY booking changes
+      final subscription = _supabase
+          .from('bookings')
+          .stream(primaryKey: [BookingConstants.fieldBookingId])
+          .gte('created_at', twoDaysAgo)
+          .listen((response) {
+            // STEP 5: Convert the response to a list of maps
+            final data = List<Map<String, dynamic>>.from(response);
+
+            // STEP 6: Process each booking in the database snapshot
+            for (final json in data) {
+              // STEP 7: Extract the key fields from this booking
+              final id = json[BookingConstants.fieldBookingId].toString();
+              final bookingDriverId =
+                  json[BookingConstants.fieldDriverId]?.toString();
+              final status = json[BookingConstants.fieldRideStatus]?.toString();
+
+              // STEP 8: Handle driver reassignment detection
+              // Check if this booking was previously assigned to us, but now has a different driver
+              // This catches when a passenger cancels and finds another driver
+              if (trackedBookingIds.contains(id) &&
+                  bookingDriverId != driverId) {
+                if (kDebugMode) {
+                  debugPrint(
+                      '🔄 Booking $id reassigned (driver changed from $driverId to $bookingDriverId)');
+                }
+
+                // Remove from both tracking structures since it's no longer ours
+                activeBookings.remove(id);
+                trackedBookingIds.remove(id);
+
+                // Skip to next booking - we don't need to process this one further
+                continue;
+              }
+
+              // STEP 9: Check if this booking is relevant to this driver
+              final isValidDriver = bookingDriverId == driverId;
+              final isActive = activeStatuses.contains(status);
+
+              // STEP 10: Decision tree for adding/removing bookings
+
+              // CASE A: This booking is for us AND it's active
+              if (isValidDriver && isActive) {
+                // Add it to our active list
+                activeBookings[id] = Booking.fromJson(json);
+
+                // Mark that we're tracking this booking
+                // This prevents it from being re-added later if it completes
+                trackedBookingIds.add(id);
+
+                if (kDebugMode) {
+                  debugPrint('✅ Added/Updated booking $id (status: $status)');
+                }
+              }
+              // CASE B: This booking WAS ours (we tracked it before), but now it's not active or not ours
+              else if (trackedBookingIds.contains(id)) {
+                // Remove it from active bookings
+                activeBookings.remove(id);
+
+                // CRITICAL: If the booking is no longer active (completed/cancelled),
+                // stop tracking it entirely so it won't be re-added on future stream emissions
+                if (!isActive) {
+                  trackedBookingIds.remove(id);
+
+                  if (kDebugMode) {
+                    debugPrint(
+                        '🏁 Booking $id completed/cancelled - stopped tracking');
+                  }
+                }
+              }
+              // CASE C: This booking is NOT ours and we've never tracked it
+              // Do nothing - this prevents old completed bookings from other sessions
+              // from being added to our list
+              else {
+                // Silently ignore - this is expected for:
+                // - Bookings for other drivers
+                // - Old completed bookings from previous sessions
+                // - Bookings that were never assigned to this driver
+              }
             }
-            return false;
-          }
 
-          // Then check status - only show active bookings
-          final status = booking[BookingConstants.fieldRideStatus];
-          if (status == null) return false;
+            // STEP 11: Build the final list to emit
+            // Filter out any invalid bookings (additional validation)
+            final list = activeBookings.values
+                .where((b) => b.isValid)
+                .toList(growable: false);
 
-          final statusStr = status.toString();
-          return statusStr == BookingConstants.statusRequested ||
-              statusStr == BookingConstants.statusAccepted ||
-              statusStr == BookingConstants.statusOngoing;
-        }).toList();
+            // STEP 12: Log for debugging
+            if (kDebugMode) {
+              debugPrint(
+                  '📊 Active bookings count: ${list.length} for driver: $driverId');
+              debugPrint('   Tracked booking IDs: ${trackedBookingIds.length}');
+            }
 
-        if (kDebugMode) {
-          debugPrint(
-              'Stream emitting ${filteredData.length} bookings for driver $driverId');
-        }
+            // STEP 13: Emit the updated list to all listeners
+            controller.add(list);
+          });
 
-        return filteredData
-            .map((json) => Booking.fromJson(json))
-            .where((booking) => booking.isValid)
-            .toList();
-      }).handleError((error) {
-        if (kDebugMode) {
-          debugPrint('Error in booking stream: $error');
-        }
-        throw BookingException(
+      // STEP 14: Handle stream errors
+      subscription.onError((error) {
+        if (kDebugMode) debugPrint('❌ Booking stream error: $error');
+
+        controller.addError(BookingException(
           message: error.toString(),
           type: BookingConstants.errorTypeUnknown,
           operation: 'activeBookingsStream',
-        );
+        ));
       });
+
+      // STEP 15: Clean up resources when the stream is cancelled
+      controller.onCancel = () {
+        if (kDebugMode)
+          debugPrint('🛑 Booking stream cancelled for driver: $driverId');
+        subscription.cancel();
+      };
+
+      // STEP 16: Return the stream for listeners to subscribe to
+      return controller.stream;
     } catch (e) {
+      // STEP 17: Handle any setup errors
       if (kDebugMode) {
-        debugPrint('Error setting up booking stream: $e');
+        debugPrint('💥 Error setting up booking stream: $e');
       }
+
       return Stream.error(BookingException(
         message: e.toString(),
         type: BookingConstants.errorTypeUnknown,
@@ -406,6 +490,15 @@ class SupabaseBookingRepository implements BookingRepository {
           .from('bookings')
           .select('*')
           .eq(BookingConstants.fieldDriverId, driverId)
+          .eq(BookingConstants.fieldRideStatus,
+              BookingConstants.statusCompleted)
+          .neq(BookingConstants.fieldRideStatus,
+              BookingConstants.statusCancelled)
+          .neq(BookingConstants.fieldRideStatus, BookingConstants.statusOngoing)
+          .neq(BookingConstants.fieldRideStatus,
+              BookingConstants.statusRequested)
+          .neq(
+              BookingConstants.fieldRideStatus, BookingConstants.statusAccepted)
           .gte('created_at', startDate.toIso8601String())
           .lte('created_at', endDate.toIso8601String())
           .order('created_at', ascending: false)
@@ -417,6 +510,7 @@ class SupabaseBookingRepository implements BookingRepository {
 
       if (kDebugMode) {
         debugPrint('Retrieved ${response.length} bookings for date range');
+        debugPrint('Retrieved: $response');
         if (response.isNotEmpty) {
           debugPrint('First booking data: ${response.first}');
         }
