@@ -61,7 +61,8 @@ class SupabaseBookingRepository implements BookingRepository {
           );
 
       if (kDebugMode) {
-        debugPrint('Retrieved ${response.length} active bookings');
+        debugPrint('Retrieved: ${response.length} active bookings');
+        debugPrint('Retrieved: $response');
         // Debug: Print the first booking to see what fields are actually returned
         if (response.isNotEmpty) {
           debugPrint('First booking data: ${response.first}');
@@ -303,59 +304,57 @@ class SupabaseBookingRepository implements BookingRepository {
       // We DO filter by status to reduce the data load (only active bookings).
       return _supabase
           .from('bookings')
-          .stream(primaryKey: [BookingConstants.fieldBookingId]).inFilter(
-              BookingConstants.fieldRideStatus, [
-        BookingConstants.statusRequested,
-        BookingConstants.statusAccepted,
-        BookingConstants.statusOngoing,
-      ]).map((response) {
-        final data = List<Map<String, dynamic>>.from(response);
-        final filteredData = data.where((booking) {
-          // First, ensure driver_id matches and is not null/empty
-          final bookingDriverId = booking[BookingConstants.fieldDriverId];
+          .stream(primaryKey: [BookingConstants.fieldBookingId])
+          .eq(BookingConstants.fieldDriverId, driverId)
+          .map((response) {
+            final data = List<Map<String, dynamic>>.from(response);
+            final filteredData = data.where((booking) {
+              // First, ensure driver_id matches and is not null/empty
+              final bookingDriverId = booking[BookingConstants.fieldDriverId];
 
-          // If driver_id is null, empty, or doesn't match this driver, exclude it
-          // This handles the case where passenger removes the driver
-          if (bookingDriverId == null ||
-              bookingDriverId.toString().trim().isEmpty ||
-              bookingDriverId.toString() != driverId) {
+              // If driver_id is null, empty, or doesn't match this driver, exclude it
+              // This handles the case where passenger removes the driver
+              if (bookingDriverId == null ||
+                  bookingDriverId.toString().trim().isEmpty ||
+                  bookingDriverId.toString() != driverId) {
+                if (kDebugMode) {
+                  final bookingId = booking[BookingConstants.fieldBookingId];
+                  debugPrint(
+                      'Filtering out booking $bookingId - driver_id mismatch or null');
+                }
+                return false;
+              }
+
+              // Then check status - only show active bookings
+              final status = booking[BookingConstants.fieldRideStatus];
+              if (status == null) return false;
+
+              final statusStr = status.toString();
+              return statusStr == BookingConstants.statusRequested ||
+                  statusStr == BookingConstants.statusAccepted ||
+                  statusStr == BookingConstants.statusOngoing;
+            }).toList();
+
             if (kDebugMode) {
-              final bookingId = booking[BookingConstants.fieldBookingId];
               debugPrint(
-                  'Filtering out booking $bookingId - driver_id mismatch or null');
+                  'Stream emitting ${filteredData.length} bookings for driver $driverId');
             }
-            return false;
-          }
 
-          // Then check status - only show active bookings
-          final status = booking[BookingConstants.fieldRideStatus];
-          if (status == null) return false;
-
-          final statusStr = status.toString();
-          return statusStr == BookingConstants.statusRequested ||
-              statusStr == BookingConstants.statusAccepted ||
-              statusStr == BookingConstants.statusOngoing;
-        }).toList();
-
-        if (kDebugMode) {
-          debugPrint(
-              'Stream emitting ${filteredData.length} bookings for driver $driverId');
-        }
-
-        return filteredData
-            .map((json) => Booking.fromJson(json))
-            .where((booking) => booking.isValid)
-            .toList();
-      }).handleError((error) {
-        if (kDebugMode) {
-          debugPrint('Error in booking stream: $error');
-        }
-        throw BookingException(
-          message: error.toString(),
-          type: BookingConstants.errorTypeUnknown,
-          operation: 'activeBookingsStream',
-        );
-      });
+            return filteredData
+                .map((json) => Booking.fromJson(json))
+                .where((booking) => booking.isValid)
+                .toList();
+          })
+          .handleError((error) {
+            if (kDebugMode) {
+              debugPrint('Error in booking stream: $error');
+            }
+            throw BookingException(
+              message: error.toString(),
+              type: BookingConstants.errorTypeUnknown,
+              operation: 'activeBookingsStream',
+            );
+          });
     } catch (e) {
       if (kDebugMode) {
         debugPrint('Error setting up booking stream: $e');
@@ -406,6 +405,15 @@ class SupabaseBookingRepository implements BookingRepository {
           .from('bookings')
           .select('*')
           .eq(BookingConstants.fieldDriverId, driverId)
+          .eq(BookingConstants.fieldRideStatus,
+              BookingConstants.statusCompleted)
+          .neq(BookingConstants.fieldRideStatus,
+              BookingConstants.statusCancelled)
+          .neq(BookingConstants.fieldRideStatus, BookingConstants.statusOngoing)
+          .neq(BookingConstants.fieldRideStatus,
+              BookingConstants.statusRequested)
+          .neq(
+              BookingConstants.fieldRideStatus, BookingConstants.statusAccepted)
           .gte('created_at', startDate.toIso8601String())
           .lte('created_at', endDate.toIso8601String())
           .order('created_at', ascending: false)
@@ -417,6 +425,7 @@ class SupabaseBookingRepository implements BookingRepository {
 
       if (kDebugMode) {
         debugPrint('Retrieved ${response.length} bookings for date range');
+        debugPrint('Retrieved: $response');
         if (response.isNotEmpty) {
           debugPrint('First booking data: ${response.first}');
         }
