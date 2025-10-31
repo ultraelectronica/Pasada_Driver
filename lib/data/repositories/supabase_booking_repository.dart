@@ -298,34 +298,64 @@ class SupabaseBookingRepository implements BookingRepository {
   @override
   Stream<List<Booking>> activeBookingsStream(String driverId) {
     try {
+      // Note: We don't filter by driver_id at the stream level because when
+      // driver_id changes to null, we won't receive that update.
+      // We DO filter by status to reduce the data load (only active bookings).
       return _supabase
           .from('bookings')
-          .stream(primaryKey: [BookingConstants.fieldBookingId])
-          .eq(BookingConstants.fieldDriverId, driverId)
-          .map((response) {
-            final data = List<Map<String, dynamic>>.from(response);
-            final filteredData = data.where((booking) {
-              final status =
-                  booking[BookingConstants.fieldRideStatus] as String;
-              return status == BookingConstants.statusRequested ||
-                  status == BookingConstants.statusAccepted ||
-                  status == BookingConstants.statusOngoing;
-            }).toList();
-            return filteredData
-                .map((json) => Booking.fromJson(json))
-                .where((booking) => booking.isValid)
-                .toList();
-          })
-          .handleError((error) {
+          .stream(primaryKey: [BookingConstants.fieldBookingId]).inFilter(
+              BookingConstants.fieldRideStatus, [
+        BookingConstants.statusRequested,
+        BookingConstants.statusAccepted,
+        BookingConstants.statusOngoing,
+      ]).map((response) {
+        final data = List<Map<String, dynamic>>.from(response);
+        final filteredData = data.where((booking) {
+          // First, ensure driver_id matches and is not null/empty
+          final bookingDriverId = booking[BookingConstants.fieldDriverId];
+
+          // If driver_id is null, empty, or doesn't match this driver, exclude it
+          // This handles the case where passenger removes the driver
+          if (bookingDriverId == null ||
+              bookingDriverId.toString().trim().isEmpty ||
+              bookingDriverId.toString() != driverId) {
             if (kDebugMode) {
-              debugPrint('Error in booking stream: $error');
+              final bookingId = booking[BookingConstants.fieldBookingId];
+              debugPrint(
+                  'Filtering out booking $bookingId - driver_id mismatch or null');
             }
-            throw BookingException(
-              message: error.toString(),
-              type: BookingConstants.errorTypeUnknown,
-              operation: 'activeBookingsStream',
-            );
-          });
+            return false;
+          }
+
+          // Then check status - only show active bookings
+          final status = booking[BookingConstants.fieldRideStatus];
+          if (status == null) return false;
+
+          final statusStr = status.toString();
+          return statusStr == BookingConstants.statusRequested ||
+              statusStr == BookingConstants.statusAccepted ||
+              statusStr == BookingConstants.statusOngoing;
+        }).toList();
+
+        if (kDebugMode) {
+          debugPrint(
+              'Stream emitting ${filteredData.length} bookings for driver $driverId');
+        }
+
+        return filteredData
+            .map((json) => Booking.fromJson(json))
+            .where((booking) => booking.isValid)
+            .toList();
+      }).handleError((error) {
+        if (kDebugMode) {
+          debugPrint('Error in booking stream: $error');
+        }
+        throw BookingException(
+          message: error.toString(),
+          type: BookingConstants.errorTypeUnknown,
+          operation: 'activeBookingsStream',
+        );
+      });
     } catch (e) {
       if (kDebugMode) {
         debugPrint('Error setting up booking stream: $e');
