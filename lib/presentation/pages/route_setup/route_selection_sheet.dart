@@ -82,24 +82,28 @@ class _RouteSelectionContentState extends State<_RouteSelectionContent> {
       }
       final mapProv = context.read<MapProvider>();
 
-      await _supabase
-          .from('vehicleTable')
-          .update({'route_id': route.id})
-          .eq('vehicle_id', driverProv.vehicleID);
+      await _supabase.from('vehicleTable').update({'route_id': route.id}).eq(
+          'vehicle_id', driverProv.vehicleID);
 
-      await _supabase
-          .from('driverTable')
-          .update({'currentroute_id': route.id})
-          .eq('driver_id', driverProv.driverID);
+      await _supabase.from('driverTable').update(
+          {'currentroute_id': route.id}).eq('driver_id', driverProv.driverID);
 
       driverProv.setRouteID(route.id);
       await mapProv.getRouteCoordinates(route.id);
       mapProv.setRouteID(route.id);
+
+      // Load and cache allowed stops for the newly selected route
+      await driverProv.loadAndCacheAllowedStops();
+
       // Trigger polyline refresh
       if (mapProv.currentLocation != null && mapProv.endingLocation != null) {
         final waypoints = <LatLng>[];
-        if (mapProv.intermediateLoc1 != null) waypoints.add(mapProv.intermediateLoc1!);
-        if (mapProv.intermediateLoc2 != null) waypoints.add(mapProv.intermediateLoc2!);
+        if (mapProv.intermediateLoc1 != null) {
+          waypoints.add(mapProv.intermediateLoc1!);
+        }
+        if (mapProv.intermediateLoc2 != null) {
+          waypoints.add(mapProv.intermediateLoc2!);
+        }
         await mapProv.generatePolyline(
           start: mapProv.currentLocation!,
           end: mapProv.endingLocation!,
@@ -226,5 +230,3 @@ class _OfficialRoute {
   final String name;
   const _OfficialRoute({required this.id, required this.name});
 }
-
-

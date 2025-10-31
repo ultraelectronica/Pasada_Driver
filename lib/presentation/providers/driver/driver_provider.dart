@@ -7,12 +7,16 @@ import 'package:pasada_driver_side/common/constants/message.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/common/utils/result.dart';
 import 'package:pasada_driver_side/presentation/providers/quota/quota_provider.dart';
+import 'package:pasada_driver_side/data/models/allowed_stop_model.dart';
+import 'package:pasada_driver_side/data/repositories/supabase_allowed_stop_repository.dart';
+import 'package:pasada_driver_side/Services/encryption_service.dart';
 
 class DriverProvider with ChangeNotifier {
   // Driver identification
   String _driverID = '';
   String _driverFullName = 'firstName';
   String _driverNumber = '00000000000';
+  String _driverLicenseNumber = '';
 
   // Vehicle and route information
   String _vehicleID = 'N/A';
@@ -33,9 +37,13 @@ class DriverProvider with ChangeNotifier {
   int _passengerStandingCapacity = 0;
   int _passengerSittingCapacity = 0;
 
-  final SupabaseClient supabase = Supabase.instance.client;
+  // Cached allowed stops for the current route
+  List<AllowedStop> _cachedAllowedStops = [];
+  bool _isLoadingStops = false;
 
+  final SupabaseClient supabase = Supabase.instance.client;
   final QuotaProvider quotaProvider = QuotaProvider();
+  final _stopRepository = SupabaseAllowedStopRepository();
 
   // Getters
   String get driverID => _driverID;
@@ -50,6 +58,9 @@ class DriverProvider with ChangeNotifier {
   int get passengerSittingCapacity => _passengerSittingCapacity;
   String? get driverFullName => _driverFullName;
   String get driverNumber => _driverNumber;
+  String get driverLicenseNumber => _driverLicenseNumber;
+  List<AllowedStop> get cachedAllowedStops => _cachedAllowedStops;
+  bool get isLoadingStops => _isLoadingStops;
 
   // Loading & error getters
   bool get isLoading => _isLoading;
@@ -254,7 +265,7 @@ class DriverProvider with ChangeNotifier {
     try {
       final response = await supabase
           .from('driverTable')
-          .select('full_name, driver_number')
+          .select('full_name, driver_number, driver_license_number')
           .eq('driver_id', _driverID)
           .single();
 
@@ -264,8 +275,48 @@ class DriverProvider with ChangeNotifier {
         print(response.toString());
       }
 
-      _driverFullName = response['full_name'].toString();
-      _driverNumber = response['driver_number'].toString();
+      final encryption = EncryptionService();
+
+      // Read raw values from DB
+      final rawFullName = response['full_name']?.toString() ?? '';
+      final rawDriverNumber = response['driver_number']?.toString() ?? '';
+      final rawLicense = response['driver_license_number']?.toString() ?? '';
+
+      // Decrypt for provider usage if encrypted; otherwise use as-is
+      final decFullName = await encryption.decryptUserData(rawFullName);
+      final decDriverNumber = await encryption.decryptUserData(rawDriverNumber);
+      final decLicense = await encryption.decryptUserData(rawLicense);
+
+      _driverFullName = decFullName;
+      _driverNumber = decDriverNumber;
+      _driverLicenseNumber = decLicense;
+
+      // If any field is plaintext (not starting with ENC_V2:/ENC_V3:), encrypt and write back once
+      final Map<String, dynamic> fieldsToUpdate = {};
+      if (rawFullName.isNotEmpty && !encryption.isEncrypted(rawFullName)) {
+        fieldsToUpdate['full_name'] =
+            await encryption.encryptUserData(rawFullName);
+      }
+      if (rawDriverNumber.isNotEmpty &&
+          !encryption.isEncrypted(rawDriverNumber)) {
+        fieldsToUpdate['driver_number'] =
+            await encryption.encryptUserData(rawDriverNumber);
+      }
+      if (rawLicense.isNotEmpty && !encryption.isEncrypted(rawLicense)) {
+        fieldsToUpdate['driver_license_number'] =
+            await encryption.encryptUserData(rawLicense);
+      }
+
+      if (fieldsToUpdate.isNotEmpty) {
+        try {
+          await supabase
+              .from('driverTable')
+              .update(fieldsToUpdate)
+              .eq('driver_id', _driverID);
+        } catch (e) {
+          debugPrint('DriverProvider: failed to backfill encryption: $e');
+        }
+      }
     } catch (e) {
       ShowMessage().showToast('Error fetching driver creds: $e');
       if (kDebugMode) {
@@ -418,7 +469,6 @@ class DriverProvider with ChangeNotifier {
   /// Updates the time that the driver logs into the app
   Future<void> writeLoginTime(BuildContext context) async {
     try {
-
       final response = await supabase
           .from('driverActivityLog')
           .insert({
@@ -436,5 +486,41 @@ class DriverProvider with ChangeNotifier {
       debugPrint('Error logging driver log in time, $e');
       debugPrint('Error Write Login Time StackTrace: $stacktrace');
     }
+  }
+
+  /// Load and cache allowed stops for the current route
+  /// This should be called when:
+  /// 1. App starts (after route is determined)
+  /// 2. Route is changed
+  Future<void> loadAndCacheAllowedStops() async {
+    _isLoadingStops = true;
+    notifyListeners();
+
+    try {
+      if (_routeID > 0) {
+        debugPrint('Loading allowed stops for route: $_routeID');
+        final stops = await _stopRepository.fetchStopsByRoute(_routeID);
+        _cachedAllowedStops = stops;
+        debugPrint('Cached ${stops.length} stops for route $_routeID');
+      } else {
+        // Fallback: fetch all active stops if no route assigned
+        debugPrint('No route ID, loading all active stops');
+        final stops = await _stopRepository.fetchAllActiveStops();
+        _cachedAllowedStops = stops;
+        debugPrint('Cached ${stops.length} active stops');
+      }
+    } catch (e) {
+      debugPrint('Error loading allowed stops: $e');
+      _cachedAllowedStops = [];
+    } finally {
+      _isLoadingStops = false;
+      notifyListeners();
+    }
+  }
+
+  /// Clear cached allowed stops (useful when logging out or route is unassigned)
+  void clearCachedAllowedStops() {
+    _cachedAllowedStops = [];
+    notifyListeners();
   }
 }

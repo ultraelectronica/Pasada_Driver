@@ -85,6 +85,10 @@ class _AuthGateState extends State<AuthGate> {
           await mapProvider.getRouteCoordinates(driverProvider.routeID);
 
           mapProvider.setRouteID(driverProvider.routeID);
+
+          // Load and cache allowed stops for the route
+          await driverProvider.loadAndCacheAllowedStops();
+
           await passengerProvider.getBookingRequestsID(context);
         } else {
           logDebug('No valid route ID found: ${driverProvider.routeID}');
@@ -98,6 +102,10 @@ class _AuthGateState extends State<AuthGate> {
               // Ensure the new status is preserved if app is backgrounded immediately
               driverProvider.setLastDriverStatus('Online');
               mapProvider.setRouteID(selected);
+
+              // Load and cache allowed stops for the newly selected route
+              await driverProvider.loadAndCacheAllowedStops();
+
               await passengerProvider.getBookingRequestsID(context);
             }
           }

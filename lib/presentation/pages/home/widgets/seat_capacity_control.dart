@@ -59,6 +59,7 @@ class SeatCapacityControl extends StatelessWidget {
 
         if (result.success) {
           SnackBarUtils.pop(context, '$seatType passenger added manually',
+              'Capacity updated successfully',
               backgroundColor: Colors.blue);
         } else {
           String errorMessage = 'Failed to add passenger';
@@ -78,7 +79,8 @@ class SeatCapacityControl extends StatelessWidget {
             default:
               errorMessage = result.errorMessage ?? 'Unknown error occurred';
           }
-          SnackBarUtils.show(context, errorMessage, errorColor,
+          SnackBarUtils.show(context, errorMessage, 'Operation failed',
+              backgroundColor: errorColor,
               duration: const Duration(seconds: 3));
         }
       },
@@ -90,7 +92,9 @@ class SeatCapacityControl extends StatelessWidget {
 
               if (result.success) {
                 SnackBarUtils.pop(
-                    context, '$seatType passenger removed manually',
+                    context,
+                    '$seatType passenger removed manually',
+                    'Capacity updated successfully',
                     backgroundColor: Colors.red);
               } else {
                 String errorMessage = 'Failed to remove passenger';
@@ -114,7 +118,8 @@ class SeatCapacityControl extends StatelessWidget {
                     errorMessage =
                         result.errorMessage ?? 'Unknown error occurred';
                 }
-                SnackBarUtils.show(context, errorMessage, errorColor,
+                SnackBarUtils.show(context, errorMessage, 'Operation failed',
+                    backgroundColor: errorColor,
                     duration: const Duration(seconds: 3));
               }
             }
