@@ -16,15 +16,15 @@ class AppConfig {
 
   // Distance thresholds (in meters)
   static const double pickupProximityThreshold =
-      50; // Distance to mark driver as "at pickup location"
+      150; // Distance to mark driver as "at pickup location"
   static const double pickupApproachThreshold =
-      200; // Distance to mark driver as "approaching pickup"
+      250; // Distance to mark driver as "approaching pickup"
   static const double dropoffProximityThreshold =
-      50; // Distance to mark driver as "at dropoff location"
+      150; // Distance to mark driver as "at dropoff location"
   static const double dropoffApproachThreshold =
-      200; // Distance to mark driver as "approaching dropoff"
+      250; // Distance to mark driver as "approaching dropoff"
   static const double minPassengerAheadDistance =
-      20; // Minimum distance passenger should be ahead of driver
+      100; // Minimum distance passenger should be ahead of driver
   static const double maxPickupDistanceThreshold =
       3000; // Maximum distance for valid pickup
   static const double maxDistanceSecondaryCheck =
@@ -40,7 +40,7 @@ class AppConfig {
 
   // Test mode values (much larger for testing purposes)
   static const bool isTestMode = true; // Set to false for production values
-  static const double testPickupProximityThreshold = 5000;
+  static const double testPickupProximityThreshold = 10000;
   static const double testPickupApproachThreshold = 10000;
   static const double testDropoffProximityThreshold = 10000;
   static const double testDropoffApproachThreshold = 10000;
