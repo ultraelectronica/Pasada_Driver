@@ -190,8 +190,8 @@ class ProfilePageState extends State<ProfilePage> {
                             ProfileConstants.infoCardSpacerFraction),
 
                     // --- Actions Card ---
-                    // _buildActionsCard(),
-                    // const SizedBox(height: 30),
+                    _buildActionsCard(),
+                    const SizedBox(height: 30),
 
                     // --- Log Out Button ---
                     _buildLogoutButton(),
@@ -338,7 +338,7 @@ class ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // TODO: unused_element
+  // TODO: unused section
   // ignore: unused_element
   Widget _buildActionsCard() {
     return Card(
@@ -346,62 +346,63 @@ class ProfilePageState extends State<ProfilePage> {
       shadowColor: Colors.black38,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       color: Colors.white,
-      child: const Padding(
-        padding: EdgeInsets.symmetric(vertical: 0), // Padding around the list
+      child: Padding(
+        padding:
+            const EdgeInsets.symmetric(vertical: 0), // Padding around the list
         child: Column(
           children: [
-            // _buildActionTile(
-            //   icon: Icons.edit_note, // Material Icon
-            //   text: 'Update Information',
-            //   onTap: () {/* TODO: Implement navigation */},
-            // ),
-            // _buildDivider(),
-            // _buildActionTile(
-            //   icon: Icons.settings_outlined, // Material Icon
-            //   text: 'Settings',
-            //   onTap: () {/* TODO: Implement navigation */},
-            // ),
-            // _buildDivider(),
-            // _buildActionTile(
-            //   icon: Icons.help_outline, // Material Icon
-            //   text: 'Help & Support',
-            //   onTap: () {/* TODO: Implement navigation */},
-            // ),
-            // _buildDivider(),
-            // _buildActionTile(
-            //   icon: Icons.info_outline, // Material Icon
-            //   text: 'About',
-            //   onTap: () {/* TODO: Implement navigation */},
-            // ),
+            _buildActionTile(
+              icon: Icons.edit_note, // Material Icon
+              text: 'Update Information',
+              onTap: () {/* TODO: Implement navigation */},
+            ),
+            _buildDivider(),
+            _buildActionTile(
+              icon: Icons.settings_outlined, // Material Icon
+              text: 'Settings',
+              onTap: () {/* TODO: Implement navigation */},
+            ),
+            _buildDivider(),
+            _buildActionTile(
+              icon: Icons.help_outline, // Material Icon
+              text: 'Help & Support',
+              onTap: () {/* TODO: Implement navigation */},
+            ),
+            _buildDivider(),
+            _buildActionTile(
+              icon: Icons.info_outline, // Material Icon
+              text: 'About',
+              onTap: () {/* TODO: Implement navigation */},
+            ),
           ],
         ),
       ),
     );
   }
 
-  // Widget _buildActionTile(
-  //     {required IconData icon,
-  //     required String text,
-  //     required VoidCallback onTap}) {
-  //   return ListTile(
-  //     minTileHeight: 50,
-  //     leading: Icon(icon, color: const Color(0xff067837), size: 20),
-  //     title: Text(
-  //       text,
-  //       style: Styles().textStyle(14, Styles.w500Weight, Styles.customBlack),
-  //     ),
-  //     trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-  //     onTap: onTap,
-  //   );
-  // }
+  Widget _buildActionTile(
+      {required IconData icon,
+      required String text,
+      required VoidCallback onTap}) {
+    return ListTile(
+      minTileHeight: 50,
+      leading: Icon(icon, color: const Color(0xff067837), size: 20),
+      title: Text(
+        text,
+        style: Styles().textStyle(14, Styles.normal, Styles.customBlackFont),
+      ),
+      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+      onTap: onTap,
+    );
+  }
 
-  // Widget _buildDivider() {
-  //   return const Padding(
-  //     padding:
-  //         EdgeInsets.symmetric(horizontal: 15.0), // Indent divider slightly
-  //     child: Divider(height: 1, thickness: 0.5, color: Colors.grey),
-  //   );
-  // }
+  Widget _buildDivider() {
+    return const Padding(
+      padding:
+          EdgeInsets.symmetric(horizontal: 15.0), // Indent divider slightly
+      child: Divider(height: 1, thickness: 0.5, color: Colors.grey),
+    );
+  }
 
   Widget _buildLogoutButton() {
     return OutlinedButton.icon(
