@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:pasada_driver_side/Services/auth_service.dart';
+import 'package:pasada_driver_side/presentation/pages/profile/pages/settings_page.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/common/constants/text_styles.dart';
@@ -10,6 +11,7 @@ import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart'
 import 'package:pasada_driver_side/presentation/pages/profile/utils/profile_constants.dart';
 import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
+import 'package:pasada_driver_side/domain/services/background_location_service.dart';
 
 // --- Custom Clipper for Background Shape ---
 class ProfileBackgroundClipper extends CustomClipper<Path> {
@@ -122,9 +124,6 @@ class ProfilePageState extends State<ProfilePage> {
       driverRouteId: routeId,
     );
 
-    // Define colors based on the image
-    const Color primaryColor = Color(0xff067837);
-
     // 3-state rendering
     Widget bodyContent;
     if (isLoading) {
@@ -144,11 +143,14 @@ class ProfilePageState extends State<ProfilePage> {
             child: Container(
               height: MediaQuery.of(context).size.height *
                   ProfileConstants.headerHeightFraction, // header height
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [primaryColor, primaryColor],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                  colors: [
+                    Constants.GRADIENT_COLOR_2,
+                    Constants.GRADIENT_COLOR_1
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
                 // Removed bottom curves for simplicity, add if needed
               ),
@@ -212,7 +214,7 @@ class ProfilePageState extends State<ProfilePage> {
   Widget _buildDriverName(String driverName) {
     return Text(
       driverName,
-      style: Styles().textStyle(22, Styles.bold, Constants.WHITE_COLOR),
+      style: Styles().textStyle(25, Styles.bold, Constants.WHITE_COLOR),
       textAlign: TextAlign.center,
     );
   }
@@ -324,7 +326,7 @@ class ProfilePageState extends State<ProfilePage> {
   Widget _buildInfoRow({required IconData icon, required String text}) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xff067837), size: 20),
+        Icon(icon, color: Constants.GREEN_COLOR, size: 20),
         const SizedBox(width: 15),
         Expanded(
           // Allow text to wrap if needed
@@ -351,16 +353,22 @@ class ProfilePageState extends State<ProfilePage> {
             const EdgeInsets.symmetric(vertical: 0), // Padding around the list
         child: Column(
           children: [
-            _buildActionTile(
-              icon: Icons.edit_note, // Material Icon
-              text: 'Update Information',
-              onTap: () {/* TODO: Implement navigation */},
-            ),
-            _buildDivider(),
+            // _buildActionTile(
+            //   icon: Icons.edit_note, // Material Icon
+            //   text: 'Update Information',
+            //   onTap: () {/* TODO: Implement navigation */},
+            // ),
+            // _buildDivider(),
             _buildActionTile(
               icon: Icons.settings_outlined, // Material Icon
               text: 'Settings',
-              onTap: () {/* TODO: Implement navigation */},
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsPage(),
+                    ));
+              },
             ),
             _buildDivider(),
             _buildActionTile(
@@ -386,7 +394,7 @@ class ProfilePageState extends State<ProfilePage> {
       required VoidCallback onTap}) {
     return ListTile(
       minTileHeight: 50,
-      leading: Icon(icon, color: const Color(0xff067837), size: 20),
+      leading: Icon(icon, color: Constants.GREEN_COLOR, size: 20),
       title: Text(
         text,
         style: Styles().textStyle(14, Styles.normal, Styles.customBlackFont),
@@ -452,10 +460,15 @@ class ProfilePageState extends State<ProfilePage> {
               ),
             ),
             TextButton(
-              onPressed: () {
-                AuthService.deleteSession();
+              onPressed: () async {
+                // Stop background location service
+                await BackgroundLocationService.instance.stop();
+                // Clear session data
+                await AuthService.deleteSession();
                 // Close the application
-                Navigator.of(context).pop(); // Close dialog
+                if (mounted) {
+                  Navigator.of(context).pop(); // Close dialog
+                }
                 // Exit the app
                 Future.delayed(const Duration(milliseconds: 300), () {
                   SystemNavigator.pop(); // Close the app
@@ -578,7 +591,10 @@ class ProfilePageState extends State<ProfilePage> {
             height: size,
             width: size,
             child: SvgPicture.asset(
-              'assets/svg/Ellipse.svg', // Keep user-updated SVG (assuming this is the placeholder)
+              'assets/svg/Ellipse.svg',
+              colorFilter: ColorFilter.mode(
+                  Constants.GRADIENT_COLOR_1.withValues(alpha: .8),
+                  BlendMode.srcIn),
               fit: BoxFit.cover, // Ensure SVG fills the circle
               placeholderBuilder: (_) => Container(
                 // Placeholder if SVG fails

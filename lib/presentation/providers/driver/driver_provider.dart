@@ -132,11 +132,11 @@ class DriverProvider with ChangeNotifier {
 
       if (kDebugMode) {
         debugPrint(
-            'DriverProvider: location updated ${response[0]['current_location']}');
+            '\t[DRIVER PROVIDER] Location updated: ${response[0]['current_location']}');
       }
     } catch (e) {
-      debugPrint('DriverProvider: error updating location $e');
-      ShowMessage().showToast('Error updating location to DB: $e');
+      debugPrint('[DRIVER PROVIDER][ERROR] Error updating location: $e');
+      // ShowMessage().showToast('[DRIVER PROVIDER][ERROR] Error updating location: $e');
     }
   }
 

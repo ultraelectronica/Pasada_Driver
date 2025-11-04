@@ -1,7 +1,11 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Firebase Cloud Messaging -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -45,6 +49,20 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <!-- Background Location Service -->
+        <service
+            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:exported="true"
+            android:foregroundServiceType="location"
+            android:stopWithTask="true"
+            tools:replace="android:exported,android:foregroundServiceType,android:stopWithTask" />
+        
+        <service
+            android:name="id.flutter.flutter_background_service.IsolateHolderService"
+            android:exported="true"
+            android:foregroundServiceType="location"
+            tools:replace="android:exported,android:foregroundServiceType" />
 
         <!-- Default notification channel and icon for FCM -->
         <meta-data

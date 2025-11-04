@@ -15,6 +15,7 @@ import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart'
 import 'package:pasada_driver_side/common/utils/result.dart';
 import 'package:pasada_driver_side/common/logging.dart';
 import 'package:pasada_driver_side/presentation/pages/route_setup/route_selection_sheet.dart';
+import 'package:pasada_driver_side/domain/services/background_location_service.dart';
 
 /// A gatekeeper widget that decides which tree to show: the authenticated
 /// application (`MainPage`) or the authentication flow (`AuthPagesView`). It
@@ -65,6 +66,12 @@ class _AuthGateState extends State<AuthGate> {
     try {
       // Load driver data
       await context.read<DriverProvider>().loadFromSecureStorage(context);
+
+      // Start background location service for returning users
+      await BackgroundLocationService.instance.start();
+      if (kDebugMode) {
+        logDebug('Background location service started on app restart');
+      }
 
       // Continue after first frame to ensure providers are ready
       WidgetsBinding.instance.addPostFrameCallback((_) async {

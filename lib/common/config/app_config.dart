@@ -44,7 +44,7 @@ class AppConfig {
       360.0; // Maximum bearing considered "behind" driver
 
   // TEST MODE VALUES
-  static const bool isTestMode = true; // Set to false for production values
+  static bool isTestMode = true; // Set to false for production values
   static const double testPickupProximityThreshold = 10000;
   static const double testPickupApproachThreshold = 10000;
   static const double testDropoffProximityThreshold = 10000;
