@@ -220,7 +220,7 @@ class DriverProvider with ChangeNotifier {
     if (trimmed.isEmpty) return null;
     final lower = trimmed.toLowerCase();
     // Allow only known statuses
-    const allowed = {'online', 'driving', 'idling'};
+    const allowed = {'online', 'driving', 'idling', 'offline'};
     if (!allowed.contains(lower)) return null;
     return lower;
   }
@@ -233,6 +233,8 @@ class DriverProvider with ChangeNotifier {
         return 'Driving';
       case 'idling':
         return 'Idling';
+      case 'offline':
+        return 'Offline';
       default:
         return lower;
     }

@@ -18,6 +18,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:pasada_driver_side/Services/notification_service.dart';
 import 'package:pasada_driver_side/domain/services/background_location_service.dart';
+import 'package:pasada_driver_side/domain/services/presence_service.dart';
 
 // Future for assets preloading
 late final Future<List<AssetImage>> _preloadedAssets;
@@ -82,12 +83,22 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Timer? _backgroundTimer;
   Timer? _periodicTimer;
   DateTime? _backgroundStartTime;
+  final PresenceService _presenceService = PresenceService.instance;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _precacheAssets();
+    // Start presence heartbeat after first frame when context is available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_presenceService.isRunning) {
+        _presenceService.start(
+          context,
+          interval: const Duration(seconds: 10),
+        );
+      }
+    });
   }
 
   @override
@@ -95,6 +106,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _backgroundTimer?.cancel();
     _periodicTimer?.cancel();
+    _presenceService.stop();
     super.dispose();
   }
 
@@ -115,6 +127,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       case AppLifecycleState.resumed:
         // App came back to foreground
         _cancelBackgroundTimer();
+        // Immediate heartbeat on resume
+        PresenceService.instance.start(
+          context,
+          interval: const Duration(seconds: 10),
+        );
         break;
       case AppLifecycleState.detached:
       case AppLifecycleState.inactive:
