@@ -18,10 +18,13 @@ Future<List<AssetImage>> initializeApp() async {
   // 1. Load environment variables
   await dotenv.load(fileName: '.env');
 
+  final supabaseUrl = dotenv.env['SUPABASE_URL']!;
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY']!;
+
   // 2. Initialize Supabase with a timeout safeguard
   await Supabase.initialize(
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: supabaseAnonKey,
+    url: supabaseUrl,
   ).timeout(
     const Duration(seconds: 10),
     onTimeout: () =>
@@ -35,9 +38,9 @@ Future<List<AssetImage>> initializeApp() async {
   final encryptionService = EncryptionService();
   await encryptionService.initialize();
 
-  // 5. Initialize background location service
+  // 5. Initialize background foreground service (keeps app running)
   await BackgroundLocationService.instance.initialize();
-  logDebug('Background location service initialized');
+  logDebug('Background foreground service initialized');
 
   // 6. Build the list of frequently-used assets to preload
   final List<AssetImage> assetsToPreload = [

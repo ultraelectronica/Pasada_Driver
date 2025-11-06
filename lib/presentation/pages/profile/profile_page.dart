@@ -461,7 +461,7 @@ class ProfilePageState extends State<ProfilePage> {
             ),
             TextButton(
               onPressed: () async {
-                // Stop background location service
+                // Stop background foreground service
                 await BackgroundLocationService.instance.stop();
                 // Clear session data
                 await AuthService.deleteSession();

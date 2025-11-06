@@ -3,14 +3,12 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
-import 'package:flutter_background_service_android/flutter_background_service_android.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:location/location.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Background service for continuous location tracking even when app is in background.
-/// This service runs as a foreground service on Android with a persistent notification.
+/// Foreground service that keeps the app running with high priority in the background.
+/// This service maintains a persistent notification but does NOT track location.
+/// Location tracking is handled by the DriverProvider in the main isolate.
 @pragma('vm:entry-point')
 class BackgroundLocationService {
   BackgroundLocationService._();
@@ -29,9 +27,9 @@ class BackgroundLocationService {
         FlutterLocalNotificationsPlugin();
 
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'pasada_location_tracking', // id
-      'Location Tracking', // name
-      description: 'Continuous location tracking for Pasada Driver',
+      'pasada_foreground_service', // id
+      'App Background Service', // name
+      description: 'Keeps Pasada Driver app running in the background',
       importance: Importance.low, // Low importance to avoid annoying users
       playSound: false,
     );
@@ -46,9 +44,9 @@ class BackgroundLocationService {
         onStart: onStart,
         autoStart: false,
         isForegroundMode: true,
-        notificationChannelId: 'pasada_location_tracking',
+        notificationChannelId: 'pasada_foreground_service',
         initialNotificationTitle: 'Pasada Driver',
-        initialNotificationContent: 'Location tracking is active',
+        initialNotificationContent: 'App is running in the background',
         foregroundServiceNotificationId: 888,
         foregroundServiceTypes: [AndroidForegroundType.location],
       ),
@@ -60,7 +58,7 @@ class BackgroundLocationService {
     );
   }
 
-  /// Start the background location tracking service
+  /// Start the foreground service to keep app running in background
   Future<void> start() async {
     if (_isRunning) {
       if (kDebugMode) {
@@ -82,7 +80,7 @@ class BackgroundLocationService {
     }
   }
 
-  /// Stop the background location tracking service
+  /// Stop the foreground service
   Future<void> stop() async {
     if (!_isRunning) return;
 
@@ -102,159 +100,84 @@ class BackgroundLocationService {
     }
   }
 
-  /// Entry point for the background service
+  /// Entry point for the foreground service
+  /// This service simply keeps the app running with a persistent notification
+  /// Location tracking is handled by the DriverProvider in the main isolate
   @pragma('vm:entry-point')
   static void onStart(ServiceInstance service) async {
     DartPluginRegistrant.ensureInitialized();
 
-    if (service is AndroidServiceInstance) {
-      service.on('setAsForeground').listen((event) {
-        service.setAsForegroundService();
-      });
-
-      service.on('setAsBackground').listen((event) {
-        service.setAsBackgroundService();
-      });
+    if (kDebugMode) {
+      debugPrint('BackgroundLocationService: Service started');
     }
 
-    // Initialize location tracking
-    final location = Location();
-    StreamSubscription<LocationData>? locationSubscription;
-    Timer? keepAliveTimer;
-
-    service.on('stop').listen((event) async {
-      // Clean up resources before stopping
-      await locationSubscription?.cancel();
-      keepAliveTimer?.cancel();
-
-      // Disable background mode
+    // Set up foreground/background listeners for Android
+    // These listeners are only applicable on Android but won't cause issues on iOS
+    // We use dynamic casting because these methods are Android-specific
+    service.on('setAsForeground').listen((event) {
       try {
-        await location.enableBackgroundMode(enable: false);
+        (service as dynamic).setAsForegroundService();
       } catch (e) {
         if (kDebugMode) {
           debugPrint(
-              'BackgroundLocationService: Error disabling background mode - $e');
+              'BackgroundLocationService: setAsForeground error (likely iOS) - $e');
         }
+      }
+    });
+
+    service.on('setAsBackground').listen((event) {
+      try {
+        (service as dynamic).setAsBackgroundService();
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint(
+              'BackgroundLocationService: setAsBackground error (likely iOS) - $e');
+        }
+      }
+    });
+
+    Timer? keepAliveTimer;
+
+    // Set up stop listener
+    service.on('stop').listen((event) async {
+      // Clean up resources before stopping
+      keepAliveTimer?.cancel();
+
+      if (kDebugMode) {
+        debugPrint('BackgroundLocationService: Received stop command');
       }
 
       // Stop the service (this will remove the notification)
       service.stopSelf();
     });
 
-    // Get driver ID from shared preferences
+    // Get shared preferences instance
     final prefs = await SharedPreferences.getInstance();
-    final driverId = prefs.getString('driver_id');
 
-    if (driverId == null || driverId.isEmpty) {
-      if (kDebugMode) {
-        debugPrint('BackgroundLocationService: No driver ID found');
-      }
-      service.stopSelf();
-      return;
-    }
-
-    // Initialize Supabase if not already initialized
-    try {
-      if (!Supabase.instance.isInitialized) {
-        // You'll need to store these in shared preferences or secure storage
-        final supabaseUrl = prefs.getString('supabase_url');
-        final supabaseKey = prefs.getString('supabase_key');
-
-        if (supabaseUrl != null && supabaseKey != null) {
-          await Supabase.initialize(
-            url: supabaseUrl,
-            anonKey: supabaseKey,
+    // Keep the service running with a simple timer
+    // This just maintains the foreground service status
+    keepAliveTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      // Update notification to show service is active (Android only)
+      try {
+        final dynamicService = service as dynamic;
+        if (await dynamicService.isForegroundService()) {
+          dynamicService.setForegroundNotificationInfo(
+            title: 'Pasada Driver',
+            content: 'App is running in the background',
           );
         }
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('BackgroundLocationService: Supabase init error - $e');
-      }
-    }
-
-    final supabase = Supabase.instance.client;
-
-    // Configure location settings for background
-    await location.changeSettings(
-      accuracy: LocationAccuracy.high,
-      interval: 10000, // 10 seconds
-      distanceFilter: 10, // 10 meters minimum distance
-    );
-
-    // Enable background mode
-    await location.enableBackgroundMode(enable: true);
-
-    // Start listening to location updates
-    locationSubscription = location.onLocationChanged.listen(
-      (LocationData currentLocation) async {
-        if (currentLocation.latitude == null ||
-            currentLocation.longitude == null) {
-          return;
-        }
-
-        try {
-          // Update notification with current location
-          if (service is AndroidServiceInstance) {
-            if (await service.isForegroundService()) {
-              service.setForegroundNotificationInfo(
-                title: 'Pasada Driver - Location Active',
-                content:
-                    'Lat: ${currentLocation.latitude?.toStringAsFixed(4)}, '
-                    'Lng: ${currentLocation.longitude?.toStringAsFixed(4)}',
-              );
-            }
-          }
-
-          // Update location in database
-          final wktPoint =
-              'POINT(${currentLocation.longitude} ${currentLocation.latitude})';
-
-          await supabase
-              .from('driverTable')
-              .update({'current_location': wktPoint}).eq('driver_id', driverId);
-
-          if (kDebugMode) {
-            debugPrint(
-                'BackgroundLocationService: Location updated - ${currentLocation.latitude}, ${currentLocation.longitude}');
-          }
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint(
-                'BackgroundLocationService: Error updating location - $e');
-          }
-        }
-      },
-      onError: (error) {
-        if (kDebugMode) {
-          debugPrint('BackgroundLocationService: Location error - $error');
-        }
-      },
-    );
-
-    // Keep the service running
-    keepAliveTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      if (service is AndroidServiceInstance) {
-        if (await service.isForegroundService()) {
-          // Service is still running
-        }
+      } catch (e) {
+        // iOS doesn't support these methods, silently ignore
       }
 
-      // Check if service should stop
+      // Check if service should stop via SharedPreferences
       final shouldStop = prefs.getBool('stop_background_location') ?? false;
       if (shouldStop) {
         await prefs.setBool('stop_background_location', false);
         timer.cancel();
-        await locationSubscription?.cancel();
 
-        // Disable background mode
-        try {
-          await location.enableBackgroundMode(enable: false);
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint(
-                'BackgroundLocationService: Error disabling background mode - $e');
-          }
+        if (kDebugMode) {
+          debugPrint('BackgroundLocationService: Stop requested via prefs');
         }
 
         service.stopSelf();
@@ -268,17 +191,5 @@ class BackgroundLocationService {
     WidgetsFlutterBinding.ensureInitialized();
     DartPluginRegistrant.ensureInitialized();
     return true;
-  }
-
-  /// Save Supabase credentials for background service
-  static Future<void> saveCredentials(
-    String driverId,
-    String supabaseUrl,
-    String supabaseKey,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('driver_id', driverId);
-    await prefs.setString('supabase_url', supabaseUrl);
-    await prefs.setString('supabase_key', supabaseKey);
   }
 }

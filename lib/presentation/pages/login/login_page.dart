@@ -17,7 +17,6 @@ import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart'
 import 'package:pasada_driver_side/common/utils/result.dart';
 import 'package:pasada_driver_side/Services/encryption_service.dart';
 import 'package:pasada_driver_side/domain/services/background_location_service.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class LogIn extends StatefulWidget {
   final PageController? pageController;
@@ -164,16 +163,7 @@ class _LogInState extends State<LogIn> {
         //saves the session token to the local storage
         await saveSession(enteredDriverID, response);
 
-        // Save credentials for background location service
-        final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
-        final supabaseKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
-        await BackgroundLocationService.saveCredentials(
-          enteredDriverID,
-          supabaseUrl,
-          supabaseKey,
-        );
-
-        // Start background location service
+        // Start background foreground service to keep app running
         await BackgroundLocationService.instance.start();
         if (kDebugMode) {
           debugPrint(

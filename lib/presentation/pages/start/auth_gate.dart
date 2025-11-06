@@ -67,10 +67,10 @@ class _AuthGateState extends State<AuthGate> {
       // Load driver data
       await context.read<DriverProvider>().loadFromSecureStorage(context);
 
-      // Start background location service for returning users
+      // Start foreground service to keep app running in background
       await BackgroundLocationService.instance.start();
       if (kDebugMode) {
-        logDebug('Background location service started on app restart');
+        logDebug('Background foreground service started on app restart');
       }
 
       // Continue after first frame to ensure providers are ready
