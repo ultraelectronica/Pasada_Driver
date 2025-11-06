@@ -2,8 +2,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/bootstrap/initialize_app.dart';
 import 'package:pasada_driver_side/presentation/providers/app_providers.dart';
+import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/pages/start/auth_gate.dart';
 import 'package:pasada_driver_side/bootstrap/app_bootstrap_error_screen.dart';
 import 'package:pasada_driver_side/presentation/pages/login/login_page.dart';
@@ -150,6 +152,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       }
     }
 
+    final driverProvider = context.read<DriverProvider>();
+
     _backgroundStartTime = DateTime.now();
 
     // Periodic timer to check elapsed time every minute
@@ -174,6 +178,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
     // Timer to stop service after 10 minutes
     _backgroundTimer = Timer(const Duration(minutes: 10), () async {
+      // Set driver status to offline after 10 minutes of inactivity
+      driverProvider.setLastDriverStatus(driverProvider.driverStatus);
+      driverProvider.updateStatusToDB('Offline');
+      driverProvider.setDriverStatus('Offline');
+
       _periodicTimer?.cancel();
 
       if (kDebugMode) {
