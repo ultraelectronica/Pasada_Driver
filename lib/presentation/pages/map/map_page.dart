@@ -135,7 +135,7 @@ class MapPageState extends State<MapPage> {
     );
   }
 
-  /// Handle location updates with clean separation of concerns
+  /// Handle location updates
   void _handleLocationUpdate(LatLng newLatLng, LocationData locationData) {
     // Update driver location in database via provider (throttled)
     final now = DateTime.now();

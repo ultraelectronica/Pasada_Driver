@@ -318,7 +318,7 @@ class HomeController extends ChangeNotifier {
           NotificationService.instance.showBasicNotification(
             'Near Dropoff Location',
             'You are $distanceText away. Please complete the ride.',
-            bookingId: ongoingBookingId,
+            bookingId: 'Dropoff: $ongoingBookingId',
           );
           _lastNotifiedDropoffBookingId = ongoingBookingId;
         }
@@ -351,7 +351,7 @@ class HomeController extends ChangeNotifier {
           NotificationService.instance.showBasicNotification(
             'Near Pickup Location',
             'You are $distanceText away. Please confirm pickup.',
-            bookingId: nearestBookingId,
+            bookingId: 'Pickup: $nearestBookingId',
           );
           _lastNotifiedPickupBookingId = nearestBookingId;
         }

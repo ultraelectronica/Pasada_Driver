@@ -254,14 +254,31 @@ class NotificationService {
       final notificationId =
           _activeNotifications[bookingId] ?? _generateNotificationId(bookingId);
 
-      await _local.cancel(notificationId);
+      // On Android, we need to cancel using the tag as well since we set it during creation
+      if (Platform.isAndroid) {
+        final androidPlugin = _local.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+        await androidPlugin?.cancel(notificationId, tag: bookingId);
 
-      if (_activeNotifications[bookingId] == null) {
-        debugPrint(
-            '[Notification] Booking not tracked, trying generated ID...');
-        final generatedId = _generateNotificationId(bookingId);
-        await _local.cancel(generatedId);
+        // If not tracked, try with generated ID as fallback
+        if (_activeNotifications[bookingId] == null) {
+          debugPrint(
+              '[Notification] Booking not tracked, trying generated ID...');
+          final generatedId = _generateNotificationId(bookingId);
+          await androidPlugin?.cancel(generatedId, tag: bookingId);
+        }
+      } else {
+        // iOS doesn't use tags
+        await _local.cancel(notificationId);
+
+        if (_activeNotifications[bookingId] == null) {
+          debugPrint(
+              '[Notification] Booking not tracked, trying generated ID...');
+          final generatedId = _generateNotificationId(bookingId);
+          await _local.cancel(generatedId);
+        }
       }
+
       _activeNotifications.remove(bookingId);
 
       if (kDebugMode) {

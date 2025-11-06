@@ -62,9 +62,13 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
           if (!mounted) return;
 
           if (success) {
-            debugPrint('[COMPLETE][NOTIFICATION] Cancelling notification for booking: $bookingId');
+            debugPrint(
+                '[COMPLETE][NOTIFICATION] Cancelling notifications for booking: $bookingId');
+            // Cancel both pickup and dropoff notifications since we're completing the ride
             await NotificationService.instance
-                .cancelNotificationByBookingId(bookingId);
+                .cancelNotificationByBookingId('Pickup: $bookingId');
+            await NotificationService.instance
+                .cancelNotificationByBookingId('Dropoff: $bookingId');
             debugPrint(
                 '[COMPLETE] Backend status update success. Decrementing capacity...');
             final capacityResult =
