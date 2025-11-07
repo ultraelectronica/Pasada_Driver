@@ -5,6 +5,7 @@ import 'package:pasada_driver_side/Services/auth_service.dart';
 import 'package:pasada_driver_side/presentation/pages/profile/pages/settings_page.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart';
@@ -12,6 +13,8 @@ import 'package:pasada_driver_side/presentation/pages/profile/utils/profile_cons
 import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
 import 'package:pasada_driver_side/domain/services/background_location_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pasada_driver_side/presentation/pages/start/auth_gate.dart';
 
 // --- Custom Clipper for Background Shape ---
 class ProfileBackgroundClipper extends CustomClipper<Path> {
@@ -463,18 +466,30 @@ class ProfilePageState extends State<ProfilePage> {
               onPressed: () async {
                 // Stop background foreground service
                 await BackgroundLocationService.instance.stop();
-                // Clear session data
+                // Stop streams / clear caches
+                try {
+                  context.read<PassengerProvider>().stopBookingStream();
+                } catch (_) {}
+                try {
+                  context.read<DriverProvider>().clearCachedAllowedStops();
+                } catch (_) {}
+                // Supabase sign out (clears JWT/refresh)
+                try {
+                  await Supabase.instance.client.auth.signOut();
+                } catch (_) {}
+                // Clear local domain context
                 await AuthService.deleteSession();
-                // Close the application
+                // Close dialog
                 if (mounted) {
-                  Navigator.of(context).pop(); // Close dialog
+                  Navigator.of(context).pop();
                 }
-                // Exit the app
-                Future.delayed(const Duration(milliseconds: 300), () {
-                  SystemNavigator.pop(); // Close the app
-                  // If you prefer navigation to login screen instead of closing:
-                  // Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-                });
+                // Navigate to AuthGate (login flow)
+                if (mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const AuthGate()),
+                    (route) => false,
+                  );
+                }
               },
               child: Text(
                 'Confirm',

@@ -329,7 +329,8 @@ class DriverProvider with ChangeNotifier {
 
   Future<bool> loadFromSecureStorage(BuildContext context) async {
     try {
-      final sessionData = await AuthService.getSession();
+      // Prefer domain context; Supabase Auth manages JWT/session internally
+      final sessionData = await AuthService.getDriverContext();
 
       if (sessionData.isEmpty) {
         if (kDebugMode) {
@@ -449,6 +450,7 @@ class DriverProvider with ChangeNotifier {
               .from('official_routes')
               .select('route_name')
               .eq('officialroute_id', _routeID)
+              .eq('status', 'active')
               .single();
 
           if (routeResponse['route_name'] != null) {
