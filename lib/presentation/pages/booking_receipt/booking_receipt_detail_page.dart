@@ -287,6 +287,7 @@ class BookingReceiptDetailPage extends StatelessWidget {
     if (dateTime == null) return 'N/A';
     final dateFormat = DateFormat('MMM dd, yyyy');
     final timeFormat = DateFormat('hh:mm a');
-    return '${dateFormat.format(dateTime)} at ${timeFormat.format(dateTime)}';
+    final local = dateTime.toLocal();
+    return '${dateFormat.format(local)} at ${timeFormat.format(local)}';
   }
 }

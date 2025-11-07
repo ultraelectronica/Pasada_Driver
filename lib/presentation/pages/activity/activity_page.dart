@@ -196,10 +196,35 @@ class ActivityPageState extends State<ActivityPage> {
                               16, Styles.semiBold, Styles.customBlackFont)),
                       Consumer<BookingReceiptProvider>(
                         builder: (context, provider, child) {
-                          return Text(
-                            '${provider.todayBookingsCount} booking${provider.todayBookingsCount != 1 ? 's' : ''}',
-                            style: Styles().textStyle(
-                                14, Styles.medium, Colors.grey.shade600),
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${provider.todayBookingsCount} booking${provider.todayBookingsCount != 1 ? 's' : ''}',
+                                style: Styles().textStyle(
+                                    14, Styles.medium, Colors.grey.shade600),
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                tooltip: 'Refresh',
+                                onPressed: provider.isLoading
+                                    ? null
+                                    : () =>
+                                        provider.fetchTodayBookings(context),
+                                icon: provider.isLoading
+                                    ? SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Constants.GREEN_COLOR,
+                                        ),
+                                      )
+                                    : const Icon(Icons.refresh),
+                                color: Constants.GREEN_COLOR,
+                                splashRadius: 20,
+                              ),
+                            ],
                           );
                         },
                       ),
@@ -400,7 +425,7 @@ class ActivityPageState extends State<ActivityPage> {
   Widget _buildBookingItem(booking) {
     final timeFormat = DateFormat('hh:mm a');
     final timeString = booking.createdAt != null
-        ? timeFormat.format(booking.createdAt!)
+        ? timeFormat.format(booking.createdAt!.toLocal())
         : booking.startTime ?? 'N/A';
 
     return InkWell(
@@ -436,7 +461,7 @@ class ActivityPageState extends State<ActivityPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Booking #${booking.bookingId.substring(0, booking.bookingId.length > 8 ? 8 : booking.bookingId.length)}',
+                    'Booking #${booking.bookingId}',
                     style: Styles()
                         .textStyle(14, Styles.semiBold, Styles.customBlackFont),
                   ),

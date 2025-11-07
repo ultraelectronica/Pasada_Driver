@@ -454,11 +454,18 @@ class SupabaseBookingRepository implements BookingRepository {
 
   @override
   Future<List<BookingReceipt>> fetchTodayBookings(String driverId) async {
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day);
-    final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    // Use local device day boundaries but query Supabase using UTC timestamps.
+    // This avoids server interpreting local timestamps as UTC when no offset is provided.
+    final nowLocal = DateTime.now();
+    final startOfDayLocal =
+        DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
+    final endOfDayLocal =
+        DateTime(nowLocal.year, nowLocal.month, nowLocal.day, 23, 59, 59, 999);
 
-    return fetchBookingsByDateRange(driverId, startOfDay, endOfDay);
+    final startUtc = startOfDayLocal.toUtc();
+    final endUtc = endOfDayLocal.toUtc();
+
+    return fetchBookingsByDateRange(driverId, startUtc, endUtc);
   }
 
   @override
