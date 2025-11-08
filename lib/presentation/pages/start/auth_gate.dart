@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:pasada_driver_side/Services/auth_service.dart';
 import 'package:pasada_driver_side/common/constants/message.dart';
@@ -15,6 +16,7 @@ import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart'
 import 'package:pasada_driver_side/common/utils/result.dart';
 import 'package:pasada_driver_side/common/logging.dart';
 import 'package:pasada_driver_side/presentation/pages/route_setup/route_selection_sheet.dart';
+import 'package:pasada_driver_side/domain/services/background_location_service.dart';
 
 /// A gatekeeper widget that decides which tree to show: the authenticated
 /// application (`MainPage`) or the authentication flow (`AuthPagesView`). It
@@ -38,8 +40,35 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<bool> _hasValidSession() async {
-    final sessionData = await AuthService.getSession();
-    return sessionData.isNotEmpty;
+    final auth = Supabase.instance.client.auth;
+    final session = auth.currentSession;
+    if (session == null) return false;
+    // Enforce client-side soft expiry window
+    final softExpired = await AuthService.isSessionExpired();
+    if (softExpired) {
+      try {
+        debugPrint('[SESSION] session expired, please log in again.');
+        await auth.signOut();
+      } catch (_) {}
+      await AuthService.deleteSession();
+      return false;
+    }
+    try {
+      final expiresAtSec = session.expiresAt; // seconds since epoch (UTC)
+      if (expiresAtSec != null) {
+        final expiresAt = DateTime.fromMillisecondsSinceEpoch(
+                expiresAtSec * 1000,
+                isUtc: true)
+            .toLocal();
+        if (expiresAt
+            .isBefore(DateTime.now().add(const Duration(minutes: 1)))) {
+          // Proactively refresh if expiring
+          final refreshed = await auth.refreshSession();
+          return refreshed.session != null;
+        }
+      }
+    } catch (_) {}
+    return true;
   }
 
   Future<void> _checkSession() async {
@@ -64,7 +93,42 @@ class _AuthGateState extends State<AuthGate> {
   Future<void> _loadUserData() async {
     try {
       // Load driver data
-      await context.read<DriverProvider>().loadFromSecureStorage(context);
+      final driverProv = context.read<DriverProvider>();
+      final supa = Supabase.instance.client;
+
+      // Attempt to restore domain context from secure storage
+      await driverProv.loadFromSecureStorage(context);
+
+      // Fallback: if context is missing, derive from auth user linkage
+      if (driverProv.driverID.isEmpty || driverProv.vehicleID.isEmpty) {
+        final uid = supa.auth.currentUser?.id;
+        if (uid != null) {
+          final resp = await supa
+              .from('driverTable')
+              .select('driver_id, vehicle_id')
+              .eq('auth_user_id', uid)
+              .maybeSingle();
+          if (resp != null) {
+            final driverId = resp['driver_id']?.toString() ?? '';
+            final vehicleId = resp['vehicle_id']?.toString() ?? '';
+            if (driverId.isNotEmpty) driverProv.setDriverID(driverId);
+            if (vehicleId.isNotEmpty) driverProv.setVehicleID(vehicleId);
+            // Fetch route and persist domain context
+            await driverProv.getDriverRoute();
+            await AuthService.saveDriverContext(
+              driverId: driverProv.driverID,
+              routeId: driverProv.routeID.toString(),
+              vehicleId: driverProv.vehicleID,
+            );
+          }
+        }
+      }
+
+      // Start foreground service to keep app running in background
+      await BackgroundLocationService.instance.start();
+      if (kDebugMode) {
+        logDebug('Background foreground service started on app restart');
+      }
 
       // Continue after first frame to ensure providers are ready
       WidgetsBinding.instance.addPostFrameCallback((_) async {

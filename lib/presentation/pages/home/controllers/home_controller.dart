@@ -11,6 +11,7 @@ import 'package:pasada_driver_side/presentation/providers/passenger/passenger_pr
 import 'package:pasada_driver_side/presentation/pages/map/map_page.dart';
 import 'package:flutter/material.dart';
 import 'package:pasada_driver_side/presentation/pages/map/utils/marker_icons.dart';
+import 'package:pasada_driver_side/Services/notification_service.dart';
 
 /// Encapsulates **non-UI** logic for the Home page: proximity checks, periodic
 /// booking fetches, and map-marker updates.
@@ -41,6 +42,8 @@ class HomeController extends ChangeNotifier {
   //--------------------------------------------------------------------------
   List<PassengerStatus> get nearbyPassengers =>
       List.unmodifiable(_nearbyPassengers);
+
+  // list of nearby passengers with their status
   List<PassengerStatus> _nearbyPassengers = [];
 
   String? selectedPassengerId;
@@ -66,6 +69,12 @@ class HomeController extends ChangeNotifier {
   Timer? _bookingFetchTimer;
   bool _bookingStreamStarted = false;
   Timer? _recalcDebounceTimer;
+
+  // Track previous state for one-time notifications
+  bool _previousIsNearPickupLocation = false;
+  bool _previousIsNearDropoffLocation = false;
+  String? _lastNotifiedPickupBookingId;
+  String? _lastNotifiedDropoffBookingId;
 
   void _init() {
     // Start timers.
@@ -157,6 +166,7 @@ class HomeController extends ChangeNotifier {
       bool isNearDropoff = false;
       bool isApproachingDropoff = false;
 
+      // check if the booking is accepted
       if (booking.rideStatus == BookingConstants.statusAccepted) {
         distance = Geolocator.distanceBetween(
           currentLocation.latitude,
@@ -164,24 +174,35 @@ class HomeController extends ChangeNotifier {
           booking.pickupLocation.latitude,
           booking.pickupLocation.longitude,
         );
-        isNearPickup = distance < AppConfig.activePickupProximityThreshold;
+
+        debugPrint('Pickup distance: ${distance.toStringAsFixed(0)} meters');
+        // check if the pickup is approaching the driver
         isApproachingPickup =
             distance >= AppConfig.activePickupProximityThreshold &&
                 distance < AppConfig.activePickupApproachThreshold;
+
+        // check if the driver is at the pickup location
+        isNearPickup = distance < AppConfig.activePickupProximityThreshold;
       } else {
-        // Ongoing – measure to drop-off.
+        // check ongoing bookings
+        // measure to drop-off distance
         distance = Geolocator.distanceBetween(
           currentLocation.latitude,
           currentLocation.longitude,
           booking.dropoffLocation.latitude,
           booking.dropoffLocation.longitude,
         );
-        isNearDropoff = distance < AppConfig.activeDropoffProximityThreshold;
+        debugPrint('Dropoff distance: ${distance.toStringAsFixed(0)} meters');
+        // check if the dropoff is approaching the driver
         isApproachingDropoff =
             distance >= AppConfig.activeDropoffProximityThreshold &&
                 distance < AppConfig.activeDropoffApproachThreshold;
+
+        // check if the driver is at the dropoff location
+        isNearDropoff = distance < AppConfig.activeDropoffProximityThreshold;
       }
 
+      // add the passenger based on its trip status to the list
       statuses.add(PassengerStatus(
         booking: booking,
         distance: distance,
@@ -224,6 +245,9 @@ class HomeController extends ChangeNotifier {
       ongoingBookingId = null;
     }
 
+    // Check for state changes and trigger one-time notifications\
+    _checkAndTriggerNotifications();
+
     _updateMapMarkers();
     notifyListeners();
   }
@@ -238,8 +262,104 @@ class HomeController extends ChangeNotifier {
     nearestBookingId = null;
     _isNearDropoffLocation = false;
     ongoingBookingId = null;
+    // Reset notification tracking when state is reset
+    _previousIsNearPickupLocation = false;
+    _previousIsNearDropoffLocation = false;
+    _lastNotifiedPickupBookingId = null;
+    _lastNotifiedDropoffBookingId = null;
     notifyListeners();
     _updateMapMarkers(clearOnly: true);
+  }
+
+  /// Checks for state transitions and triggers notifications only once
+  /// when the driver first becomes near a pickup or dropoff location.
+  void _checkAndTriggerNotifications() {
+    debugPrint('========== Checking notifications ==========');
+    debugPrint('  Nearby passengers: ${_nearbyPassengers.length}');
+    debugPrint(
+        '   PICKUP - isNear: $_isNearPickupLocation, previous: $_previousIsNearPickupLocation');
+    debugPrint(
+        '      bookingId: $nearestBookingId, lastNotified: $_lastNotifiedPickupBookingId');
+    debugPrint(
+        '   DROPOFF - isNear: $_isNearDropoffLocation, previous: $_previousIsNearDropoffLocation');
+    debugPrint(
+        '      bookingId: $ongoingBookingId, lastNotified: $_lastNotifiedDropoffBookingId');
+
+    // Check pickup location proximity change
+    checkPickupProximity();
+
+    // Check dropoff location proximity change
+    checkDropoffProximity();
+
+    // Update previous state for next check
+    _previousIsNearPickupLocation = _isNearPickupLocation;
+    _previousIsNearDropoffLocation = _isNearDropoffLocation;
+  }
+
+  void checkDropoffProximity() {
+    if (_isNearDropoffLocation && !_previousIsNearDropoffLocation) {
+      // State changed from false to true - trigger notification
+      if (ongoingBookingId != null &&
+          ongoingBookingId != _lastNotifiedDropoffBookingId &&
+          _nearbyPassengers.isNotEmpty) {
+        // Find the passenger details for richer notification
+        final passenger = _nearbyPassengers
+            .where((p) => p.booking.id == ongoingBookingId)
+            .firstOrNull;
+
+        if (passenger != null) {
+          final distanceText =
+              passenger.distance < AppConfig.activeDropoffProximityThreshold
+                  ? 'less than ${passenger.distance.toStringAsFixed(0)}m'
+                  : '${passenger.distance.toStringAsFixed(0)}m';
+
+          debugPrint(
+              '[Notification]Showing notification for dropoff: $ongoingBookingId');
+          NotificationService.instance.showBasicNotification(
+            'Near Dropoff Location',
+            'You are $distanceText away. Please complete the ride.',
+            bookingId: 'Dropoff: $ongoingBookingId',
+          );
+          _lastNotifiedDropoffBookingId = ongoingBookingId;
+        }
+      }
+    } else if (!_isNearDropoffLocation && _previousIsNearDropoffLocation) {
+      // State changed from true to false - reset tracking
+      _lastNotifiedDropoffBookingId = null;
+    }
+  }
+
+  void checkPickupProximity() {
+    if (_isNearPickupLocation && !_previousIsNearPickupLocation) {
+      // State changed from false to true - trigger notification
+      if (nearestBookingId != null &&
+          nearestBookingId != _lastNotifiedPickupBookingId &&
+          _nearbyPassengers.isNotEmpty) {
+        // Find the passenger details for notification
+        final passenger = _nearbyPassengers
+            .where((p) => p.booking.id == nearestBookingId)
+            .firstOrNull;
+
+        if (passenger != null) {
+          final distanceText =
+              passenger.distance < AppConfig.activePickupProximityThreshold
+                  ? 'less than ${passenger.distance.toStringAsFixed(0)}m'
+                  : '${passenger.distance.toStringAsFixed(0)}m';
+
+          debugPrint(
+              '[Notification] Showing notification for pickup: $nearestBookingId');
+          NotificationService.instance.showBasicNotification(
+            'Near Pickup Location',
+            'You are $distanceText away. Please confirm pickup.',
+            bookingId: 'Pickup: $nearestBookingId',
+          );
+          _lastNotifiedPickupBookingId = nearestBookingId;
+        }
+      }
+    } else if (!_isNearPickupLocation && _previousIsNearPickupLocation) {
+      // State changed from true to false - reset tracking
+      _lastNotifiedPickupBookingId = null;
+    }
   }
 
   void _updateMapMarkers({bool clearOnly = false}) {

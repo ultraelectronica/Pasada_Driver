@@ -11,6 +11,7 @@ class AuthService {
   static const String _keyDriverId = 'driver_id';
   static const String _keyRouteId = 'route_id';
   static const String _keyVehicleId = 'vehicle_id';
+  static const String _keySoftSessionExpiresAt = 'soft_session_expires_at';
 
   // List of all keys managed by this service
   static const _allKeys = [
@@ -18,7 +19,8 @@ class AuthService {
     _keyExpirationTime,
     _keyDriverId,
     _keyRouteId,
-    _keyVehicleId
+    _keyVehicleId,
+    _keySoftSessionExpiresAt,
   ];
 
   static Future<void> saveCredentials({
@@ -27,11 +29,14 @@ class AuthService {
     required String routeId,
     required String vehicleId,
   }) async {
+    // Prefer storing Supabase session token if provided, but local context is primary.
     final expirationTime =
         DateTime.now().add(const Duration(hours: 1)).toIso8601String();
 
-    await _storage.write(key: _keySessionToken, value: sessionToken);
-    await _storage.write(key: _keyExpirationTime, value: expirationTime);
+    if (sessionToken.isNotEmpty) {
+      await _storage.write(key: _keySessionToken, value: sessionToken);
+      await _storage.write(key: _keyExpirationTime, value: expirationTime);
+    }
     await _storage.write(key: _keyDriverId, value: driverId);
     await _storage.write(key: _keyRouteId, value: routeId);
     await _storage.write(key: _keyVehicleId, value: vehicleId);
@@ -83,6 +88,26 @@ class AuthService {
     }
   }
 
+  // ───────────────────────── DRIVER CONTEXT HELPERS (JWT-friendly) ─────────────────────────
+  // Store only domain context; JWT/session is handled by supabase_flutter internally.
+  static Future<void> saveDriverContext({
+    required String driverId,
+    required String routeId,
+    required String vehicleId,
+  }) async {
+    await _storage.write(key: _keyDriverId, value: driverId);
+    await _storage.write(key: _keyRouteId, value: routeId);
+    await _storage.write(key: _keyVehicleId, value: vehicleId);
+  }
+
+  static Future<Map<String, String?>> getDriverContext() async {
+    return {
+      _keyDriverId: await _storage.read(key: _keyDriverId),
+      _keyRouteId: await _storage.read(key: _keyRouteId),
+      _keyVehicleId: await _storage.read(key: _keyVehicleId),
+    };
+  }
+
   static Future<void> printStorageContents() async {
     if (kDebugMode) {
       print('Secure Storage contents:');
@@ -101,5 +126,27 @@ class AuthService {
     final values = List<int>.generate(32, (i) => random.nextInt(256));
     // Encode as Base64 URL-safe string
     return base64Url.encode(values);
+  }
+
+  // ───────────────────────── SOFT SESSION EXPIRY (CLIENT-SIDE) ─────────────────────────
+  static Future<void> setSessionExpiry(Duration duration) async {
+    final expiresAt = DateTime.now().add(duration).toIso8601String();
+    await _storage.write(key: _keySoftSessionExpiresAt, value: expiresAt);
+  }
+
+  static Future<DateTime?> getSessionExpiry() async {
+    final s = await _storage.read(key: _keySoftSessionExpiresAt);
+    if (s == null) return null;
+    try {
+      return DateTime.parse(s);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<bool> isSessionExpired() async {
+    final dt = await getSessionExpiry();
+    if (dt == null) return false; // not set, treat as not expired
+    return dt.isBefore(DateTime.now());
   }
 }

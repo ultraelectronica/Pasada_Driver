@@ -8,6 +8,7 @@ import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.
 import 'package:cherry_toast/resources/arrays.dart';
 import 'package:pasada_driver_side/presentation/pages/home/controllers/id_acceptance_controller.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
+import 'package:pasada_driver_side/Services/notification_service.dart';
 
 class CompleteRideControl extends StatefulWidget {
   const CompleteRideControl({
@@ -62,6 +63,13 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
 
           if (success) {
             debugPrint(
+                '[COMPLETE][NOTIFICATION] Cancelling notifications for booking: $bookingId');
+            // Cancel both pickup and dropoff notifications since we're completing the ride
+            await NotificationService.instance
+                .cancelNotificationByBookingId('Pickup: $bookingId');
+            await NotificationService.instance
+                .cancelNotificationByBookingId('Dropoff: $bookingId');
+            debugPrint(
                 '[COMPLETE] Backend status update success. Decrementing capacity...');
             final capacityResult =
                 await PassengerCapacity().decrementCapacity(context, seatType);
@@ -77,7 +85,9 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
                 if (mounted) {
                   context.read<MapProvider>().clearPassengerMarkers();
                 }
-              } catch (_) {}
+              } catch (e) {
+                debugPrint('[COMPLETE][ERROR] Failed to clear map markers: $e');
+              }
               // Auto-accept discount ID only if request exists and decision is still pending
               try {
                 if (passengerIdImagePath != null &&
@@ -91,7 +101,9 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
                   debugPrint(
                       '[COMPLETE] Skipping auto-accept. hasIdImage=${passengerIdImagePath != null && passengerIdImagePath.isNotEmpty} isIdAccepted=$isIdAccepted');
                 }
-              } catch (_) {}
+              } catch (e) {
+                debugPrint('[COMPLETE][ERROR] Failed to auto-accept ID: $e');
+              }
               SnackBarUtils.showSuccess(
                 context,
                 'Ride completed successfully',
@@ -117,8 +129,8 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
                 context, 'Failed to complete ride', 'Please try again');
           }
         } catch (e, st) {
-          debugPrint('[COMPLETE][EXCEPTION] $e');
-          debugPrint(st.toString());
+          debugPrint('[COMPLETE][ERROR] Failed to complete ride: $e');
+          debugPrint('[COMPLETE][ERROR] Stack trace: $st');
           if (!mounted) return;
           SnackBarUtils.showError(
               context, 'Failed to complete ride', 'Please try again');

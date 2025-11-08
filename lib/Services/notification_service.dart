@@ -42,6 +42,14 @@ class NotificationService {
 
   static bool _initialized = false;
 
+  // active notification IDs by booking ID
+  final Map<String, int> _activeNotifications = {};
+
+  /// Convert booking ID string to a unique integer ID for notifications
+  static int _generateNotificationId(String bookingId) {
+    return bookingId.hashCode.abs();
+  }
+
   /// Ensures Firebase is initialized (safe to call multiple times).
   static Future<void> ensureFirebaseInitialized() async {
     try {
@@ -173,8 +181,13 @@ class NotificationService {
               icon: android?.smallIcon ?? '@mipmap/ic_launcher',
               priority: Priority.high,
               importance: Importance.high,
+              autoCancel: true, // Automatically dismiss when tapped
             ),
-            iOS: const DarwinNotificationDetails(),
+            iOS: const DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+            ),
           ),
           payload: _buildPayloadFromData(message.data),
         );
@@ -223,14 +236,93 @@ class NotificationService {
   Future<void> unsubscribeFromTopic(String topic) =>
       _messaging.unsubscribeFromTopic(topic);
 
+  /// Cancel a specific notification by ID
+  Future<void> cancelNotification(int id) async {
+    try {
+      await _local.cancel(id);
+      if (kDebugMode) debugPrint('[FCM] Notification $id cancelled');
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[FCM] Failed to cancel notification $id: $e');
+      }
+    }
+  }
+
+  /// Cancel notification by booking ID
+  Future<void> cancelNotificationByBookingId(String bookingId) async {
+    try {
+      final notificationId =
+          _activeNotifications[bookingId] ?? _generateNotificationId(bookingId);
+
+      // On Android, we need to cancel using the tag as well since we set it during creation
+      if (Platform.isAndroid) {
+        final androidPlugin = _local.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+        await androidPlugin?.cancel(notificationId, tag: bookingId);
+
+        // If not tracked, try with generated ID as fallback
+        if (_activeNotifications[bookingId] == null) {
+          debugPrint(
+              '[Notification] Booking not tracked, trying generated ID...');
+          final generatedId = _generateNotificationId(bookingId);
+          await androidPlugin?.cancel(generatedId, tag: bookingId);
+        }
+      } else {
+        // iOS doesn't use tags
+        await _local.cancel(notificationId);
+
+        if (_activeNotifications[bookingId] == null) {
+          debugPrint(
+              '[Notification] Booking not tracked, trying generated ID...');
+          final generatedId = _generateNotificationId(bookingId);
+          await _local.cancel(generatedId);
+        }
+      }
+
+      _activeNotifications.remove(bookingId);
+
+      if (kDebugMode) {
+        debugPrint(
+            '[Notification] Cancelled for booking: $bookingId (ID: $notificationId)');
+        debugPrint(
+            '[Notification] Remaining active: ${_activeNotifications.length}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[Notification] ❌ Failed to cancel for $bookingId: $e');
+      }
+    }
+  }
+
+  /// Cancel all notifications
+  Future<void> cancelAllNotifications() async {
+    try {
+      await _local.cancelAll();
+      if (kDebugMode) debugPrint('[FCM] All notifications cancelled');
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[FCM] Failed to cancel all notifications: $e');
+      }
+    }
+  }
+
   /// Shows notification without Firebase
-  Future<void> showWelcomeNotification(String title, String body) async {
+  Future<int> showBasicNotification(String title, String body,
+      {String? bookingId, String? payload}) async {
+    final int notificationId = bookingId != null
+        ? _generateNotificationId(bookingId)
+        : DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+    debugPrint('[Notification] Creating notification...');
+    debugPrint('[Notification] Booking ID: $bookingId');
+    debugPrint('[Notification] Generated ID: $notificationId');
+
     try {
       await _local.show(
-        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        notificationId,
         title,
         body,
-        const NotificationDetails(
+        NotificationDetails(
           android: AndroidNotificationDetails(
             'default_high_importance',
             'High Importance Notifications',
@@ -238,14 +330,68 @@ class NotificationService {
             importance: Importance.high,
             priority: Priority.high,
             icon: '@mipmap/ic_launcher',
+            autoCancel: true, // Automatically dismiss when tapped
+            tag: bookingId,
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
           ),
         ),
+        payload: payload ?? bookingId,
       );
-      if (kDebugMode) debugPrint('[FCM] Test notification displayed');
+      if (bookingId != null) {
+        _activeNotifications[bookingId] = notificationId;
+      }
+      if (kDebugMode) {
+        debugPrint('[Notification][INFO] Displayed (ID: $notificationId)');
+        if (bookingId != null) {
+          debugPrint('[Notification][INFO] Booking ID: $bookingId');
+          debugPrint(
+              '[Notification][INFO] Active count: ${_activeNotifications.length}');
+        }
+      }
+      return notificationId;
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('[FCM] [Error] : Failed to show test notification: $e');
+        debugPrint('[Notification][ERROR] Failed to show notification: $e');
+      }
+      return notificationId;
+    }
+  }
+
+  /// Get all active notification booking IDs
+  List<String> getActiveNotificationBookingIds() {
+    return _activeNotifications.keys.toList();
+  }
+
+  /// Clear all tracked notifications (call when driver logs out)
+  void clearTracking() {
+    _activeNotifications.clear();
+    if (kDebugMode) debugPrint('[Notification] Tracking cleared');
+  }
+
+  Future<void> debugNotificationStatus() async {
+    debugPrint('========== Notification Debug ==========');
+    debugPrint('Initialized: $_initialized');
+    debugPrint('Active tracked notifications: ${_activeNotifications.length}');
+
+    if (_activeNotifications.isNotEmpty) {
+      debugPrint('Booking IDs with notifications:');
+      for (var entry in _activeNotifications.entries) {
+        debugPrint('  - ${entry.key} (ID: ${entry.value})');
       }
     }
+
+    if (Platform.isAndroid) {
+      final androidPlugin = _local.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
+      final enabled = await androidPlugin?.areNotificationsEnabled();
+      debugPrint('Android notifications enabled: $enabled');
+    }
+
+    debugPrint('========================================');
   }
 }

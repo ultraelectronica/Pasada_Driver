@@ -132,11 +132,11 @@ class DriverProvider with ChangeNotifier {
 
       if (kDebugMode) {
         debugPrint(
-            'DriverProvider: location updated ${response[0]['current_location']}');
+            '\t[DRIVER PROVIDER] Location updated: ${response[0]['current_location']}');
       }
     } catch (e) {
-      debugPrint('DriverProvider: error updating location $e');
-      ShowMessage().showToast('Error updating location to DB: $e');
+      debugPrint('[DRIVER PROVIDER][ERROR] Error updating location: $e');
+      // ShowMessage().showToast('[DRIVER PROVIDER][ERROR] Error updating location: $e');
     }
   }
 
@@ -220,7 +220,7 @@ class DriverProvider with ChangeNotifier {
     if (trimmed.isEmpty) return null;
     final lower = trimmed.toLowerCase();
     // Allow only known statuses
-    const allowed = {'online', 'driving', 'idling'};
+    const allowed = {'online', 'driving', 'idling', 'offline'};
     if (!allowed.contains(lower)) return null;
     return lower;
   }
@@ -233,6 +233,8 @@ class DriverProvider with ChangeNotifier {
         return 'Driving';
       case 'idling':
         return 'Idling';
+      case 'offline':
+        return 'Offline';
       default:
         return lower;
     }
@@ -327,7 +329,8 @@ class DriverProvider with ChangeNotifier {
 
   Future<bool> loadFromSecureStorage(BuildContext context) async {
     try {
-      final sessionData = await AuthService.getSession();
+      // Prefer domain context; Supabase Auth manages JWT/session internally
+      final sessionData = await AuthService.getDriverContext();
 
       if (sessionData.isEmpty) {
         if (kDebugMode) {
@@ -447,6 +450,7 @@ class DriverProvider with ChangeNotifier {
               .from('official_routes')
               .select('route_name')
               .eq('officialroute_id', _routeID)
+              .eq('status', 'active')
               .single();
 
           if (routeResponse['route_name'] != null) {

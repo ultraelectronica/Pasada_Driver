@@ -6,6 +6,7 @@ import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_capacity.dart';
+import 'package:pasada_driver_side/common/config/app_config.dart';
 
 class SeatCapacityControl extends StatelessWidget {
   const SeatCapacityControl({
@@ -51,37 +52,39 @@ class SeatCapacityControl extends StatelessWidget {
       rightPosition: screenWidth * rightFraction,
       icon: _isStanding ? 'assets/svg/standing.svg' : 'assets/svg/sitting.svg',
       text: seatCount.toString(),
-      canIncrement: true,
+      canIncrement: (AppConfig.isTestMode) ? true : false,
       onTap: () async {
-        final result = _isStanding
-            ? await PassengerCapacity().manualIncrementStanding(context)
-            : await PassengerCapacity().manualIncrementSitting(context);
+        if (AppConfig.isTestMode) {
+          final result = _isStanding
+              ? await PassengerCapacity().manualIncrementStanding(context)
+              : await PassengerCapacity().manualIncrementSitting(context);
 
-        if (result.success) {
-          SnackBarUtils.pop(context, '$seatType passenger added manually',
-              'Capacity updated successfully',
-              backgroundColor: Colors.blue);
-        } else {
-          String errorMessage = 'Failed to add passenger';
-          Color errorColor = Colors.red;
-          switch (result.errorType) {
-            case PassengerCapacity.ERROR_DRIVER_NOT_DRIVING:
-              errorMessage =
-                  'Cannot add passenger: Driver is not in Driving status';
-              break;
-            case PassengerCapacity.ERROR_CAPACITY_EXCEEDED:
-              errorMessage = 'Cannot add passenger: Maximum capacity reached';
-              errorColor = Colors.orange;
-              break;
-            case PassengerCapacity.ERROR_NEGATIVE_VALUES:
-              errorMessage = 'Cannot add passenger: Invalid operation';
-              break;
-            default:
-              errorMessage = result.errorMessage ?? 'Unknown error occurred';
+          if (result.success) {
+            SnackBarUtils.pop(context, '$seatType passenger added manually',
+                'Capacity updated successfully',
+                backgroundColor: Colors.blue);
+          } else {
+            String errorMessage = 'Failed to add passenger';
+            Color errorColor = Colors.red;
+            switch (result.errorType) {
+              case PassengerCapacity.ERROR_DRIVER_NOT_DRIVING:
+                errorMessage =
+                    'Cannot add passenger: Driver is not in Driving status';
+                break;
+              case PassengerCapacity.ERROR_CAPACITY_EXCEEDED:
+                errorMessage = 'Cannot add passenger: Maximum capacity reached';
+                errorColor = Colors.orange;
+                break;
+              case PassengerCapacity.ERROR_NEGATIVE_VALUES:
+                errorMessage = 'Cannot add passenger: Invalid operation';
+                break;
+              default:
+                errorMessage = result.errorMessage ?? 'Unknown error occurred';
+            }
+            SnackBarUtils.show(context, errorMessage, 'Operation failed',
+                backgroundColor: errorColor,
+                duration: const Duration(seconds: 3));
           }
-          SnackBarUtils.show(context, errorMessage, 'Operation failed',
-              backgroundColor: errorColor,
-              duration: const Duration(seconds: 3));
         }
       },
       onDecrementTap: manualHeadroom > 0

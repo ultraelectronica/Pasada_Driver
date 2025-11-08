@@ -6,6 +6,7 @@ import 'package:pasada_driver_side/presentation/providers/passenger/passenger_pr
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
 import 'package:cherry_toast/resources/arrays.dart';
+import 'package:pasada_driver_side/Services/notification_service.dart';
 
 class ConfirmPickupControl extends StatefulWidget {
   const ConfirmPickupControl({
@@ -54,6 +55,12 @@ class _ConfirmPickupControlState extends State<ConfirmPickupControl> {
           if (!mounted) return;
 
           if (success) {
+            debugPrint(
+                '[PICKUP][NOTIFICATION] Cancelling pickup notification for booking: ${widget.nearestBookingId}');
+            // Cancel the pickup notification since the passenger has been picked up
+            await NotificationService.instance.cancelNotificationByBookingId(
+                'Pickup: ${widget.nearestBookingId}');
+
             final capacityResult =
                 await PassengerCapacity().incrementCapacity(context, seatType);
             if (!mounted) return;

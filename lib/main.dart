@@ -2,8 +2,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/bootstrap/initialize_app.dart';
 import 'package:pasada_driver_side/presentation/providers/app_providers.dart';
+import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/pages/start/auth_gate.dart';
 import 'package:pasada_driver_side/bootstrap/app_bootstrap_error_screen.dart';
 import 'package:pasada_driver_side/presentation/pages/login/login_page.dart';
@@ -15,6 +17,8 @@ import 'package:pasada_driver_side/common/logging.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:pasada_driver_side/Services/notification_service.dart';
+import 'package:pasada_driver_side/domain/services/background_location_service.dart';
+import 'package:pasada_driver_side/domain/services/presence_service.dart';
 
 // Future for assets preloading
 late final Future<List<AssetImage>> _preloadedAssets;
@@ -75,11 +79,190 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  Timer? _backgroundTimer;
+  Timer? _periodicTimer;
+  DateTime? _backgroundStartTime;
+  final PresenceService _presenceService = PresenceService.instance;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _precacheAssets();
+    // Start presence heartbeat after first frame when context is available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_presenceService.isRunning) {
+        _presenceService.start(
+          context,
+          interval: const Duration(seconds: 10),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _backgroundTimer?.cancel();
+    _periodicTimer?.cancel();
+    _presenceService.stop();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    if (kDebugMode) {
+      logDebug('[Lifecycle] App state changed to: $state');
+    }
+
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+        // App went to background or recent apps
+        _startBackgroundTimer();
+        break;
+      case AppLifecycleState.resumed:
+        // App came back to foreground
+        _cancelBackgroundTimer();
+        // Immediate heartbeat on resume
+        PresenceService.instance.start(
+          context,
+          interval: const Duration(seconds: 10),
+        );
+        break;
+      case AppLifecycleState.detached:
+      case AppLifecycleState.inactive:
+        // No action needed for these states
+        break;
+    }
+  }
+
+  void _startBackgroundTimer() async {
+    // Cancel any existing timers
+    _backgroundTimer?.cancel();
+    _periodicTimer?.cancel();
+
+    if (kDebugMode) {
+      logDebug('[Lifecycle][Timer] Starting background timers');
+    }
+
+    // Ensure the background service is running when going to background
+    final isRunning = BackgroundLocationService.instance.isRunning;
+    if (!isRunning) {
+      if (kDebugMode) {
+        logDebug(
+            '[Lifecycle][Timer] Background service not running - starting it');
+      }
+      try {
+        await BackgroundLocationService.instance.start();
+        if (kDebugMode) {
+          logDebug(
+              '[Lifecycle][Timer] Background service started successfully');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          logDebug('[Lifecycle][Timer] Failed to start background service: $e');
+        }
+      }
+    }
+
+    final driverProvider = context.read<DriverProvider>();
+
+    _backgroundStartTime = DateTime.now();
+
+    // Periodic timer to check elapsed time every minute
+    _periodicTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      if (_backgroundStartTime != null) {
+        final elapsed = DateTime.now().difference(_backgroundStartTime!);
+        if (kDebugMode) {
+          logDebug('[Lifecycle][Timer] Background time elapsed: $elapsed');
+        }
+
+        // You can add specific checks here
+        if (elapsed >= const Duration(minutes: 1) &&
+            elapsed < const Duration(minutes: 2)) {
+          logDebug('[Lifecycle][Timer] Just passed 1 minute mark');
+        }
+        if (elapsed >= const Duration(minutes: 5) &&
+            elapsed < const Duration(minutes: 6)) {
+          logDebug('[Lifecycle][Timer] Just passed 5 minute mark');
+        }
+      }
+    });
+
+    // Timer to stop service after 10 minutes
+    _backgroundTimer = Timer(const Duration(minutes: 10), () async {
+      // Set driver status to offline after 10 minutes of inactivity
+      driverProvider.setLastDriverStatus(driverProvider.driverStatus);
+      driverProvider.updateStatusToDB('Offline');
+      driverProvider.setDriverStatus('Offline');
+
+      _periodicTimer?.cancel();
+
+      if (kDebugMode) {
+        logDebug(
+            '[Lifecycle][Timer] 10 minutes in background - stopping foreground service');
+      }
+
+      // Stop the background service after 10 minutes of inactivity
+      await BackgroundLocationService.instance.stop();
+
+      if (kDebugMode) {
+        logDebug(
+            '[Lifecycle][Timer] Foreground service stopped due to inactivity');
+      }
+
+      _backgroundStartTime = null;
+    });
+  }
+
+  void _cancelBackgroundTimer() {
+    if (_backgroundTimer != null && _backgroundTimer!.isActive) {
+      if (kDebugMode) {
+        final elapsed = _backgroundStartTime != null
+            ? DateTime.now().difference(_backgroundStartTime!)
+            : Duration.zero;
+        logDebug(
+            '[Lifecycle] Cancelling background timer - app returned to foreground after $elapsed');
+      }
+      _backgroundTimer?.cancel();
+      _periodicTimer?.cancel();
+      _backgroundTimer = null;
+      _periodicTimer = null;
+      _backgroundStartTime = null;
+    } else if (_backgroundTimer != null && !_backgroundTimer!.isActive) {
+      // Timer already fired, meaning service was stopped
+      // Restart the service if it's not running
+      _restartServiceIfNeeded();
+    }
+  }
+
+  Future<void> _restartServiceIfNeeded() async {
+    final isRunning = BackgroundLocationService.instance.isRunning;
+
+    if (!isRunning) {
+      if (kDebugMode) {
+        logDebug(
+            '[Lifecycle] Service was stopped due to inactivity - restarting');
+      }
+
+      try {
+        await BackgroundLocationService.instance.start();
+        if (kDebugMode) {
+          logDebug('[Lifecycle] Foreground service restarted');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          logDebug('[Lifecycle] Failed to restart service: $e');
+        }
+      }
+    }
+
+    // Reset the timer
+    _backgroundTimer = null;
   }
 
   void _precacheAssets() {

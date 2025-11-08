@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:pasada_driver_side/Services/auth_service.dart';
 import 'package:pasada_driver_side/Services/notification_service.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
-import 'package:pasada_driver_side/Services/password_util.dart';
 import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:pasada_driver_side/common/constants/message.dart';
@@ -16,6 +15,7 @@ import 'package:pasada_driver_side/presentation/providers/passenger/passenger_pr
 import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart';
 import 'package:pasada_driver_side/common/utils/result.dart';
 import 'package:pasada_driver_side/Services/encryption_service.dart';
+import 'package:pasada_driver_side/domain/services/background_location_service.dart';
 
 class LogIn extends StatefulWidget {
   final PageController? pageController;
@@ -110,45 +110,33 @@ class _LogInState extends State<LogIn> {
     driverProv.setLoading(true);
 
     try {
-      //Query to get the driverID and password from the driverTable
+      // Supabase Auth sign-in (email derived from driver ID)
+      final email = '$enteredDriverID@pasada.driver';
+      final authRes = await Supabase.instance.client.auth
+          .signInWithPassword(email: email, password: enteredPassword);
+
+      if (authRes.user == null) {
+        if (mounted) {
+          setState(() {
+            driverIdError = 'Invalid credentials. Please try again.';
+            passwordError = 'Invalid credentials. Please try again.';
+          });
+          driverProv.setLoading(false);
+        }
+        return;
+      }
+
+      // Fetch driver row for context using driver_id
       final response = await Supabase.instance.client
           .from('driverTable')
-          .select('full_name, driver_id, vehicle_id, driver_password')
+          .select('full_name, driver_id, vehicle_id')
           .eq('driver_id', enteredDriverID)
           .maybeSingle();
 
-      // Handle case where no row was found (invalid driver ID)
       if (response == null) {
         if (mounted) {
           setState(() {
-            // Unknown driver ID
-            driverIdError = 'Invalid credentials. Please try again.';
-            passwordError = 'Invalid credentials. Please try again.';
-          });
-          driverProv.setLoading(false);
-        }
-        return;
-      }
-
-      final storedHashedPassword = response['driver_password'] as String?;
-      if (storedHashedPassword == null) {
-        if (mounted) {
-          setState(() {
-            driverIdError = 'Invalid credentials. Please try again.';
-            passwordError = 'Invalid credentials. Please try again.';
-          });
-          driverProv.setLoading(false);
-        }
-        return;
-      }
-
-      bool checkPassword =
-          PasswordUtil().checkPassword(enteredPassword, storedHashedPassword);
-
-      if (!checkPassword) {
-        if (mounted) {
-          setState(() {
-            passwordError = 'Invalid credentials. Please try again.';
+            driverIdError = 'Driver record not found.';
           });
           driverProv.setLoading(false);
         }
@@ -159,8 +147,18 @@ class _LogInState extends State<LogIn> {
         // saves all the infos to the provider
         await _setDriverInfo(response);
 
-        //saves the session token to the local storage
+        // Save domain context locally (driver/route/vehicle)
         await saveSession(enteredDriverID, response);
+
+        // Set session expiry
+        await AuthService.setSessionExpiry(const Duration(days: 3));
+
+        // Start background foreground service to keep app running
+        await BackgroundLocationService.instance.start();
+        if (kDebugMode) {
+          debugPrint(
+              'Background location service started for driver: $enteredDriverID');
+        }
 
         // Decrypt name if needed for user-facing text
         String displayName = response['full_name']?.toString() ?? '';
@@ -174,7 +172,7 @@ class _LogInState extends State<LogIn> {
         await context.read<DriverProvider>().writeLoginTime(context);
 
         //shows the welcome notification
-        NotificationService.instance.showWelcomeNotification(
+        NotificationService.instance.showBasicNotification(
             'Welcome Manong $displayName!', 'Welcome sa Pasada Driver.');
         // move to the main page once the driver successfuly logs in
         if (mounted) {
@@ -201,21 +199,16 @@ class _LogInState extends State<LogIn> {
 
   Future<void> saveSession(
       String enteredDriverID, PostgrestMap response) async {
-    final sessionToken = AuthService.generateSecureToken();
-    // final expirationTime =
-    //     DateTime.now().add(const Duration(hours: 24)).toIso8601String();
-
-    // int routeID = context.read<MapProvider>().routeID;
+    // Persist domain context only; Supabase manages JWT & refresh internally
     int routeID = context.read<DriverProvider>().routeID;
 
     if (kDebugMode) {
       print('save session route ID: ${routeID.toString()}');
     }
 
-    await AuthService.saveCredentials(
-      sessionToken: sessionToken,
+    await AuthService.saveDriverContext(
       driverId: enteredDriverID,
-      routeId: context.read<DriverProvider>().routeID.toString(),
+      routeId: routeID.toString(),
       vehicleId: response['vehicle_id'].toString(),
     );
   }
