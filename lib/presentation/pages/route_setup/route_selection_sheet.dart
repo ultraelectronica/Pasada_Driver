@@ -8,6 +8,8 @@ import 'package:pasada_driver_side/presentation/providers/driver/driver_provider
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 import 'package:pasada_driver_side/common/constants/message.dart';
+import 'package:pasada_driver_side/common/constants/constants.dart';
+import 'package:pasada_driver_side/common/constants/text_styles.dart';
 
 class RouteSelectionSheet {
   static Future<int?> show(BuildContext context) async {
@@ -44,6 +46,7 @@ class _RouteSelectionContentState extends State<_RouteSelectionContent> {
     final resp = await _supabase
         .from('official_routes')
         .select('officialroute_id, route_name')
+        .eq('status', 'active')
         .order('route_name');
 
     final List<_OfficialRoute> routes = [];
@@ -147,9 +150,9 @@ class _RouteSelectionContentState extends State<_RouteSelectionContent> {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Select Route',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: Styles().textStyle(18, Styles.semiBold, Styles.customBlackFont),
             ),
             const SizedBox(height: 8),
             FutureBuilder<List<_OfficialRoute>>(
@@ -200,8 +203,17 @@ class _RouteSelectionContentState extends State<_RouteSelectionContent> {
                     itemBuilder: (context, index) {
                       final route = routes[index];
                       return ListTile(
-                        title: Text(route.name),
-                        subtitle: Text('ID: ${route.id}'),
+                        leading: Icon(
+                          Icons.route,
+                          color: Constants.GREEN_COLOR,
+                          size: 24,
+                        ),
+                        title: Text(
+                          route.name,
+                          style: Styles().textStyle(
+                              16, Styles.semiBold, Styles.customBlackFont),
+                        ),
+                        subtitle: Text('Route ID: ${route.id}'),
                         trailing: _saving
                             ? const SizedBox(
                                 width: 20,
