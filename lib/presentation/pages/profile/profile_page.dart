@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:pasada_driver_side/Services/auth_service.dart';
-import 'package:pasada_driver_side/presentation/pages/profile/pages/settings_page.dart';
 import 'package:pasada_driver_side/presentation/pages/profile/pages/privacy_policy_page.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
@@ -16,6 +15,7 @@ import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.
 import 'package:pasada_driver_side/domain/services/background_location_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/presentation/pages/start/auth_gate.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // --- Custom Clipper for Background Shape ---
 class ProfileBackgroundClipper extends CustomClipper<Path> {
@@ -363,22 +363,46 @@ class ProfilePageState extends State<ProfilePage> {
             //   onTap: () {/* TODO: Implement navigation */},
             // ),
             // _buildDivider(),
-            _buildActionTile(
-              icon: Icons.settings_outlined, // Material Icon
-              text: 'Settings',
-              onTap: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SettingsPage(),
-                    ));
-              },
-            ),
-            _buildDivider(),
+            // _buildActionTile(
+            //   icon: Icons.settings_outlined, // Material Icon
+            //   text: 'Settings',
+            //   onTap: () {
+            //     Navigator.push(
+            //         context,
+            //         MaterialPageRoute(
+            //           builder: (context) => const SettingsPage(),
+            //         ));
+            //   },
+            // ),
+            // _buildDivider(),
             _buildActionTile(
               icon: Icons.help_outline, // Material Icon
-              text: 'Help & Support',
-              onTap: () {/* TODO: Implement navigation */},
+              text: 'Contact Support',
+              onTap: () async {
+                final String emailAddress = 'contact.pasada@gmail.com';
+                final String subject = 'Support Request';
+                final Uri emailLaunchUri = Uri(
+                  scheme: 'mailto',
+                  path: emailAddress,
+                  queryParameters: {
+                    'subject': subject,
+                  },
+                );
+                // Attempt to launch the email client externally
+                final bool launched = await launchUrl(
+                  emailLaunchUri,
+                  mode: LaunchMode.externalApplication,
+                );
+                if (!launched) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Could not launch email client.'),
+                      ),
+                    );
+                  }
+                }
+              },
             ),
             _buildDivider(),
             _buildActionTile(
