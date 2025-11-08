@@ -22,6 +22,7 @@ import 'package:pasada_driver_side/presentation/providers/driver/driver_provider
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'booking_processor.dart';
 import 'booking_stream_service.dart';
+import 'package:pasada_driver_side/Services/notification_service.dart';
 
 /// Provider to manage passenger booking state and expose it to Flutter UI.
 class PassengerProvider with ChangeNotifier {
@@ -281,6 +282,24 @@ class PassengerProvider with ChangeNotifier {
           await _repository.updateBookingStatus(bookingId, newStatus);
 
       if (success) {
+        // Auto-dismiss related notifications for this booking on status transitions
+        try {
+          if (newStatus == BookingConstants.statusCompleted) {
+            // Cancel background "booking update/request" notification (id only)
+            await NotificationService.instance
+                .cancelNotificationByBookingId(bookingId);
+            // Cancel proximity notifications created with prefixed tags
+            await NotificationService.instance
+                .cancelNotificationByBookingId('Pickup: $bookingId');
+            await NotificationService.instance
+                .cancelNotificationByBookingId('Dropoff: $bookingId');
+          } else if (newStatus == BookingConstants.statusOngoing) {
+            // When ride starts, remove pickup notification if any
+            await NotificationService.instance
+                .cancelNotificationByBookingId('Pickup: $bookingId');
+          }
+        } catch (_) {}
+
         if (!optimistic && !_isDisposed) {
           if (removeOnSuccess) {
             final updated = _bookings.where((b) => b.id != bookingId).toList();

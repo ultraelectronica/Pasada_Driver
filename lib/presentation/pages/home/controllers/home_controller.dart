@@ -316,8 +316,10 @@ class HomeController extends ChangeNotifier {
           debugPrint(
               '[Notification]Showing notification for dropoff: $ongoingBookingId');
           NotificationService.instance.showBasicNotification(
-            'Near Dropoff Location',
-            'You are $distanceText away. Please complete the ride.',
+            passenger.distance > AppConfig.activeDropoffApproachThreshold
+                ? 'You\'re near the dropoff location!'
+                : 'You\'re approaching the dropoff location!',
+            'You\'re $distanceText away. You can drop off the passenger now.',
             bookingId: 'Dropoff: $ongoingBookingId',
           );
           _lastNotifiedDropoffBookingId = ongoingBookingId;
@@ -349,8 +351,10 @@ class HomeController extends ChangeNotifier {
           debugPrint(
               '[Notification] Showing notification for pickup: $nearestBookingId');
           NotificationService.instance.showBasicNotification(
-            'Near Pickup Location',
-            'You are $distanceText away. Please confirm pickup.',
+            passenger.distance > AppConfig.activePickupApproachThreshold
+                ? 'You\'re near the pickup location!'
+                : 'You\'re approaching the pickup location!',
+            'You\'re $distanceText away. You can confirm pickup now.',
             bookingId: 'Pickup: $nearestBookingId',
           );
           _lastNotifiedPickupBookingId = nearestBookingId;

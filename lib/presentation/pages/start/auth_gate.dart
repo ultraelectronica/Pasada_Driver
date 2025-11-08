@@ -17,6 +17,7 @@ import 'package:pasada_driver_side/common/utils/result.dart';
 import 'package:pasada_driver_side/common/logging.dart';
 import 'package:pasada_driver_side/presentation/pages/route_setup/route_selection_sheet.dart';
 import 'package:pasada_driver_side/domain/services/background_location_service.dart';
+import 'package:pasada_driver_side/domain/services/booking_background_service.dart';
 
 /// A gatekeeper widget that decides which tree to show: the authenticated
 /// application (`MainPage`) or the authentication flow (`AuthPagesView`). It
@@ -87,6 +88,10 @@ class _AuthGateState extends State<AuthGate> {
     // User is still logged in, load additional data
     if (hasSession) {
       await _loadUserData();
+      // Ensure background booking watcher is active while authenticated
+      if (mounted) {
+        BookingBackgroundService.instance.start(context);
+      }
     }
   }
 

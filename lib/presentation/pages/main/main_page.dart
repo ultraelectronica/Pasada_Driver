@@ -4,14 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/common/constants/constants.dart';
-import 'package:pasada_driver_side/common/constants/message.dart';
 import 'package:pasada_driver_side/presentation/pages/activity/activity_page.dart';
 import 'package:pasada_driver_side/presentation/pages/home/home_page.dart';
 import 'package:pasada_driver_side/presentation/pages/profile/profile_page.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
-import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:provider/provider.dart';
+import 'package:pasada_driver_side/domain/services/presence_service.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -38,6 +37,16 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     super.initState();
     // _startTimer();
     WidgetsBinding.instance.addObserver(this);
+    // Start presence heartbeat only when on MainPage and logged in
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final bool isLoggedIn =
+          context.read<DriverProvider>().driverID.isNotEmpty;
+      if (isLoggedIn && !PresenceService.instance.isRunning) {
+        PresenceService.instance
+            .start(context, interval: const Duration(seconds: 10));
+      }
+    });
   }
 
   @override
@@ -45,6 +54,10 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     // _timer?.cancel();
     _inactiveDebounceTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
+    // Stop presence when leaving MainPage
+    if (PresenceService.instance.isRunning) {
+      PresenceService.instance.stop();
+    }
     super.dispose();
   }
 
@@ -55,6 +68,15 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
     if (kDebugMode) {
       print('[Lifecycle] State changed from $_lastLifecycleState to $state');
+    }
+
+    // Ensure presence is running on resume if logged in
+    if (state == AppLifecycleState.resumed) {
+      final bool isLoggedIn = driverProv.driverID.isNotEmpty;
+      if (isLoggedIn && !PresenceService.instance.isRunning) {
+        PresenceService.instance
+            .start(context, interval: const Duration(seconds: 10));
+      }
     }
 
     // Handle transitions to inactive state (notification opened, app switching, etc.)

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:pasada_driver_side/Services/auth_service.dart';
 import 'package:pasada_driver_side/presentation/pages/profile/pages/settings_page.dart';
+import 'package:pasada_driver_side/presentation/pages/profile/pages/privacy_policy_page.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
@@ -382,8 +383,14 @@ class ProfilePageState extends State<ProfilePage> {
             _buildDivider(),
             _buildActionTile(
               icon: Icons.info_outline, // Material Icon
-              text: 'About',
-              onTap: () {/* TODO: Implement navigation */},
+              text: 'Privacy Policy',
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PrivacyPolicyPage(),
+                    ));
+              },
             ),
           ],
         ),
