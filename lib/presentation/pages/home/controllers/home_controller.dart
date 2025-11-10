@@ -69,6 +69,7 @@ class HomeController extends ChangeNotifier {
   Timer? _bookingFetchTimer;
   bool _bookingStreamStarted = false;
   Timer? _recalcDebounceTimer;
+  bool _isDisposed = false;
 
   // Track previous state for one-time notifications
   bool _previousIsNearPickupLocation = false;
@@ -104,9 +105,10 @@ class HomeController extends ChangeNotifier {
   // Booking fetch
   //--------------------------------------------------------------------------
   Future<void> fetchBookings() async {
+    if (_isDisposed) return;
     if (_isLoadingBookings) return;
     _isLoadingBookings = true;
-    notifyListeners();
+    if (!_isDisposed) notifyListeners();
 
     try {
       // Ensure driver is in driving mode before attempting fetch.
@@ -125,7 +127,7 @@ class HomeController extends ChangeNotifier {
       await passengerProvider.getBookingRequestsID(null);
     } finally {
       _isLoadingBookings = false;
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     }
   }
 
@@ -133,6 +135,7 @@ class HomeController extends ChangeNotifier {
   // Proximity logic
   //--------------------------------------------------------------------------
   void _checkProximity() {
+    if (_isDisposed) return;
     // Bail if not in driving mode.
     if (driverProvider.driverStatus != 'Driving') {
       _resetState();
@@ -249,13 +252,14 @@ class HomeController extends ChangeNotifier {
     _checkAndTriggerNotifications();
 
     _updateMapMarkers();
-    notifyListeners();
+    if (!_isDisposed) notifyListeners();
   }
 
   //--------------------------------------------------------------------------
   // Helpers
   //--------------------------------------------------------------------------
   void _resetState() {
+    if (_isDisposed) return;
     _nearbyPassengers = [];
     selectedPassengerId = null;
     _isNearPickupLocation = false;
@@ -267,8 +271,10 @@ class HomeController extends ChangeNotifier {
     _previousIsNearDropoffLocation = false;
     _lastNotifiedPickupBookingId = null;
     _lastNotifiedDropoffBookingId = null;
-    notifyListeners();
-    _updateMapMarkers(clearOnly: true);
+    if (!_isDisposed) {
+      notifyListeners();
+      _updateMapMarkers(clearOnly: true);
+    }
   }
 
   /// Checks for state transitions and triggers notifications only once
@@ -428,6 +434,7 @@ class HomeController extends ChangeNotifier {
   /// proximity flags, focuses the map on the appropriate location, and
   /// refreshes passenger markers.
   void handlePassengerSelected(String passengerId) {
+    if (_isDisposed) return;
     selectedPassengerId = passengerId;
 
     final PassengerStatus? selected = _nearbyPassengers
@@ -461,17 +468,19 @@ class HomeController extends ChangeNotifier {
     }
 
     _updateMapMarkers();
-    notifyListeners();
+    if (!_isDisposed) notifyListeners();
   }
 
   void selectPassenger(String passengerId) {
+    if (_isDisposed) return;
     selectedPassengerId = passengerId;
-    notifyListeners();
+    if (!_isDisposed) notifyListeners();
   }
 
   //--------------------------------------------------------------------------
   @override
   void dispose() {
+    _isDisposed = true;
     _proximityCheckTimer?.cancel();
     _bookingFetchTimer?.cancel();
     _recalcDebounceTimer?.cancel();
@@ -484,7 +493,9 @@ extension _HomeControllerReactivity on HomeController {
   void _onBookingsChanged() {
     // Debounce rapid successive updates
     _recalcDebounceTimer?.cancel();
+    if (_isDisposed) return;
     _recalcDebounceTimer = Timer(const Duration(milliseconds: 60), () {
+      if (_isDisposed) return;
       _checkProximity();
     });
   }

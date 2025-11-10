@@ -24,6 +24,9 @@ class Constants {
   static Color GREEN_COLOR_LIGHT = const Color(0xFFA3E7C1);
   static Color GREEN_COLOR_DARK = const Color(0xFF0F311E);
 
+  static Color RED_COLOR = const Color(0xFFD7481D);
+  static Color YELLOW_COLOR = const Color(0xFFFFCE21);
+
   static Color WHITE_COLOR_LIGHT_DARK = const Color(0xFFCCEEDB);
   static Color WHITE_COLOR = const Color(0xFFF5F5F5);
 

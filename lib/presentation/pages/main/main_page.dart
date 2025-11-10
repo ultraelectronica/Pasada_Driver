@@ -8,9 +8,9 @@ import 'package:pasada_driver_side/presentation/pages/activity/activity_page.dar
 import 'package:pasada_driver_side/presentation/pages/home/home_page.dart';
 import 'package:pasada_driver_side/presentation/pages/profile/profile_page.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
-import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/domain/services/presence_service.dart';
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -218,38 +218,38 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     },
   };
 
-  BottomNavigationBar _buildBottomNavBar() {
-    return BottomNavigationBar(
-      backgroundColor: Constants.WHITE_COLOR,
-      currentIndex: _currentIndex,
+  // Per-tab background colors for the curved nav
+  final List<Color> _navColors = <Color>[
+    Constants.GREEN_COLOR, // Home
+    Constants.YELLOW_COLOR, // Activity
+    Constants.RED_COLOR, // Profile
+  ];
+
+  CurvedNavigationBar _buildBottomNavBar() {
+    return CurvedNavigationBar(
+      backgroundColor: _navColors[_currentIndex],
+      color: Colors.white,
+      buttonBackgroundColor: Constants.WHITE_COLOR,
+      height: 60,
+      index: _currentIndex,
       onTap: _onTap,
-      showSelectedLabels: true,
-      showUnselectedLabels: false,
-      selectedLabelStyle:
-          Styles().textStyle(12, Styles.bold, Styles.customBlackFont),
-      unselectedLabelStyle:
-          Styles().textStyle(12, Styles.bold, Styles.customBlackFont),
-      selectedItemColor: Constants.GREEN_COLOR,
-      type: BottomNavigationBarType.fixed,
+      animationDuration: const Duration(milliseconds: 400),
       items: navigation.entries
-          .map((e) => _buildNavItem(e.key, e.value['Label']!,
-              e.value['SelectedIcon']!, e.value['UnselectedIcon']!))
+          .map((e) => _buildNavItem(
+              e.key, e.value['UnselectedIcon']!, e.value['SelectedIcon']!))
           .toList(),
     );
   }
 
-  BottomNavigationBarItem _buildNavItem(
-      int idx, String label, String selectedIcon, String unselectedIcon) {
+  Widget _buildNavItem(int idx, String unselectedIcon, String selectedIcon) {
     final isSelected = _currentIndex == idx;
-    return BottomNavigationBarItem(
-      label: label,
-      icon: SvgPicture.asset(
-        'assets/svg/${isSelected ? selectedIcon : unselectedIcon}',
-        width: isSelected ? 28 : 24,
-        height: isSelected ? 28 : 24,
-        colorFilter: isSelected
-            ? ColorFilter.mode(Constants.GREEN_COLOR, BlendMode.srcIn)
-            : null,
+    return SvgPicture.asset(
+      'assets/svg/${isSelected ? selectedIcon : unselectedIcon}',
+      width: 28,
+      height: 28,
+      colorFilter: ColorFilter.mode(
+        isSelected ? _navColors[idx] : Constants.GREEN_COLOR,
+        BlendMode.srcIn,
       ),
     );
   }
