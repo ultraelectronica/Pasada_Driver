@@ -40,7 +40,7 @@ class CustomLocationButton extends StatelessWidget {
           ),
           child: Icon(
             Icons.my_location,
-            color: Constants.GREEN_COLOR,
+            color: Constants.BLACK_COLOR,
             size: 26,
           ),
         ),

@@ -248,7 +248,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
       width: 28,
       height: 28,
       colorFilter: ColorFilter.mode(
-        isSelected ? _navColors[idx] : Constants.GREEN_COLOR,
+        isSelected ? _navColors[idx] : Constants.BLACK_COLOR,
         BlendMode.srcIn,
       ),
     );

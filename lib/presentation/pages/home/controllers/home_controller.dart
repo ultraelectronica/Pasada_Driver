@@ -76,6 +76,7 @@ class HomeController extends ChangeNotifier {
   bool _previousIsNearDropoffLocation = false;
   String? _lastNotifiedPickupBookingId;
   String? _lastNotifiedDropoffBookingId;
+  String? _lastFocusedTargetKey;
 
   void _init() {
     // Start timers.
@@ -234,11 +235,25 @@ class HomeController extends ChangeNotifier {
         _isNearDropoffLocation = false;
         nearestBookingId = _isNearPickupLocation ? closest.booking.id : null;
         ongoingBookingId = null;
+        // Auto-focus camera to include driver and next pickup if target changed
+        final key = '${closest.booking.id}_pickup';
+        if (key != _lastFocusedTargetKey) {
+          final mapState = mapScreenKey.currentState;
+          mapState?.fitToDriverAnd(closest.booking.pickupLocation);
+          _lastFocusedTargetKey = key;
+        }
       } else {
         _isNearPickupLocation = false;
         _isNearDropoffLocation = closest.isNearDropoff;
         nearestBookingId = null;
         ongoingBookingId = _isNearDropoffLocation ? closest.booking.id : null;
+        // Auto-focus camera to include driver and next dropoff if target changed
+        final key = '${closest.booking.id}_dropoff';
+        if (key != _lastFocusedTargetKey) {
+          final mapState = mapScreenKey.currentState;
+          mapState?.fitToDriverAnd(closest.booking.dropoffLocation);
+          _lastFocusedTargetKey = key;
+        }
       }
     } else {
       selectedPassengerId = null;
@@ -246,6 +261,7 @@ class HomeController extends ChangeNotifier {
       _isNearDropoffLocation = false;
       nearestBookingId = null;
       ongoingBookingId = null;
+      _lastFocusedTargetKey = null;
     }
 
     // Check for state changes and trigger one-time notifications\
@@ -449,9 +465,9 @@ class HomeController extends ChangeNotifier {
         nearestBookingId = selected.booking.id;
         ongoingBookingId = null;
 
-        // Focus map on pickup location
+        // Focus map to include driver and pickup location
         final mapState = mapScreenKey.currentState;
-        mapState?.animateToLocation(selected.booking.pickupLocation);
+        mapState?.fitToDriverAnd(selected.booking.pickupLocation);
 
         // Reflect pickup location into MapProvider
         mapProvider.setPickUpLocation(selected.booking.pickupLocation);
@@ -461,9 +477,9 @@ class HomeController extends ChangeNotifier {
         nearestBookingId = null;
         ongoingBookingId = selected.booking.id;
 
-        // Focus map on dropoff location
+        // Focus map to include driver and dropoff location
         final mapState = mapScreenKey.currentState;
-        mapState?.animateToLocation(selected.booking.dropoffLocation);
+        mapState?.fitToDriverAnd(selected.booking.dropoffLocation);
       }
     }
 

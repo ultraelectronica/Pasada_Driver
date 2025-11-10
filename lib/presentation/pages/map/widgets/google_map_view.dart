@@ -4,8 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
-// import 'package:pasada_driver_side/presentation/providers/theme_provider.dart';
-
+import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/pages/map/utils/map_constants.dart';
 
 /// Pure map widget responsible only for rendering the Google Map
@@ -70,7 +69,9 @@ class _GoogleMapViewState extends State<GoogleMapView> {
         ),
         style: _darkMapStyle,
         markers: context.watch<MapProvider>().markers,
-        polylines: _buildPolylines(context),
+        polylines: context.read<DriverProvider>().driverStatus == 'Driving'
+            ? _buildPolylines(context)
+            : {},
         mapType: MapType.normal,
 
         // Map configuration
@@ -79,6 +80,7 @@ class _GoogleMapViewState extends State<GoogleMapView> {
         indoorViewEnabled: false,
         mapToolbarEnabled: false,
         trafficEnabled: false,
+        compassEnabled: false,
 
         // Gesture configuration
         rotateGesturesEnabled: true,
