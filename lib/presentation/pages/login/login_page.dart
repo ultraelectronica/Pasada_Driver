@@ -187,13 +187,27 @@ class _LogInState extends State<LogIn> {
         driverProv.setLoading(false);
       }
     } catch (e, stackTrace) {
+      // Handle invalid credentials without triggering global error screen
+      if (e is AuthException) {
+        if (mounted) {
+          setState(() {
+            driverIdError = 'Invalid credentials. Please try again.';
+            passwordError = 'Invalid credentials. Please try again.';
+          });
+          driverProv.setLoading(false);
+        }
+        if (kDebugMode) {
+          print('Invalid credentials during login: ${e.message}');
+        }
+        return;
+      }
+      // Unexpected failures: surface via provider to show retry screen
       driverProv.setError(Failure(message: 'Login failed: $e', type: 'login'));
       driverProv.setLoading(false);
       if (kDebugMode) {
         print('Error during login: $e');
         print('Error Login, Stack Trace: $stackTrace');
       }
-      // Keep provider error for unexpected failures; no toast for invalid creds path.
     }
   }
 
