@@ -80,6 +80,25 @@ class HomePageState extends State<HomePage> {
     await _controller.fetchBookings();
   }
 
+  Future<void> _checkAndMaybeShowRoutePrompt() async {
+    if (!mounted || _routePromptShown) return;
+    final driverProv = context.read<DriverProvider>();
+    final mapProv = context.read<MapProvider>();
+    final state = mapProv.routeState;
+    // Only prompt after route fetch completes, or if it errors.
+    if (state == RouteState.loaded) {
+      final bool noRouteLoaded =
+          (mapProv.routeID <= 0) && (driverProv.routeID <= 0);
+      if (noRouteLoaded) {
+        _routePromptShown = true;
+        await RouteSelectionSheet.show(context, isMandatory: true);
+      }
+    } else if (state == RouteState.error) {
+      _routePromptShown = true;
+      await RouteSelectionSheet.show(context, isMandatory: true);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -92,25 +111,11 @@ class HomePageState extends State<HomePage> {
       mapScreenKey: mapScreenKey,
     )..addListener(_onControllerUpdate);
 
-    // Delay timer start to ensure context is fully ready
+    // Delay to ensure context is ready, then initialize and perform an initial check
     SchedulerBinding.instance.addPostFrameCallback((_) async {
-      if (mounted) {
-        // Initialize passenger capacity system only – controller handles the rest
-        PassengerCapacity().initializeCapacity(context);
-        // Show route selection prompt on first open
-        if (!_routePromptShown) {
-          _routePromptShown = true;
-          final driverProv = context.read<DriverProvider>();
-          final mapProv = context.read<MapProvider>();
-          // Only prompt if no route is set. If loading, allow it to finish; if error, allow user to select.
-          if (driverProv.routeID <= 0 ||
-              mapProv.routeState == RouteState.error) {
-            // ignore: use_build_context_synchronously
-            await RouteSelectionSheet.show(context);
-          }
-        }
-        // Controller already starts its own timers and fetches; skip legacy setup
-      }
+      if (!mounted) return;
+      PassengerCapacity().initializeCapacity(context);
+      await _checkAndMaybeShowRoutePrompt();
     });
   }
 
@@ -136,6 +141,13 @@ class HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch route state so this widget rebuilds when it changes
+    final _ = context.select<MapProvider, RouteState>((p) => p.routeState);
+    // After each build, check if we should show the route prompt (guarded)
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _checkAndMaybeShowRoutePrompt();
+    });
+
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 

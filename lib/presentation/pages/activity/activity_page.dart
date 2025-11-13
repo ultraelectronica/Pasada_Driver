@@ -359,61 +359,133 @@ class ActivityPageState extends State<ActivityPage> {
               ),
             ),
 
-            // Load More button
+            // Load More buttons
             if (provider.hasMoreBookings)
               Padding(
                 padding: const EdgeInsets.only(top: 12),
-                child: InkWell(
-                  onTap: provider.isLoadingMore
-                      ? null
-                      : () => provider.loadMoreBookings(),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Constants.GREEN_COLOR.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Constants.GREEN_COLOR.withValues(alpha: 0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (provider.isLoadingMore)
-                          SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Constants.GREEN_COLOR,
-                            ),
-                          )
-                        else
-                          Icon(
-                            Icons.expand_more,
-                            color: Constants.GREEN_COLOR,
-                            size: 20,
+                child: Row(
+                  children: [
+                    // Load X More button
+                    Expanded(
+                      child: InkWell(
+                        onTap: provider.isLoadingMore
+                            ? null
+                            : () => provider.loadMoreBookings(),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
                           ),
-                        const SizedBox(width: 8),
-                        Text(
-                          provider.isLoadingMore
-                              ? 'Loading...'
-                              : 'Load ${provider.nextBatchCount} More (${provider.remainingBookingsCount} remaining)',
-                          style: Styles().textStyle(
-                            14,
-                            Styles.semiBold,
-                            Constants.GREEN_COLOR,
+                          decoration: BoxDecoration(
+                            color: Constants.GREEN_COLOR.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color:
+                                  Constants.GREEN_COLOR.withValues(alpha: 0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (provider.isLoadingMore)
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Constants.GREEN_COLOR,
+                                  ),
+                                )
+                              else
+                                Icon(
+                                  Icons.expand_more,
+                                  color: Constants.GREEN_COLOR,
+                                  size: 20,
+                                ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  provider.isLoadingMore
+                                      ? 'Loading...'
+                                      : 'Load ${provider.nextBatchCount} More',
+                                  style: Styles().textStyle(
+                                    14,
+                                    Styles.semiBold,
+                                    Constants.GREEN_COLOR,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    // Load All button
+                    Expanded(
+                      child: InkWell(
+                        onTap: provider.isLoadingMore
+                            ? null
+                            : () => provider.showAllBookings(),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Constants.GREEN_COLOR,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Constants.GREEN_COLOR,
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (provider.isLoadingMore)
+                                const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              else
+                                const Icon(
+                                  Icons.list_alt,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  provider.isLoadingMore
+                                      ? 'Loading...'
+                                      : 'Load All (${provider.remainingBookingsCount})',
+                                  style: Styles().textStyle(
+                                    14,
+                                    Styles.semiBold,
+                                    Colors.white,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
           ],

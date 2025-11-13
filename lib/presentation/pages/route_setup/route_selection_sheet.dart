@@ -12,10 +12,13 @@ import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/common/constants/text_styles.dart';
 
 class RouteSelectionSheet {
-  static Future<int?> show(BuildContext context) async {
+  static Future<int?> show(BuildContext context,
+      {bool isMandatory = false}) async {
     return showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
+      isDismissible: !isMandatory,
+      enableDrag: !isMandatory,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -34,7 +37,7 @@ class _RouteSelectionContent extends StatefulWidget {
 class _RouteSelectionContentState extends State<_RouteSelectionContent> {
   final SupabaseClient _supabase = Supabase.instance.client;
   late Future<List<_OfficialRoute>> _routesFuture;
-  bool _saving = false;
+  int? _savingRouteId;
 
   @override
   void initState() {
@@ -65,8 +68,8 @@ class _RouteSelectionContentState extends State<_RouteSelectionContent> {
   }
 
   Future<void> _selectRoute(_OfficialRoute route) async {
-    if (_saving) return;
-    setState(() => _saving = true);
+    if (_savingRouteId != null) return;
+    setState(() => _savingRouteId = route.id);
 
     try {
       final driverProv = context.read<DriverProvider>();
@@ -80,7 +83,7 @@ class _RouteSelectionContentState extends State<_RouteSelectionContent> {
           ShowMessage().showToast(
               'Cannot change route while Driving or with active booking');
         }
-        setState(() => _saving = false);
+        setState(() => _savingRouteId = null);
         return;
       }
       final mapProv = context.read<MapProvider>();
@@ -126,13 +129,15 @@ class _RouteSelectionContentState extends State<_RouteSelectionContent> {
         ShowMessage().showToast('Failed to set route: $e');
       }
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) setState(() => _savingRouteId = null);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final currentRouteId =
+        context.select<DriverProvider, int>((p) => p.routeID);
     return Padding(
       padding: EdgeInsets.only(bottom: bottom),
       child: SafeArea(
@@ -152,7 +157,8 @@ class _RouteSelectionContentState extends State<_RouteSelectionContent> {
             const SizedBox(height: 12),
             Text(
               'Select Route',
-              style: Styles().textStyle(18, Styles.semiBold, Styles.customBlackFont),
+              style: Styles()
+                  .textStyle(18, Styles.semiBold, Styles.customBlackFont),
             ),
             const SizedBox(height: 8),
             FutureBuilder<List<_OfficialRoute>>(
@@ -202,7 +208,11 @@ class _RouteSelectionContentState extends State<_RouteSelectionContent> {
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final route = routes[index];
+                      final bool isCurrent = route.id == currentRouteId;
                       return ListTile(
+                        tileColor: isCurrent
+                            ? Constants.GREEN_COLOR.withValues(alpha: 0.1)
+                            : null,
                         leading: Icon(
                           Icons.route,
                           color: Constants.GREEN_COLOR,
@@ -213,16 +223,23 @@ class _RouteSelectionContentState extends State<_RouteSelectionContent> {
                           style: Styles().textStyle(
                               16, Styles.semiBold, Styles.customBlackFont),
                         ),
-                        subtitle: Text('Route ID: ${route.id}'),
-                        trailing: _saving
+                        subtitle: Text(isCurrent
+                            ? 'Current route • ID: ${route.id}'
+                            : 'Route ID: ${route.id}'),
+                        trailing: (_savingRouteId == route.id)
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
                                 child:
                                     CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Icon(Icons.chevron_right),
-                        onTap: _saving ? null : () => _selectRoute(route),
+                            : isCurrent
+                                ? Icon(Icons.check_circle,
+                                    color: Constants.GREEN_COLOR, size: 22)
+                                : const Icon(Icons.chevron_right),
+                        onTap: (_savingRouteId != null || isCurrent)
+                            ? null
+                            : () => _selectRoute(route),
                       );
                     },
                   ),

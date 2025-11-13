@@ -7,6 +7,8 @@ import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/presentation/pages/activity/activity_page.dart';
 import 'package:pasada_driver_side/presentation/pages/home/home_page.dart';
 import 'package:pasada_driver_side/presentation/pages/profile/profile_page.dart';
+import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/domain/services/presence_service.dart';
@@ -25,6 +27,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   Timer? _inactiveDebounceTimer;
   bool hasShownDrivingPrompt = true;
   AppLifecycleState? _lastLifecycleState;
+  DateTime? _lastBackPressAt;
 
   final List<Widget> pages = const [
     HomeScreen(),
@@ -193,10 +196,30 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // backgroundColor: Constants.BLACK_COLOR,
-      body: IndexedStack(index: _currentIndex, children: pages),
-      bottomNavigationBar: _buildBottomNavBar(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          // Double-back-to-exit: first back shows toast, second back within 2s exits.
+          () async {
+            final now = DateTime.now();
+            if (_lastBackPressAt == null ||
+                now.difference(_lastBackPressAt!) >
+                    const Duration(seconds: 2)) {
+              _lastBackPressAt = now;
+              Fluttertoast.showToast(msg: 'Press back again to exit');
+              return;
+            }
+            // Second back within window: exit app
+            await SystemNavigator.pop();
+          }();
+        }
+      },
+      child: Scaffold(
+        // backgroundColor: Constants.BLACK_COLOR,
+        body: IndexedStack(index: _currentIndex, children: pages),
+        bottomNavigationBar: _buildBottomNavBar(),
+      ),
     );
   }
 

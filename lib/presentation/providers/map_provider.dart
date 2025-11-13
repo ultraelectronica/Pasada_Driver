@@ -161,7 +161,6 @@ class MapProvider with ChangeNotifier {
           .select(
               'origin_lat, origin_lng, destination_lat, destination_lng, intermediate_coordinates, route_name')
           .eq('officialroute_id', routeId)
-          
           .maybeSingle();
       if (resp == null) throw Exception('No route found for id $routeId');
       final rd = _processRouteResponse(resp, routeId);
