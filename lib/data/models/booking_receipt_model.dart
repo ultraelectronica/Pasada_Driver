@@ -60,14 +60,15 @@ class BookingReceipt {
       passengerId: json[BookingConstants.fieldPassengerId]?.toString(),
       rideStatus: json[BookingConstants.fieldRideStatus] as String? ??
           BookingConstants.statusCompleted,
+      // Parse as UTC and keep as-is (database stores Philippines local time as UTC)
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
+          ? DateTime.parse(json['created_at'] as String).toUtc()
           : null,
       assignedAt: json['assigned_at'] != null
-          ? DateTime.parse(json['assigned_at'] as String)
+          ? DateTime.parse(json['assigned_at'] as String).toUtc()
           : null,
       completedAt: json['completed_at'] != null
-          ? DateTime.parse(json['completed_at'] as String)
+          ? DateTime.parse(json['completed_at'] as String).toUtc()
           : null,
       startTime: json['start_time'] as String?,
       pickupAddress: json['pickup_address'] as String?,

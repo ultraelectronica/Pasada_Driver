@@ -16,6 +16,7 @@ import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart'
 import 'package:pasada_driver_side/common/utils/result.dart';
 import 'package:pasada_driver_side/Services/encryption_service.dart';
 import 'package:pasada_driver_side/domain/services/background_location_service.dart';
+import 'package:pasada_driver_side/Services/password_util.dart';
 
 class LogIn extends StatefulWidget {
   final PageController? pageController;
@@ -110,12 +111,28 @@ class _LogInState extends State<LogIn> {
     driverProv.setLoading(true);
 
     try {
-      // Supabase Auth sign-in (email derived from driver ID)
-      final email = '$enteredDriverID@pasada.driver';
-      final authRes = await Supabase.instance.client.auth
-          .signInWithPassword(email: email, password: enteredPassword);
+      //Query to get the driverID and password from the driverTable
+      final response = await Supabase.instance.client
+          .from('driverTable')
+          .select('full_name, driver_id, vehicle_id, driver_password')
+          .eq('driver_id', enteredDriverID)
+          .maybeSingle();
 
-      if (authRes.user == null) {
+      // Handle case where no row was found (invalid driver ID)
+      if (response == null) {
+        if (mounted) {
+          setState(() {
+            // Unknown driver ID
+            driverIdError = 'Invalid credentials. Please try again.';
+            passwordError = 'Invalid credentials. Please try again.';
+          });
+          driverProv.setLoading(false);
+        }
+        return;
+      }
+
+      final storedHashedPassword = response['driver_password'] as String?;
+      if (storedHashedPassword == null) {
         if (mounted) {
           setState(() {
             driverIdError = 'Invalid credentials. Please try again.';
@@ -126,17 +143,13 @@ class _LogInState extends State<LogIn> {
         return;
       }
 
-      // Fetch driver row for context using driver_id
-      final response = await Supabase.instance.client
-          .from('driverTable')
-          .select('full_name, driver_id, vehicle_id')
-          .eq('driver_id', enteredDriverID)
-          .maybeSingle();
+      bool checkPassword =
+          PasswordUtil().checkPassword(enteredPassword, storedHashedPassword);
 
-      if (response == null) {
+      if (!checkPassword) {
         if (mounted) {
           setState(() {
-            driverIdError = 'Driver record not found.';
+            passwordError = 'Invalid credentials. Please try again.';
           });
           driverProv.setLoading(false);
         }
@@ -147,18 +160,8 @@ class _LogInState extends State<LogIn> {
         // saves all the infos to the provider
         await _setDriverInfo(response);
 
-        // Save domain context locally (driver/route/vehicle)
+        //saves the session token to the local storage
         await saveSession(enteredDriverID, response);
-
-        // Set session expiry
-        await AuthService.setSessionExpiry(const Duration(days: 3));
-
-        // Start background foreground service to keep app running
-        await BackgroundLocationService.instance.start();
-        if (kDebugMode) {
-          debugPrint(
-              'Background location service started for driver: $enteredDriverID');
-        }
 
         // Decrypt name if needed for user-facing text
         String displayName = response['full_name']?.toString() ?? '';
@@ -187,27 +190,13 @@ class _LogInState extends State<LogIn> {
         driverProv.setLoading(false);
       }
     } catch (e, stackTrace) {
-      // Handle invalid credentials without triggering global error screen
-      if (e is AuthException) {
-        if (mounted) {
-          setState(() {
-            driverIdError = 'Invalid credentials. Please try again.';
-            passwordError = 'Invalid credentials. Please try again.';
-          });
-          driverProv.setLoading(false);
-        }
-        if (kDebugMode) {
-          print('Invalid credentials during login: ${e.message}');
-        }
-        return;
-      }
-      // Unexpected failures: surface via provider to show retry screen
       driverProv.setError(Failure(message: 'Login failed: $e', type: 'login'));
       driverProv.setLoading(false);
       if (kDebugMode) {
         print('Error during login: $e');
         print('Error Login, Stack Trace: $stackTrace');
       }
+      // Keep provider error for unexpected failures; no toast for invalid creds path.
     }
   }
 

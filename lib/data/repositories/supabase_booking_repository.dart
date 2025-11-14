@@ -10,6 +10,7 @@ import 'package:pasada_driver_side/common/exceptions/booking_exception.dart';
 import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 
 import 'booking_repository.dart';
+import 'package:pasada_driver_side/Services/notification_service.dart';
 
 /// Concrete Supabase implementation of [BookingRepository].
 class SupabaseBookingRepository implements BookingRepository {
@@ -382,6 +383,13 @@ class SupabaseBookingRepository implements BookingRepository {
                 // CRITICAL: If the booking is no longer active (completed/cancelled),
                 // stop tracking it entirely so it won't be re-added on future stream emissions
                 if (!isActive) {
+                  // If this booking is still ours and specifically transitioned to cancelled,
+                  // inform the driver via a local notification.
+                  if (isValidDriver &&
+                      status == BookingConstants.statusCancelled) {
+                    // Use bookingId-derived ID so any existing notification is updated in place
+                    NotificationService.instance.showCancelledNotification(id);
+                  }
                   trackedBookingIds.remove(id);
 
                   if (kDebugMode) {

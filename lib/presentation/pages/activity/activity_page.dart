@@ -1,10 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/common/constants/text_styles.dart';
+import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/quota/quota_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/booking_receipt/booking_receipt_provider.dart';
 import 'package:pasada_driver_side/presentation/pages/booking_receipt/booking_receipt_detail_page.dart';
+import 'package:pasada_driver_side/Services/pdf_service.dart';
 import 'package:provider/provider.dart';
 
 class ActivityPage extends StatefulWidget {
@@ -205,6 +208,15 @@ class ActivityPageState extends State<ActivityPage> {
                                     14, Styles.medium, Colors.grey.shade600),
                               ),
                               const SizedBox(width: 8),
+                              IconButton(
+                                tooltip: 'Export PDF',
+                                onPressed: provider.isLoading
+                                    ? null
+                                    : () => _showExportDialog(),
+                                icon: const Icon(Icons.download),
+                                color: Constants.GREEN_COLOR,
+                                splashRadius: 20,
+                              ),
                               IconButton(
                                 tooltip: 'Refresh',
                                 onPressed: provider.isLoading
@@ -496,8 +508,9 @@ class ActivityPageState extends State<ActivityPage> {
 
   Widget _buildBookingItem(booking) {
     final timeFormat = DateFormat('hh:mm a');
+    // Database stores Philippines time as UTC, so don't convert
     final timeString = booking.createdAt != null
-        ? timeFormat.format(booking.createdAt!.toLocal())
+        ? timeFormat.format(booking.createdAt!)
         : booking.startTime ?? 'N/A';
 
     return InkWell(
@@ -669,6 +682,353 @@ class ActivityPageState extends State<ActivityPage> {
         ]),
         const SizedBox(height: 15),
       ],
+    );
+  }
+
+  /// Show export dialog to select date range
+  void _showExportDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.download, color: Constants.GREEN_COLOR),
+              const SizedBox(width: 12),
+              Text(
+                'Export Receipts',
+                style:
+                    Styles().textStyle(18, Styles.bold, Styles.customBlackFont),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Select the period for your receipt:',
+                style:
+                    Styles().textStyle(14, Styles.medium, Colors.grey.shade700),
+              ),
+              const SizedBox(height: 16),
+              _buildExportOption(
+                dialogContext,
+                'Today',
+                'Export today\'s bookings',
+                Icons.today,
+                () => _exportReceipts(dialogContext, 'daily'),
+              ),
+              const SizedBox(height: 12),
+              _buildExportOption(
+                dialogContext,
+                'This Week',
+                'Export this week\'s bookings',
+                Icons.calendar_view_week,
+                () => _exportReceipts(dialogContext, 'weekly'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(
+                'Cancel',
+                style: Styles()
+                    .textStyle(14, Styles.semiBold, Colors.grey.shade600),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Build export option button
+  Widget _buildExportOption(
+    BuildContext dialogContext,
+    String title,
+    String subtitle,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Constants.GREEN_COLOR.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: Constants.GREEN_COLOR, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Styles()
+                        .textStyle(14, Styles.semiBold, Styles.customBlackFont),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: Styles()
+                        .textStyle(12, Styles.medium, Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios,
+                size: 16, color: Colors.grey.shade400),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Export receipts for the selected period
+  Future<void> _exportReceipts(
+      BuildContext dialogContext, String reportType) async {
+    Navigator.of(dialogContext).pop(); // Close dialog
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: Constants.GREEN_COLOR),
+              const SizedBox(height: 16),
+              Text(
+                'Generating PDF...',
+                style: Styles()
+                    .textStyle(14, Styles.semiBold, Styles.customBlackFont),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final receiptProvider = context.read<BookingReceiptProvider>();
+      final driverProvider = context.read<DriverProvider>();
+
+      // Fetch bookings based on report type
+      if (reportType == 'daily') {
+        await receiptProvider.fetchTodayBookings(context);
+      } else if (reportType == 'weekly') {
+        await receiptProvider.fetchThisWeekBookings(context);
+      }
+
+      final bookings = receiptProvider.todayBookings;
+
+      if (bookings.isEmpty) {
+        if (mounted) Navigator.of(context).pop(); // Close loading
+        _showErrorDialog('No bookings found for the selected period.');
+        return;
+      }
+
+      // Generate date range string
+      final dateRange = _getDateRangeString(reportType);
+
+      // Generate PDF
+      final pdfFile = await PdfService.instance.generateBookingReceiptPdf(
+        driverName: driverProvider.driverFullName ?? 'Driver',
+        vehicleId: driverProvider.vehicleID,
+        plateNumber: driverProvider.plateNumber,
+        routeName: driverProvider.routeName,
+        bookings: bookings,
+        reportType: reportType,
+        dateRange: dateRange,
+      );
+
+      if (mounted) Navigator.of(context).pop(); // Close loading
+
+      if (pdfFile != null) {
+        _showSuccessDialog(pdfFile.path);
+      } else {
+        _showErrorDialog('Failed to generate PDF. Please try again.');
+      }
+    } catch (e) {
+      if (mounted) Navigator.of(context).pop(); // Close loading
+      _showErrorDialog('Error: ${e.toString()}');
+    }
+  }
+
+  /// Get date range string based on report type
+  String _getDateRangeString(String reportType) {
+    final now = DateTime.now();
+    final formatter = DateFormat('MMM dd, yyyy');
+
+    if (reportType == 'daily') {
+      return formatter.format(now);
+    } else if (reportType == 'weekly') {
+      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+      final endOfWeek = startOfWeek.add(const Duration(days: 6));
+      return '${formatter.format(startOfWeek)} - ${formatter.format(endOfWeek)}';
+    }
+    return formatter.format(now);
+  }
+
+  /// Show success dialog with options to open or share PDF
+  void _showSuccessDialog(String filePath) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.check_circle, color: Constants.GREEN_COLOR, size: 32),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'PDF Generated!',
+                  style: Styles()
+                      .textStyle(18, Styles.bold, Styles.customBlackFont),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Your receipt has been saved successfully!',
+                style:
+                    Styles().textStyle(14, Styles.medium, Colors.grey.shade700),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Use the Share button below to send it via WhatsApp, Email, or save it to your preferred location.',
+                style:
+                    Styles().textStyle(12, Styles.medium, Colors.grey.shade600),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Constants.GREEN_COLOR.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Constants.GREEN_COLOR.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        color: Constants.GREEN_COLOR, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'File: ${filePath.split('/').last}',
+                        style: Styles()
+                            .textStyle(11, Styles.medium, Colors.grey.shade700),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Close',
+                style: Styles()
+                    .textStyle(14, Styles.semiBold, Colors.grey.shade600),
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                final file = File(filePath);
+                await PdfService.instance.sharePdf(file);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Constants.GREEN_COLOR,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.share, size: 18, color: Colors.white),
+              label: Text(
+                'Share / Save',
+                style: Styles().textStyle(14, Styles.semiBold, Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Show error dialog
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 32),
+              const SizedBox(width: 12),
+              Text(
+                'Error',
+                style:
+                    Styles().textStyle(18, Styles.bold, Styles.customBlackFont),
+              ),
+            ],
+          ),
+          content: Text(
+            message,
+            style: Styles().textStyle(14, Styles.medium, Colors.grey.shade700),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'OK',
+                style: Styles()
+                    .textStyle(14, Styles.semiBold, Constants.GREEN_COLOR),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

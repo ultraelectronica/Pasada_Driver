@@ -7,6 +7,7 @@ import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/pages/route_setup/route_selection_sheet.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
+import 'package:cherry_toast/resources/arrays.dart';
 
 /// Button to start driving.
 /// - Shows validation when trying to start driving while passengers are onboard.
@@ -173,6 +174,26 @@ class FloatingStartDrivingButton extends StatelessWidget {
   void _startDriving(
       BuildContext context, DriverProvider driverProvider) async {
     final mapProvider = context.read<MapProvider>();
+
+    // Guard: require a vehicle assigned to this driver account
+    final vehicleId = driverProvider.vehicleID;
+    final normalizedVehicleId = vehicleId.trim().toLowerCase();
+    final hasVehicle = normalizedVehicleId.isNotEmpty &&
+        normalizedVehicleId != 'n/a' &&
+        normalizedVehicleId != 'null';
+
+    if (!hasVehicle) {
+      SnackBarUtils.show(
+        context,
+        'Vehicle required to start Driving',
+        'Your account has no vehicle assigned. Please contact your admin before going Driving.',
+        duration: const Duration(seconds: 3),
+        backgroundColor: Colors.red,
+        position: Position.top,
+        animationType: AnimationType.fromTop,
+      );
+      return;
+    }
 
     // Guard: require a valid, loaded route
     final bool hasValidRoute = driverProvider.routeID > 0 &&

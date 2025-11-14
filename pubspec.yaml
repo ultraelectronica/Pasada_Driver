@@ -63,6 +63,8 @@ dependencies:
   flutter_background_service: ^5.0.10
   flutter_background_service_android: ^6.2.4
   curved_navigation_bar: ^1.0.6
+  pdf: ^3.11.1
+  printing: ^5.13.3
 
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1

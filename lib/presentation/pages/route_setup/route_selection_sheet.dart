@@ -10,10 +10,33 @@ import 'package:pasada_driver_side/presentation/providers/passenger/passenger_pr
 import 'package:pasada_driver_side/common/constants/message.dart';
 import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/common/constants/text_styles.dart';
+import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
+import 'package:cherry_toast/resources/arrays.dart';
 
 class RouteSelectionSheet {
   static Future<int?> show(BuildContext context,
       {bool isMandatory = false}) async {
+    // Guard: require a vehicle assigned before showing routes
+    final driverProv = context.read<DriverProvider>();
+    final vehicleId = driverProv.vehicleID;
+    final normalizedVehicleId = vehicleId.trim().toLowerCase();
+    final hasVehicle = normalizedVehicleId.isNotEmpty &&
+        normalizedVehicleId != 'n/a' &&
+        normalizedVehicleId != 'null';
+
+    if (!hasVehicle) {
+      SnackBarUtils.show(
+        context,
+        'Vehicle required to select a route',
+        'Your account has no vehicle assigned. Please contact your admin before selecting a route.',
+        duration: const Duration(seconds: 3),
+        backgroundColor: Colors.red,
+        position: Position.top,
+        animationType: AnimationType.fromTop,
+      );
+      return null;
+    }
+
     return showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,

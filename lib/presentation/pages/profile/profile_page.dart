@@ -16,6 +16,7 @@ import 'package:pasada_driver_side/domain/services/background_location_service.d
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/presentation/pages/start/auth_gate.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cherry_toast/resources/arrays.dart';
 
 // --- Custom Clipper for Background Shape ---
 class ProfileBackgroundClipper extends CustomClipper<Path> {
@@ -71,22 +72,63 @@ class ProfilePageState extends State<ProfilePage> {
 
   bool _trySwitchToOnline(BuildContext context, DriverProvider driverProvider,
       int totalPassengers, String status) {
-    if (totalPassengers > 0) {
+    // Guard: prevent going Online while passengers are still onboard
+    if (status == 'Online' && totalPassengers > 0) {
       SnackBarUtils.show(
         context,
         'Cannot go Online: Vehicle still has $totalPassengers passenger${totalPassengers > 1 ? "s" : ""}',
         'Drop off all passengers to designated stops before going Online',
         backgroundColor: Colors.red,
         duration: const Duration(seconds: 3),
+        position: Position.top,
+        animationType: AnimationType.fromTop,
       );
       return false;
     }
 
-    // driverProvider.updateStatusToDB(status);
-    // // Ensure the new status is preserved if app is backgrounded immediately
-    // driverProvider.setLastDriverStatus(status);
+    // For non-Driving statuses, no further guards
+    if (status != 'Driving') {
+      return true;
+    }
 
-    // SnackBarUtils.show(context, 'Status set to $status', Colors.grey[700]!);
+    // Guards below apply only when switching to Driving
+    final vehicleId = driverProvider.vehicleID;
+    final normalizedVehicleId = vehicleId.trim().toLowerCase();
+    final hasVehicle = normalizedVehicleId.isNotEmpty &&
+        normalizedVehicleId != 'n/a' &&
+        normalizedVehicleId != 'null';
+
+    if (!hasVehicle) {
+      SnackBarUtils.show(
+        context,
+        'Vehicle required to start Driving',
+        'Your account has no vehicle assigned. Please contact your admin before changing status to Driving.',
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+        position: Position.top,
+        animationType: AnimationType.fromTop,
+      );
+      return false;
+    }
+
+    // Guard: require a valid, loaded route when switching to Driving
+    final mapProvider = context.read<MapProvider>();
+    final bool hasValidRoute = driverProvider.routeID > 0 &&
+        mapProvider.routeState == RouteState.loaded;
+
+    if (!hasValidRoute) {
+      SnackBarUtils.show(
+        context,
+        'Route required to start Driving',
+        'Select an active route before changing status to Driving.',
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+        position: Position.top,
+        animationType: AnimationType.fromTop,
+      );
+      return false;
+    }
+
     return true;
   }
 
