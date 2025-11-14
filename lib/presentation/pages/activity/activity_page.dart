@@ -508,9 +508,9 @@ class ActivityPageState extends State<ActivityPage> {
 
   Widget _buildBookingItem(booking) {
     final timeFormat = DateFormat('hh:mm a');
-    // Database stores Philippines time as UTC, so don't convert
+    // Database stores timestamps in UTC; convert to local time for display.
     final timeString = booking.createdAt != null
-        ? timeFormat.format(booking.createdAt!)
+        ? timeFormat.format(booking.createdAt!.toLocal())
         : booking.startTime ?? 'N/A';
 
     return InkWell(
@@ -576,6 +576,40 @@ class ActivityPageState extends State<ActivityPage> {
                               _getStatusColor(booking.rideStatus)),
                         ),
                       ),
+                      if (booking.isManualBooking) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.orange.withValues(alpha: 0.4),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.edit_note,
+                                size: 12,
+                                color: Colors.orange.shade700,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Manual',
+                                style: Styles().textStyle(
+                                  10,
+                                  Styles.semiBold,
+                                  Colors.orange.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ],

@@ -59,7 +59,9 @@ class PdfService {
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(25),
-          maxPages: 200, // Increase page limit significantly
+          // Allow large reports; default is small and can throw if exceeded.
+          // 1000 pages is effectively "no practical limit" for our use case.
+          maxPages: 1000,
           header: (context) {
             // Only show header on first page
             if (context.pageNumber == 1) {
@@ -94,7 +96,10 @@ class PdfService {
       );
 
       // Save to file
-      final output = await _getOutputFile(reportType);
+      final output = await _getOutputFile(
+        reportType: reportType,
+        dateRange: dateRange,
+      );
       final file = File(output.path);
       await file.writeAsBytes(await pdf.save());
 
@@ -276,6 +281,19 @@ class PdfService {
     final formatter = NumberFormat.currency(symbol: 'PHP ', decimalDigits: 2);
     final dateFormatter = DateFormat('MMM dd hh:mm a');
 
+    // To avoid TooManyPagesException when a single table grows taller than a page
+    // (and cannot be split automatically), we chunk bookings into smaller tables.
+    // 50 rows per page keeps PDFs readable while staying within layout limits.
+    const int rowsPerTable = 40;
+    final List<List<BookingReceipt>> chunks = [];
+    for (int i = 0; i < bookings.length; i += rowsPerTable) {
+      final end = (i + rowsPerTable < bookings.length)
+          ? i + rowsPerTable
+          : bookings.length;
+      chunks.add(bookings.sublist(i, end));
+    }
+    final int chunkCount = chunks.length;
+
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -289,66 +307,84 @@ class PdfService {
         pw.Divider(thickness: 1.5),
         pw.SizedBox(height: 8),
 
-        // Table with bookings
-        pw.Table(
-          border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
-          columnWidths: {
-            0: const pw.FixedColumnWidth(25), // #
-            1: const pw.FlexColumnWidth(2), // ID
-            2: const pw.FlexColumnWidth(2), // Date
-            3: const pw.FlexColumnWidth(3), // Pickup
-            4: const pw.FlexColumnWidth(3), // Drop-off
-            5: const pw.FlexColumnWidth(1), // Type
-            6: const pw.FlexColumnWidth(1), // Fare
-          },
-          children: [
-            // Header row
-            pw.TableRow(
-              decoration: const pw.BoxDecoration(
-                color: PdfColors.grey200,
-              ),
-              children: [
-                _buildTableHeader('#'),
-                _buildTableHeader('ID'),
-                _buildTableHeader('Date'),
-                _buildTableHeader('Pickup'),
-                _buildTableHeader('Drop-off'),
-                _buildTableHeader('Type'),
-                _buildTableHeader('Fare'),
-              ],
-            ),
-            // Data rows
-            ...bookings.asMap().entries.map((entry) {
-              final index = entry.key;
-              final booking = entry.value;
-              final date = booking.completedAt ?? booking.createdAt;
+        // One smaller table per chunk of bookings; force a page break after each chunk
+        ...chunks.asMap().entries.map((chunkEntry) {
+          final chunkIndex = chunkEntry.key;
+          final chunkBookings = chunkEntry.value;
+          final startRowNumber = chunkIndex * rowsPerTable;
 
-              // Format date (database stores Philippines time as UTC)
-              final dateStr = date != null ? dateFormatter.format(date) : 'N/A';
-
-              return pw.TableRow(
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              if (chunkIndex > 0) pw.SizedBox(height: 8),
+              pw.Table(
+                border:
+                    pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                columnWidths: {
+                  0: const pw.FixedColumnWidth(25), // #
+                  1: const pw.FlexColumnWidth(2), // ID
+                  2: const pw.FlexColumnWidth(2), // Date
+                  3: const pw.FlexColumnWidth(3), // Pickup
+                  4: const pw.FlexColumnWidth(3), // Drop-off
+                  5: const pw.FlexColumnWidth(1), // Type
+                  6: const pw.FlexColumnWidth(1), // Fare
+                },
                 children: [
-                  _buildTableCell('${index + 1}'),
-                  _buildTableCell(booking.bookingId),
-                  _buildTableCell(dateStr),
-                  _buildTableCell(
-                    _truncateText(booking.pickupAddress, 25),
+                  // Header row
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(
+                      color: PdfColors.grey200,
+                    ),
+                    children: [
+                      _buildTableHeader('#'),
+                      _buildTableHeader('ID'),
+                      _buildTableHeader('Date'),
+                      _buildTableHeader('Pickup'),
+                      _buildTableHeader('Drop-off'),
+                      _buildTableHeader('Type'),
+                      _buildTableHeader('Fare'),
+                    ],
                   ),
-                  _buildTableCell(
-                    _truncateText(booking.dropoffAddress, 25),
-                  ),
-                  _buildTableCell(
-                    _abbreviatePassengerType(booking.passengerType),
-                  ),
-                  _buildTableCell(
-                    formatter.format(booking.fare?.toDouble() ?? 0.0),
-                    bold: true,
-                  ),
+                  // Data rows for this chunk
+                  ...chunkBookings.asMap().entries.map((entry) {
+                    final localIndex = entry.key;
+                    final booking = entry.value;
+                    final globalRowNumber = startRowNumber + localIndex + 1;
+                    final date = booking.completedAt ?? booking.createdAt;
+
+                    // Booking timestamps are stored in UTC; convert to local time for display
+                    final dateStr = date != null
+                        ? dateFormatter.format(date.toLocal())
+                        : 'N/A';
+
+                    return pw.TableRow(
+                      children: [
+                        _buildTableCell('$globalRowNumber'),
+                        _buildTableCell(booking.bookingId),
+                        _buildTableCell(dateStr),
+                        _buildTableCell(
+                          _truncateText(booking.pickupAddress, 25),
+                        ),
+                        _buildTableCell(
+                          _truncateText(booking.dropoffAddress, 25),
+                        ),
+                        _buildTableCell(
+                          _abbreviatePassengerType(booking.passengerType),
+                        ),
+                        _buildTableCell(
+                          formatter.format(booking.fare?.toDouble() ?? 0.0),
+                          bold: true,
+                        ),
+                      ],
+                    );
+                  }).toList(),
                 ],
-              );
-            }).toList(),
-          ],
-        ),
+              ),
+              // Force a new page after each table except the last
+              if (chunkIndex < chunkCount - 1) pw.NewPage(),
+            ],
+          );
+        }).toList(),
       ],
     );
   }
@@ -447,9 +483,24 @@ class PdfService {
   }
 
   /// Get output file path - saves to accessible location
-  Future<File> _getOutputFile(String reportType) async {
-    final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-    final fileName = 'Pasada_Receipt_${reportType}_$timestamp.pdf';
+  ///
+  /// The file name encodes:
+  /// - reportType (e.g. daily / weekly)
+  /// - the human dateRange (sanitized)
+  /// - the local time when the file was generated
+  Future<File> _getOutputFile({
+    required String reportType,
+    required String dateRange,
+  }) async {
+    final now = DateTime.now();
+    final timePart = DateFormat('HHmmss').format(now);
+
+    // Sanitize dateRange for filesystem (remove spaces, commas, special chars)
+    final safeRange = dateRange
+        .replaceAll(RegExp(r'[^0-9A-Za-z]+'), '_')
+        .replaceAll('_+', '_');
+
+    final fileName = 'Pasada_Receipt_${reportType}_$safeRange\_$timePart.pdf';
 
     if (Platform.isAndroid) {
       // For Android, use external storage (accessible via Files app)

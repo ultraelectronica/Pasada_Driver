@@ -288,6 +288,6 @@ class BookingReceiptDetailPage extends StatelessWidget {
     final dateFormat = DateFormat('MMM dd, yyyy');
     final timeFormat = DateFormat('hh:mm a');
     // Database stores Philippines time as UTC, so don't convert
-    return '${dateFormat.format(dateTime)} at ${timeFormat.format(dateTime)}';
+    return '${dateFormat.format(dateTime.toLocal())} at ${timeFormat.format(dateTime.toLocal())}';
   }
 }

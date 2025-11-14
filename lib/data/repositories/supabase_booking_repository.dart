@@ -462,18 +462,29 @@ class SupabaseBookingRepository implements BookingRepository {
 
   @override
   Future<List<BookingReceipt>> fetchTodayBookings(String driverId) async {
-    // Use local device day boundaries but query Supabase using UTC timestamps.
-    // This avoids server interpreting local timestamps as UTC when no offset is provided.
-    final nowLocal = DateTime.now();
-    final startOfDayLocal =
-        DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
-    final endOfDayLocal =
-        DateTime(nowLocal.year, nowLocal.month, nowLocal.day, 23, 59, 59, 999);
+    // IMPORTANT:
+    // The database stores booking timestamps in UTC and we want "today"
+    // to be interpreted using the SAME calendar day as the UTC timestamps.
+    //
+    // Using local day boundaries (and then converting to UTC) can cause
+    // late‑night bookings (e.g. 21:59:xx+00) to fall outside the computed
+    // [start, end] window depending on the device timezone. That was
+    // causing completed manual bookings like:
+    //
+    //   2025-11-14 21:59:09.734429+00
+    //
+    // to be excluded from "Today's Bookings" even though they share the
+    // same UTC calendar date as earlier bookings (e.g. 13:55:26.031+00).
+    //
+    // To avoid this, we define today's window purely in UTC:
+    // [00:00:00.000, 23:59:59.999] for the current UTC day.
+    final nowUtc = DateTime.now().toUtc();
+    final startOfDayUtc =
+        DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day, 0, 0, 0, 0);
+    final endOfDayUtc =
+        DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day, 23, 59, 59, 999);
 
-    final startUtc = startOfDayLocal.toUtc();
-    final endUtc = endOfDayLocal.toUtc();
-
-    return fetchBookingsByDateRange(driverId, startUtc, endUtc);
+    return fetchBookingsByDateRange(driverId, startOfDayUtc, endOfDayUtc);
   }
 
   @override
