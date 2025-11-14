@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/common/constants/booking_constants.dart';
+import 'package:pasada_driver_side/domain/services/capacity_config.dart';
 
 /// Result class for capacity operations
 class CapacityOperationResult {
@@ -29,10 +30,9 @@ class PassengerCapacity {
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   // Maximum capacity limits
-  static const int MAX_SITTING_CAPACITY = 23;
-  static const int MAX_STANDING_CAPACITY = 5;
-  static const int MAX_TOTAL_CAPACITY =
-      MAX_SITTING_CAPACITY + MAX_STANDING_CAPACITY;
+  static const int MAX_SITTING_CAPACITY = CapacityConfig.MAX_SITTING_CAPACITY;
+  static const int MAX_STANDING_CAPACITY = CapacityConfig.MAX_STANDING_CAPACITY;
+  static const int MAX_TOTAL_CAPACITY = CapacityConfig.MAX_TOTAL_CAPACITY;
 
   // Error types for better error handling
   static const String ERROR_DRIVER_NOT_DRIVING = 'driver_not_driving';
@@ -44,16 +44,6 @@ class PassengerCapacity {
 
   bool _validateDriverStatus(DriverProvider driverProvider) =>
       driverProvider.driverStatus == 'Driving';
-
-  bool _validateCapacityLimits(
-      int standingCount, int sittingCount, String operation) {
-    if (operation == 'increment') {
-      if (standingCount >= MAX_STANDING_CAPACITY) return false;
-      if (sittingCount >= MAX_SITTING_CAPACITY) return false;
-      if ((standingCount + sittingCount) >= MAX_TOTAL_CAPACITY) return false;
-    }
-    return true;
-  }
 
   bool _validateNonNegative(int totalCapacity, int standingCount,
       int sittingCount, String operation) {
@@ -329,12 +319,23 @@ class PassengerCapacity {
         newSitting += count;
       }
 
-      // Validation
+      // Validation: internal consistency
       if (newTotal != (newStanding + newSitting)) {
         return CapacityOperationResult(
           success: false,
           errorType: ERROR_VALIDATION_FAILED,
           errorMessage: 'Data consistency check failed',
+        );
+      }
+
+      // Validation: capacity limits (defensive in case this is reused elsewhere)
+      if (newStanding > MAX_STANDING_CAPACITY ||
+          newSitting > MAX_SITTING_CAPACITY ||
+          newTotal > MAX_TOTAL_CAPACITY) {
+        return CapacityOperationResult(
+          success: false,
+          errorType: ERROR_CAPACITY_EXCEEDED,
+          errorMessage: 'Operation would exceed capacity limits',
         );
       }
 

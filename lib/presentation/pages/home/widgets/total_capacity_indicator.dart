@@ -1259,7 +1259,11 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
       return;
     }
 
-    // Calculate seat assignments based on priority
+    // Refresh current capacity from the database so that seat assignment
+    // always uses the latest sitting/standing counts (including online bookings)
+    await PassengerCapacity().getPassengerCapacityToDB(context);
+
+    // Calculate seat assignments based on priority and refreshed capacity
     final assignmentResult = SeatAssignmentService.assignSeats(
       currentSitting: driverProvider.passengerSittingCapacity,
       currentStanding: driverProvider.passengerStandingCapacity,
