@@ -12,6 +12,7 @@ class Booking {
   final String seatType;
   final String? passengerIdImagePath;
   final bool? isIdAccepted;
+  final String? passengerType; // e.g. Regular, Student, Senior Citizen, PWD
 
   // Optional calculated fields
   final double? distanceToDriver;
@@ -25,6 +26,7 @@ class Booking {
     required this.seatType,
     this.passengerIdImagePath,
     this.isIdAccepted,
+    this.passengerType,
     this.distanceToDriver,
   });
 
@@ -66,6 +68,9 @@ class Booking {
             ? (json[BookingConstants.fieldIsIdAccepted] as bool?)
             : null;
 
+    final String? passengerType =
+        json[BookingConstants.fieldPassengerType] as String?;
+
     return Booking(
       id: bookingId.toString(),
       passengerId: passengerId?.toString(), // Nullable for manual bookings
@@ -82,6 +87,7 @@ class Booking {
           BookingConstants.defaultSeatType,
       passengerIdImagePath: imagePath,
       isIdAccepted: isIdAccepted,
+      passengerType: passengerType,
     );
   }
 
@@ -98,6 +104,7 @@ class Booking {
       BookingConstants.fieldSeatType: seatType,
       BookingConstants.fieldPassengerIdImagePath: passengerIdImagePath,
       BookingConstants.fieldIsIdAccepted: isIdAccepted,
+      BookingConstants.fieldPassengerType: passengerType,
     };
   }
 
@@ -111,6 +118,7 @@ class Booking {
     String? seatType,
     String? passengerIdImagePath,
     bool? isIdAccepted,
+    String? passengerType,
     double? distanceToDriver,
   }) {
     return Booking(
@@ -122,6 +130,7 @@ class Booking {
       seatType: seatType ?? this.seatType,
       passengerIdImagePath: passengerIdImagePath ?? this.passengerIdImagePath,
       isIdAccepted: isIdAccepted ?? this.isIdAccepted,
+      passengerType: passengerType ?? this.passengerType,
       distanceToDriver: distanceToDriver ?? this.distanceToDriver,
     );
   }
@@ -137,6 +146,17 @@ class Booking {
 
   /// Check if this is a manual booking (no passenger account)
   bool get isManualBooking => passengerId == null || passengerId!.isEmpty;
+
+  /// Normalized discount type label: Student / Senior / PWD, or null if none/regular.
+  String? get discountLabel {
+    final type = passengerType;
+    if (type == null || type.isEmpty) return null;
+    final normalized = type.toLowerCase();
+    if (normalized.contains('student')) return 'Student';
+    if (normalized.contains('senior')) return 'Senior';
+    if (normalized == 'pwd' || normalized.contains('pwd')) return 'PWD';
+    return null;
+  }
 
   /// Check if ride status is valid
   bool _isValidStatus(String status) {
@@ -175,7 +195,8 @@ class Booking {
     return 'Booking(id: $id, passengerId: $passengerId, status: $rideStatus, '
         'pickup: (${pickupLocation.latitude}, ${pickupLocation.longitude}), '
         'dropoff: (${dropoffLocation.latitude}, ${dropoffLocation.longitude}), '
-        'seatType: $seatType, passengerIdImagePath: $passengerIdImagePath, isIdAccepted: $isIdAccepted, distance: $distanceToDriver)';
+        'seatType: $seatType, passengerIdImagePath: $passengerIdImagePath, '
+        'isIdAccepted: $isIdAccepted, passengerType: $passengerType, distance: $distanceToDriver)';
   }
 
   @override

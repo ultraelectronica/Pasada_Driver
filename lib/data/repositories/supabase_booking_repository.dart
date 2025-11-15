@@ -43,7 +43,8 @@ class SupabaseBookingRepository implements BookingRepository {
           '${BookingConstants.fieldDropoffLng}, '
           '${BookingConstants.fieldSeatType}, '
           '${BookingConstants.fieldPassengerIdImagePath}, '
-          '${BookingConstants.fieldIsIdAccepted}';
+          '${BookingConstants.fieldIsIdAccepted}, '
+          '${BookingConstants.fieldPassengerType}';
 
       const statusFilter =
           '${BookingConstants.fieldRideStatus}.eq.${BookingConstants.statusRequested},'

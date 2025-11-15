@@ -6,6 +6,7 @@ import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:pasada_driver_side/common/constants/message.dart';
 import 'package:pasada_driver_side/Services/id_image_fetch_service.dart';
+import 'package:pasada_driver_side/Services/passenger_name_service.dart';
 import 'dart:typed_data';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
@@ -206,6 +207,7 @@ class PassengerListWidget extends StatelessWidget {
     final bool isSelected = passenger.booking.id == selectedPassengerId;
     final bool isPickup =
         passenger.booking.rideStatus == BookingConstants.statusAccepted;
+    final bool isManualBooking = passenger.booking.isManualBooking;
 
     // Determine status icon & color
     final (IconData statusIcon, Color statusColor) = () {
@@ -257,32 +259,9 @@ class PassengerListWidget extends StatelessWidget {
               child: Icon(statusIcon, color: statusColor, size: 14),
             ),
             const SizedBox(width: 8),
-            // Booking id & urgent badge
+            // Passenger name / booking id & manual badge
             Expanded(
-              child: Row(
-                children: [
-                  Text(
-                    '# ${passenger.booking.id}',
-                    style: Styles()
-                        .textStyle(13, Styles.semiBold, Styles.customBlackFont),
-                  ),
-                  if (isUrgent) ...[
-                    const SizedBox(width: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'URGENT',
-                        style: Styles().textStyle(9, Styles.bold, Colors.red),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+              child: _buildPassengerTitle(passenger, isManualBooking, isUrgent),
             ),
 
             // view ID button - only show if passenger has ID image
@@ -329,6 +308,98 @@ class PassengerListWidget extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Builds the title row showing either passenger name (if available) or booking id,
+  /// plus manual / discount badges.
+  Widget _buildPassengerTitle(
+      PassengerStatus passenger, bool isManualBooking, bool isUrgent) {
+    final booking = passenger.booking;
+    final passengerId = booking.passengerId;
+    final discountLabel = booking.discountLabel;
+
+    if (passengerId == null || passengerId.isEmpty) {
+      // Manual or legacy booking – fall back to booking id
+      return Row(
+        children: [
+          Text(
+            '# ${booking.id}',
+            style:
+                Styles().textStyle(13, Styles.semiBold, Styles.customBlackFont),
+          ),
+          if (isManualBooking) ...[
+            const SizedBox(width: 6),
+            _buildManualChip(),
+          ],
+          if (discountLabel != null) ...[
+            const SizedBox(width: 6),
+            _buildDiscountChip(discountLabel),
+          ],
+        ],
+      );
+    }
+
+    // For non-manual bookings, resolve passenger display name from Supabase (encrypted).
+    return FutureBuilder<String?>(
+      future: PassengerNameService.instance.getDisplayNameForPassengerId(
+        passengerId,
+      ),
+      builder: (context, snapshot) {
+        final hasName = snapshot.connectionState == ConnectionState.done &&
+            snapshot.data != null &&
+            snapshot.data!.isNotEmpty;
+        final String primaryText = hasName ? snapshot.data! : '# ${booking.id}';
+
+        return Row(
+          children: [
+            Flexible(
+              child: Text(
+                primaryText,
+                overflow: TextOverflow.ellipsis,
+                style: Styles()
+                    .textStyle(13, Styles.semiBold, Styles.customBlackFont),
+              ),
+            ),
+            if (discountLabel != null) ...[
+              const SizedBox(width: 6),
+              _buildDiscountChip(discountLabel),
+            ],
+            if (isManualBooking) ...[
+              const SizedBox(width: 6),
+              _buildManualChip(),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDiscountChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        color: Colors.blue.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: Styles().textStyle(10, Styles.bold, Colors.blue),
+      ),
+    );
+  }
+
+  Widget _buildManualChip() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        color: Constants.RED_COLOR.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        'MANUAL',
+        style: Styles().textStyle(10, Styles.bold, Constants.BLACK_COLOR),
       ),
     );
   }
