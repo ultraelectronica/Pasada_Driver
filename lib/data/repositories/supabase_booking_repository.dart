@@ -152,9 +152,17 @@ class SupabaseBookingRepository implements BookingRepository {
   }
 
   @override
-  Future<bool> updateBookingStatus(String bookingId, String newStatus) async {
+  Future<bool> updateBookingStatus(
+    String bookingId,
+    String newStatus, {
+    Map<String, dynamic>? extraFields,
+  }) async {
     return _withRetry<bool>(
-      () => _updateBookingStatusInternal(bookingId, newStatus),
+      () => _updateBookingStatusInternal(
+        bookingId,
+        newStatus,
+        extraFields: extraFields,
+      ),
       'updateBookingStatus',
       maxRetries: BookingConstants.defaultMaxRetries,
     );
@@ -259,11 +267,19 @@ class SupabaseBookingRepository implements BookingRepository {
   }
 
   Future<bool> _updateBookingStatusInternal(
-      String bookingId, String newStatus) async {
+    String bookingId,
+    String newStatus, {
+    Map<String, dynamic>? extraFields,
+  }) async {
     try {
+      final Map<String, dynamic> updatePayload = {
+        BookingConstants.fieldRideStatus: newStatus,
+        if (extraFields != null) ...extraFields,
+      };
+
       await _supabase
           .from('bookings')
-          .update({BookingConstants.fieldRideStatus: newStatus})
+          .update(updatePayload)
           .eq(BookingConstants.fieldBookingId, bookingId)
           .timeout(
             const Duration(seconds: AppConfig.databaseOperationTimeout),
