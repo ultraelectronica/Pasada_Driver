@@ -13,7 +13,15 @@ abstract class BookingRepository {
   Future<int> fetchCompletedBookingsCount(String driverId);
 
   /// Update the ride status of a particular booking.
-  Future<bool> updateBookingStatus(String bookingId, String newStatus);
+  Future<bool> updateBookingStatus(
+    String bookingId,
+    String newStatus, {
+    /// Optional extra fields to update alongside the ride status.
+    ///
+    /// Used, for example, to store `start_time` when a ride becomes
+    /// ongoing and `end_time` when a ride is completed.
+    Map<String, dynamic>? extraFields,
+  });
 
   /// Update the ID acceptance flag for a particular booking.
   Future<bool> updateIdAccepted(String bookingId, bool accepted);

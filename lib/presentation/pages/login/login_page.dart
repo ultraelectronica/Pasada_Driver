@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:pasada_driver_side/Services/auth_service.dart';
 import 'package:pasada_driver_side/Services/notification_service.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
-import 'package:pasada_driver_side/Services/password_util.dart';
 import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:pasada_driver_side/common/constants/message.dart';
@@ -16,6 +15,8 @@ import 'package:pasada_driver_side/presentation/providers/passenger/passenger_pr
 import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart';
 import 'package:pasada_driver_side/common/utils/result.dart';
 import 'package:pasada_driver_side/Services/encryption_service.dart';
+import 'package:pasada_driver_side/domain/services/background_location_service.dart';
+import 'package:pasada_driver_side/Services/password_util.dart';
 
 class LogIn extends StatefulWidget {
   final PageController? pageController;
@@ -201,21 +202,16 @@ class _LogInState extends State<LogIn> {
 
   Future<void> saveSession(
       String enteredDriverID, PostgrestMap response) async {
-    final sessionToken = AuthService.generateSecureToken();
-    // final expirationTime =
-    //     DateTime.now().add(const Duration(hours: 24)).toIso8601String();
-
-    // int routeID = context.read<MapProvider>().routeID;
+    // Persist domain context only; Supabase manages JWT & refresh internally
     int routeID = context.read<DriverProvider>().routeID;
 
     if (kDebugMode) {
       print('save session route ID: ${routeID.toString()}');
     }
 
-    await AuthService.saveCredentials(
-      sessionToken: sessionToken,
+    await AuthService.saveDriverContext(
       driverId: enteredDriverID,
-      routeId: context.read<DriverProvider>().routeID.toString(),
+      routeId: routeID.toString(),
       vehicleId: response['vehicle_id'].toString(),
     );
   }

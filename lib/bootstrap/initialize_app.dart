@@ -5,6 +5,7 @@ import 'package:pasada_driver_side/Services/permissions.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/Services/encryption_service.dart';
 import 'package:pasada_driver_side/common/logging.dart';
+import 'package:pasada_driver_side/domain/services/background_location_service.dart';
 
 /// Performs application bootstrap tasks such as loading environment variables,
 /// initializing Supabase, checking runtime permissions, and preparing a list of
@@ -17,10 +18,13 @@ Future<List<AssetImage>> initializeApp() async {
   // 1. Load environment variables
   await dotenv.load(fileName: '.env');
 
+  final supabaseUrl = dotenv.env['SUPABASE_URL']!;
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY']!;
+
   // 2. Initialize Supabase with a timeout safeguard
   await Supabase.initialize(
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: supabaseAnonKey,
+    url: supabaseUrl,
   ).timeout(
     const Duration(seconds: 10),
     onTimeout: () =>
@@ -34,7 +38,11 @@ Future<List<AssetImage>> initializeApp() async {
   final encryptionService = EncryptionService();
   await encryptionService.initialize();
 
-  // 5. Build the list of frequently-used assets to preload
+  // 5. Initialize background foreground service (keeps app running)
+  await BackgroundLocationService.instance.initialize();
+  logDebug('Background foreground service initialized');
+
+  // 6. Build the list of frequently-used assets to preload
   final List<AssetImage> assetsToPreload = [
     const AssetImage('assets/png/PasadaLogo.png'),
     // TODO: Add additional assets here as needed

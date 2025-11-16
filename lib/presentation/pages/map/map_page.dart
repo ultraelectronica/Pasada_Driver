@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -46,6 +47,9 @@ class MapPageState extends State<MapPage> {
 
   // Map controller for camera animations
   GoogleMapController? _mapController;
+
+  // Whether to auto-follow my location with the camera
+  bool _followMyLocation = true;
 
   // Throttling helpers
   DateTime? _lastPolylineUpdateAt;
@@ -135,7 +139,7 @@ class MapPageState extends State<MapPage> {
     );
   }
 
-  /// Handle location updates with clean separation of concerns
+  /// Handle location updates
   void _handleLocationUpdate(LatLng newLatLng, LocationData locationData) {
     // Update driver location in database via provider (throttled)
     final now = DateTime.now();
@@ -168,7 +172,7 @@ class MapPageState extends State<MapPage> {
     }
 
     // Animate camera if not manually positioned
-    if (!_mapState.isAnimatingLocation) {
+    if (_followMyLocation && !_mapState.isAnimatingLocation) {
       _animateToLocation(newLatLng);
     }
 
@@ -235,6 +239,7 @@ class MapPageState extends State<MapPage> {
   /// Handle custom location button press
   void _onLocationButtonPressed() {
     if (_mapState.currentLocation != null) {
+      _followMyLocation = true;
       _animateToLocation(_mapState.currentLocation!);
     }
   }
@@ -264,6 +269,45 @@ class MapPageState extends State<MapPage> {
   /// Animate camera to specified location (public method)
   Future<void> animateToLocation(LatLng target) async {
     await _animateToLocation(target);
+  }
+
+  /// Fit camera to show both the driver's current location and a target point
+  Future<void> fitToDriverAnd(LatLng target, {double? padding}) async {
+    if (_mapController == null) return;
+    final current = _mapState.currentLocation;
+    if (current == null) {
+      await _animateToLocation(target);
+      return;
+    }
+    // If both points are the same, just zoom to tracking
+    if (current.latitude == target.latitude &&
+        current.longitude == target.longitude) {
+      _followMyLocation = false;
+      await _animateToLocation(target);
+      return;
+    }
+    final bounds = LatLngBounds(
+      southwest: LatLng(
+        math.min(current.latitude, target.latitude),
+        math.min(current.longitude, target.longitude),
+      ),
+      northeast: LatLng(
+        math.max(current.latitude, target.latitude),
+        math.max(current.longitude, target.longitude),
+      ),
+    );
+    try {
+      _followMyLocation = false;
+      await _mapController!.animateCamera(
+        CameraUpdate.newLatLngBounds(
+          bounds,
+          padding ?? MapConstants.cameraBoundsPadding,
+        ),
+      );
+    } catch (_) {
+      // Fallback in case bounds update isn't ready yet
+      await _animateToLocation(target);
+    }
   }
 
   /// Clear all passenger-related markers (preserves route markers)

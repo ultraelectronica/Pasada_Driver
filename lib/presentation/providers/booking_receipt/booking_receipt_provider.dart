@@ -118,6 +118,24 @@ class BookingReceiptProvider with ChangeNotifier {
     }
   }
 
+  /// Fetch this week's bookings
+  Future<void> fetchThisWeekBookings(BuildContext context) async {
+    final nowLocal = DateTime.now();
+    // Get start of week (Monday)
+    final startOfWeek = nowLocal.subtract(Duration(days: nowLocal.weekday - 1));
+    final startOfWeekLocal =
+        DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+    // Get end of week (Sunday)
+    final endOfWeekLocal = DateTime(startOfWeek.year, startOfWeek.month,
+            startOfWeek.day, 23, 59, 59, 999)
+        .add(Duration(days: 6));
+
+    final startUtc = startOfWeekLocal.toUtc();
+    final endUtc = endOfWeekLocal.toUtc();
+
+    await fetchBookingsByDateRange(context, startUtc, endUtc);
+  }
+
   /// Fetch bookings for a specific date range
   Future<void> fetchBookingsByDateRange(
     BuildContext context,

@@ -130,13 +130,11 @@ class DriverProvider with ChangeNotifier {
           .eq('driver_id', _driverID)
           .select('current_location');
 
-      if (kDebugMode) {
-        debugPrint(
-            'DriverProvider: location updated ${response[0]['current_location']}');
-      }
+      debugPrint(
+          '\t[DRIVER PROVIDER] Location updated: ${response[0]['current_location']}');
     } catch (e) {
-      debugPrint('DriverProvider: error updating location $e');
-      ShowMessage().showToast('Error updating location to DB: $e');
+      debugPrint('\t[DRIVER PROVIDER] Error updating location: $e');
+      // ShowMessage().showToast('[DRIVER PROVIDER][ERROR] Error updating location: $e');
     }
   }
 
@@ -210,8 +208,7 @@ class DriverProvider with ChangeNotifier {
       _driverStatus = _toTitleCase(normalized);
       notifyListeners();
     } catch (e) {
-      debugPrint('Error updating status: $e');
-      ShowMessage().showToast('Error updating status: $e');
+      debugPrint('\t[DRIVER PROVIDER] Error updating status: $e');
     }
   }
 
@@ -220,7 +217,7 @@ class DriverProvider with ChangeNotifier {
     if (trimmed.isEmpty) return null;
     final lower = trimmed.toLowerCase();
     // Allow only known statuses
-    const allowed = {'online', 'driving', 'idling'};
+    const allowed = {'online', 'driving', 'idling', 'offline'};
     if (!allowed.contains(lower)) return null;
     return lower;
   }
@@ -233,6 +230,8 @@ class DriverProvider with ChangeNotifier {
         return 'Driving';
       case 'idling':
         return 'Idling';
+      case 'offline':
+        return 'Offline';
       default:
         return lower;
     }
@@ -246,11 +245,8 @@ class DriverProvider with ChangeNotifier {
           .eq('vehicle_id', _vehicleID)
           .single();
 
-      if (kDebugMode) {
-        print('Capacity: ${response['passenger_capacity'].toString()}');
-        ShowMessage().showToast(
-            'Capacity: ${response['passenger_capacity'].toString()}');
-      }
+      debugPrint(
+          '\t[DRIVER PROVIDER] Capacity: ${response['passenger_capacity'].toString()}');
 
       // sets the capacity to the provider
       _passengerCapacity = response['passenger_capacity'];
@@ -314,20 +310,18 @@ class DriverProvider with ChangeNotifier {
               .update(fieldsToUpdate)
               .eq('driver_id', _driverID);
         } catch (e) {
-          debugPrint('DriverProvider: failed to backfill encryption: $e');
+          debugPrint('\t[DRIVER PROVIDER] failed to backfill encryption: $e');
         }
       }
     } catch (e) {
-      ShowMessage().showToast('Error fetching driver creds: $e');
-      if (kDebugMode) {
-        print('Error fetching driver creds: $e');
-      }
+      debugPrint('\t[DRIVER PROVIDER] Error fetching driver creds: $e');
     }
   }
 
   Future<bool> loadFromSecureStorage(BuildContext context) async {
     try {
-      final sessionData = await AuthService.getSession();
+      // Prefer domain context; Supabase Auth manages JWT/session internally
+      final sessionData = await AuthService.getDriverContext();
 
       if (sessionData.isEmpty) {
         if (kDebugMode) {
@@ -348,11 +342,9 @@ class DriverProvider with ChangeNotifier {
       _vehicleID = sessionData['vehicle_id'].toString();
       _routeID = int.tryParse(sessionData['route_id'] ?? '0') ?? 0;
 
-      if (kDebugMode) {
-        print('Loaded driver_id: $_driverID');
-        print('Loaded vehicle_id: $_vehicleID');
-        print('Loaded route_id: $_routeID');
-      }
+      debugPrint('Loaded driver_id: $_driverID');
+      debugPrint('Loaded vehicle_id: $_vehicleID');
+      debugPrint('Loaded route_id: $_routeID');
 
       // Load other data needed
       await getDriverCreds();
@@ -364,7 +356,7 @@ class DriverProvider with ChangeNotifier {
       return true;
     } catch (e) {
       if (kDebugMode) {
-        print('Error on loading secure storage: $e');
+        print('\t[SECURE STORAGE] Error: $e');
       }
       return false;
     }
@@ -398,12 +390,13 @@ class DriverProvider with ChangeNotifier {
           .single();
 
       if (kDebugMode) {
-        print('Last online updated: ${response['last_online'].toString()}');
+        print(
+            '\t[UPDATE LAST ONLINE] updated: ${response['last_online'].toString()}');
       }
     } catch (e, stacktrace) {
       if (kDebugMode) {
-        print('Error updating last online: $e');
-        print('Update Last Online StackTrace: $stacktrace');
+        print('\t[UPDATE LAST ONLINE] Error: $e');
+        print('\t[UPDATE LAST ONLINE] StackTrace: $stacktrace');
       }
     }
   }
@@ -447,6 +440,7 @@ class DriverProvider with ChangeNotifier {
               .from('official_routes')
               .select('route_name')
               .eq('officialroute_id', _routeID)
+              .eq('status', 'active')
               .single();
 
           if (routeResponse['route_name'] != null) {

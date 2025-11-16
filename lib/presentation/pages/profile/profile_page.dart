@@ -2,14 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:pasada_driver_side/Services/auth_service.dart';
+import 'package:pasada_driver_side/presentation/pages/profile/pages/privacy_policy_page.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
 import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:provider/provider.dart';
 import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart';
 import 'package:pasada_driver_side/presentation/pages/profile/utils/profile_constants.dart';
 import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
+import 'package:pasada_driver_side/domain/services/background_location_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pasada_driver_side/presentation/pages/start/auth_gate.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:cherry_toast/resources/arrays.dart';
 
 // --- Custom Clipper for Background Shape ---
 class ProfileBackgroundClipper extends CustomClipper<Path> {
@@ -65,22 +72,63 @@ class ProfilePageState extends State<ProfilePage> {
 
   bool _trySwitchToOnline(BuildContext context, DriverProvider driverProvider,
       int totalPassengers, String status) {
-    if (totalPassengers > 0) {
+    // Guard: prevent going Online while passengers are still onboard
+    if (status == 'Online' && totalPassengers > 0) {
       SnackBarUtils.show(
         context,
         'Cannot go Online: Vehicle still has $totalPassengers passenger${totalPassengers > 1 ? "s" : ""}',
         'Drop off all passengers to designated stops before going Online',
         backgroundColor: Colors.red,
         duration: const Duration(seconds: 3),
+        position: Position.top,
+        animationType: AnimationType.fromTop,
       );
       return false;
     }
 
-    // driverProvider.updateStatusToDB(status);
-    // // Ensure the new status is preserved if app is backgrounded immediately
-    // driverProvider.setLastDriverStatus(status);
+    // For non-Driving statuses, no further guards
+    if (status != 'Driving') {
+      return true;
+    }
 
-    // SnackBarUtils.show(context, 'Status set to $status', Colors.grey[700]!);
+    // Guards below apply only when switching to Driving
+    final vehicleId = driverProvider.vehicleID;
+    final normalizedVehicleId = vehicleId.trim().toLowerCase();
+    final hasVehicle = normalizedVehicleId.isNotEmpty &&
+        normalizedVehicleId != 'n/a' &&
+        normalizedVehicleId != 'null';
+
+    if (!hasVehicle) {
+      SnackBarUtils.show(
+        context,
+        'Vehicle required to start Driving',
+        'Your account has no vehicle assigned. Please contact your admin before changing status to Driving.',
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+        position: Position.top,
+        animationType: AnimationType.fromTop,
+      );
+      return false;
+    }
+
+    // Guard: require a valid, loaded route when switching to Driving
+    final mapProvider = context.read<MapProvider>();
+    final bool hasValidRoute = driverProvider.routeID > 0 &&
+        mapProvider.routeState == RouteState.loaded;
+
+    if (!hasValidRoute) {
+      SnackBarUtils.show(
+        context,
+        'Route required to start Driving',
+        'Select an active route before changing status to Driving.',
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+        position: Position.top,
+        animationType: AnimationType.fromTop,
+      );
+      return false;
+    }
+
     return true;
   }
 
@@ -122,9 +170,6 @@ class ProfilePageState extends State<ProfilePage> {
       driverRouteId: routeId,
     );
 
-    // Define colors based on the image
-    const Color primaryColor = Color(0xff067837);
-
     // 3-state rendering
     Widget bodyContent;
     if (isLoading) {
@@ -144,11 +189,14 @@ class ProfilePageState extends State<ProfilePage> {
             child: Container(
               height: MediaQuery.of(context).size.height *
                   ProfileConstants.headerHeightFraction, // header height
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [primaryColor, primaryColor],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                  colors: [
+                    Constants.GRADIENT_COLOR_2,
+                    Constants.GRADIENT_COLOR_1
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
                 // Removed bottom curves for simplicity, add if needed
               ),
@@ -212,7 +260,7 @@ class ProfilePageState extends State<ProfilePage> {
   Widget _buildDriverName(String driverName) {
     return Text(
       driverName,
-      style: Styles().textStyle(22, Styles.bold, Constants.WHITE_COLOR),
+      style: Styles().textStyle(25, Styles.bold, Constants.WHITE_COLOR),
       textAlign: TextAlign.center,
     );
   }
@@ -324,7 +372,7 @@ class ProfilePageState extends State<ProfilePage> {
   Widget _buildInfoRow({required IconData icon, required String text}) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xff067837), size: 20),
+        Icon(icon, color: Constants.GREEN_COLOR, size: 20),
         const SizedBox(width: 15),
         Expanded(
           // Allow text to wrap if needed
@@ -351,28 +399,64 @@ class ProfilePageState extends State<ProfilePage> {
             const EdgeInsets.symmetric(vertical: 0), // Padding around the list
         child: Column(
           children: [
-            _buildActionTile(
-              icon: Icons.edit_note, // Material Icon
-              text: 'Update Information',
-              onTap: () {/* TODO: Implement navigation */},
-            ),
-            _buildDivider(),
-            _buildActionTile(
-              icon: Icons.settings_outlined, // Material Icon
-              text: 'Settings',
-              onTap: () {/* TODO: Implement navigation */},
-            ),
-            _buildDivider(),
+            // _buildActionTile(
+            //   icon: Icons.edit_note, // Material Icon
+            //   text: 'Update Information',
+            //   onTap: () {/* TODO: Implement navigation */},
+            // ),
+            // _buildDivider(),
+            // _buildActionTile(
+            //   icon: Icons.settings_outlined, // Material Icon
+            //   text: 'Settings',
+            //   onTap: () {
+            //     Navigator.push(
+            //         context,
+            //         MaterialPageRoute(
+            //           builder: (context) => const SettingsPage(),
+            //         ));
+            //   },
+            // ),
+            // _buildDivider(),
             _buildActionTile(
               icon: Icons.help_outline, // Material Icon
-              text: 'Help & Support',
-              onTap: () {/* TODO: Implement navigation */},
+              text: 'Contact Support',
+              onTap: () async {
+                final String emailAddress = 'contact.pasada@gmail.com';
+                final String subject = 'Support Request';
+                final Uri emailLaunchUri = Uri(
+                  scheme: 'mailto',
+                  path: emailAddress,
+                  queryParameters: {
+                    'subject': subject,
+                  },
+                );
+                // Attempt to launch the email client externally
+                final bool launched = await launchUrl(
+                  emailLaunchUri,
+                  mode: LaunchMode.externalApplication,
+                );
+                if (!launched) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Could not launch email client.'),
+                      ),
+                    );
+                  }
+                }
+              },
             ),
             _buildDivider(),
             _buildActionTile(
               icon: Icons.info_outline, // Material Icon
-              text: 'About',
-              onTap: () {/* TODO: Implement navigation */},
+              text: 'Privacy Policy',
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PrivacyPolicyPage(),
+                    ));
+              },
             ),
           ],
         ),
@@ -386,7 +470,7 @@ class ProfilePageState extends State<ProfilePage> {
       required VoidCallback onTap}) {
     return ListTile(
       minTileHeight: 50,
-      leading: Icon(icon, color: const Color(0xff067837), size: 20),
+      leading: Icon(icon, color: Constants.GREEN_COLOR, size: 20),
       title: Text(
         text,
         style: Styles().textStyle(14, Styles.normal, Styles.customBlackFont),
@@ -452,16 +536,33 @@ class ProfilePageState extends State<ProfilePage> {
               ),
             ),
             TextButton(
-              onPressed: () {
-                AuthService.deleteSession();
-                // Close the application
-                Navigator.of(context).pop(); // Close dialog
-                // Exit the app
-                Future.delayed(const Duration(milliseconds: 300), () {
-                  SystemNavigator.pop(); // Close the app
-                  // If you prefer navigation to login screen instead of closing:
-                  // Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-                });
+              onPressed: () async {
+                // Stop background foreground service
+                await BackgroundLocationService.instance.stop();
+                // Stop streams / clear caches
+                try {
+                  context.read<PassengerProvider>().stopBookingStream();
+                } catch (_) {}
+                try {
+                  context.read<DriverProvider>().clearCachedAllowedStops();
+                } catch (_) {}
+                // Supabase sign out (clears JWT/refresh)
+                try {
+                  await Supabase.instance.client.auth.signOut();
+                } catch (_) {}
+                // Clear local domain context
+                await AuthService.deleteSession();
+                // Close dialog
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+                // Navigate to AuthGate (login flow)
+                if (mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const AuthGate()),
+                    (route) => false,
+                  );
+                }
               },
               child: Text(
                 'Confirm',
@@ -578,7 +679,10 @@ class ProfilePageState extends State<ProfilePage> {
             height: size,
             width: size,
             child: SvgPicture.asset(
-              'assets/svg/Ellipse.svg', // Keep user-updated SVG (assuming this is the placeholder)
+              'assets/svg/Ellipse.svg',
+              colorFilter: ColorFilter.mode(
+                  Constants.GRADIENT_COLOR_1.withValues(alpha: .8),
+                  BlendMode.srcIn),
               fit: BoxFit.cover, // Ensure SVG fills the circle
               placeholderBuilder: (_) => Container(
                 // Placeholder if SVG fails

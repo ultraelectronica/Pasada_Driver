@@ -22,6 +22,7 @@ import 'package:pasada_driver_side/presentation/providers/driver/driver_provider
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'booking_processor.dart';
 import 'booking_stream_service.dart';
+import 'package:pasada_driver_side/Services/notification_service.dart';
 
 /// Provider to manage passenger booking state and expose it to Flutter UI.
 class PassengerProvider with ChangeNotifier {
@@ -247,6 +248,7 @@ class PassengerProvider with ChangeNotifier {
     required String newStatus,
     bool removeOnSuccess = false,
     bool optimistic = true,
+    Map<String, dynamic>? extraFields,
   }) async {
     try {
       _isMutatingBooking = true;
@@ -277,10 +279,31 @@ class PassengerProvider with ChangeNotifier {
         }
       }
 
-      final success =
-          await _repository.updateBookingStatus(bookingId, newStatus);
+      final success = await _repository.updateBookingStatus(
+        bookingId,
+        newStatus,
+        extraFields: extraFields,
+      );
 
       if (success) {
+        // Auto-dismiss related notifications for this booking on status transitions
+        try {
+          if (newStatus == BookingConstants.statusCompleted) {
+            // Cancel background "booking update/request" notification (id only)
+            await NotificationService.instance
+                .cancelNotificationByBookingId(bookingId);
+            // Cancel proximity notifications created with prefixed tags
+            await NotificationService.instance
+                .cancelNotificationByBookingId('Pickup: $bookingId');
+            await NotificationService.instance
+                .cancelNotificationByBookingId('Dropoff: $bookingId');
+          } else if (newStatus == BookingConstants.statusOngoing) {
+            // When ride starts, remove pickup notification if any
+            await NotificationService.instance
+                .cancelNotificationByBookingId('Pickup: $bookingId');
+          }
+        } catch (_) {}
+
         if (!optimistic && !_isDisposed) {
           if (removeOnSuccess) {
             final updated = _bookings.where((b) => b.id != bookingId).toList();
@@ -332,10 +355,18 @@ class PassengerProvider with ChangeNotifier {
   Future<bool> markBookingAsOngoing(String bookingId) async {
     BookingLogger.log('Attempting to mark booking $bookingId as ongoing',
         type: 'ACTION');
+    final nowUtc = DateTime.now().toUtc();
+    final startTime =
+        '${nowUtc.hour.toString().padLeft(2, '0')}:${nowUtc.minute.toString().padLeft(2, '0')}:${nowUtc.second.toString().padLeft(2, '0')}';
+
     final ok = await _setBookingStatus(
-        bookingId: bookingId,
-        newStatus: BookingConstants.statusOngoing,
-        optimistic: true);
+      bookingId: bookingId,
+      newStatus: BookingConstants.statusOngoing,
+      optimistic: true,
+      extraFields: {
+        'start_time': startTime,
+      },
+    );
     if (ok) {
       BookingLogger.log('Successfully marked booking $bookingId as ongoing',
           type: 'SUCCESS');
@@ -363,12 +394,18 @@ class PassengerProvider with ChangeNotifier {
   Future<bool> markBookingAsCompleted(String bookingId) async {
     BookingLogger.log('Attempting to mark booking $bookingId as completed',
         type: 'ACTION');
+    final nowUtc = DateTime.now().toUtc();
+    final endTime =
+        '${nowUtc.hour.toString().padLeft(2, '0')}:${nowUtc.minute.toString().padLeft(2, '0')}:${nowUtc.second.toString().padLeft(2, '0')}';
+
     final ok = await _setBookingStatus(
-      bookingId: bookingId,
-      newStatus: BookingConstants.statusCompleted,
-      removeOnSuccess: true,
-      optimistic: true,
-    );
+        bookingId: bookingId,
+        newStatus: BookingConstants.statusCompleted,
+        removeOnSuccess: true,
+        optimistic: true,
+        extraFields: {
+          'end_time': endTime,
+        });
     if (ok && !_isDisposed) {
       setCompletedBooking(_completedBooking + 1);
       BookingLogger.log('Successfully marked booking $bookingId as completed',

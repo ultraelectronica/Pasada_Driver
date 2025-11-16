@@ -12,6 +12,8 @@ class MapConstants {
   static const double defaultZoom = 15.0;
   static const double trackingZoom = 17.5;
   static const double defaultTilt = 45.0;
+  static const double cameraBoundsPadding =
+      100.0; // pixels padding when fitting bounds
 
   // Location tracking thresholds
   static const double minDistanceForPolylineUpdate = 20.0; // meters

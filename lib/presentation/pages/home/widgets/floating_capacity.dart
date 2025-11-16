@@ -77,14 +77,14 @@ class FloatingCapacity extends StatelessWidget {
 
   Widget _buildMainIndicator(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: Constants.WHITE_COLOR,
       elevation: 4,
       borderRadius: BorderRadius.circular(15),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(15),
-        splashColor: Constants.GREEN_COLOR.withAlpha(77),
-        highlightColor: Constants.GREEN_COLOR.withAlpha(26),
+        splashColor: Colors.blue.withAlpha(77),
+        highlightColor: Colors.blue.withAlpha(26),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),

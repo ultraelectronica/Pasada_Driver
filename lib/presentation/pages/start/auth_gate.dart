@@ -15,6 +15,8 @@ import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart'
 import 'package:pasada_driver_side/common/utils/result.dart';
 import 'package:pasada_driver_side/common/logging.dart';
 import 'package:pasada_driver_side/presentation/pages/route_setup/route_selection_sheet.dart';
+import 'package:pasada_driver_side/domain/services/background_location_service.dart';
+import 'package:pasada_driver_side/domain/services/booking_background_service.dart';
 
 /// A gatekeeper widget that decides which tree to show: the authenticated
 /// application (`MainPage`) or the authentication flow (`AuthPagesView`). It
@@ -37,9 +39,38 @@ class _AuthGateState extends State<AuthGate> {
     _checkSession();
   }
 
+  /// Determine if we have a locally stored driver context that can be used to
+  /// restore a logged-in session. This no longer relies on Supabase Auth and
+  /// only checks secure storage via [AuthService] / [DriverProvider].
   Future<bool> _hasValidSession() async {
-    final sessionData = await AuthService.getSession();
-    return sessionData.isNotEmpty;
+    try {
+      // First try to hydrate the provider from secure storage.
+      final driverProv = context.read<DriverProvider>();
+      final restored = await driverProv.loadFromSecureStorage(context);
+      if (restored && driverProv.driverID.isNotEmpty) {
+        return true;
+      }
+
+      // As a fallback, inspect raw driver context directly from storage.
+      final ctx = await AuthService.getDriverContext();
+      final driverId = ctx[AuthService.keyDriverId] ?? ctx['driver_id'];
+      if (driverId != null && driverId.toString().isNotEmpty) {
+        driverProv.setDriverID(driverId.toString());
+        final vehicleId = ctx[AuthService.keyVehicleId] ?? ctx['vehicle_id'];
+        if (vehicleId != null && vehicleId.toString().isNotEmpty) {
+          driverProv.setVehicleID(vehicleId.toString());
+        }
+        final routeIdRaw = ctx[AuthService.keyRouteId] ?? ctx['route_id'];
+        final routeId = int.tryParse(routeIdRaw?.toString() ?? '0') ?? 0;
+        if (routeId > 0) {
+          driverProv.setRouteID(routeId);
+        }
+        return true;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _checkSession() async {
@@ -58,13 +89,28 @@ class _AuthGateState extends State<AuthGate> {
     // User is still logged in, load additional data
     if (hasSession) {
       await _loadUserData();
+      // Ensure background booking watcher is active while "logged in"
+      if (mounted) {
+        BookingBackgroundService.instance.start(context);
+      }
     }
   }
 
   Future<void> _loadUserData() async {
     try {
-      // Load driver data
-      await context.read<DriverProvider>().loadFromSecureStorage(context);
+      // Load driver data purely from local driver context / provider.
+      final driverProv = context.read<DriverProvider>();
+
+      // Ensure provider is hydrated from secure storage if needed.
+      if (driverProv.driverID.isEmpty || driverProv.vehicleID.isEmpty) {
+        await driverProv.loadFromSecureStorage(context);
+      }
+
+      // Start foreground service to keep app running in background
+      await BackgroundLocationService.instance.start();
+      if (kDebugMode) {
+        logDebug('Background foreground service started on app restart');
+      }
 
       // Continue after first frame to ensure providers are ready
       WidgetsBinding.instance.addPostFrameCallback((_) async {
