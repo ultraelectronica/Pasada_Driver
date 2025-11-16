@@ -59,169 +59,362 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
     }).toList();
   }
 
-  Future<List<Booking>?> _showBulkSelectionDialog(
-      BuildContext context, List<Booking> bookings) {
-    return showDialog<List<Booking>>(
+  Future<List<Booking>?> _showBulkSelectionDialog(BuildContext context,
+      List<Booking> groupBookings, List<Booking> allBookings) {
+    return showModalBottomSheet<List<Booking>>(
       context: context,
-      builder: (dialogContext) {
-        final Map<String, bool> selected = {
-          for (final b in bookings) b.id: true,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        // Split into "this location" group and "other passengers"
+        final Set<String> groupIds = {
+          for (final b in groupBookings) b.id,
         };
+        final List<Booking> groupList = List<Booking>.from(groupBookings);
+        final List<Booking> otherList =
+            allBookings.where((b) => !groupIds.contains(b.id)).toList();
+
+        final Map<String, bool> selected = {
+          for (final b in groupList) b.id: true,
+          for (final b in otherList) b.id: false,
+        };
+
+        // Derive a human-friendly location label from the first booking
+        final Booking first = groupList.first;
+        final String locationLabel = first.dropoffAddress?.isNotEmpty == true
+            ? first.dropoffAddress!
+            : 'Unknown dropoff location';
 
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Select passengers to drop off'),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: bookings.length,
-                  itemBuilder: (context, index) {
-                    final booking = bookings[index];
-                    final isSelected = selected[booking.id] ?? false;
-                    final isManual = booking.isManualBooking;
-                    final passengerId = booking.passengerId;
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 8),
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade400,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'Select passengers to drop off at',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                      child: Text(
+                        locationLabel,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Flexible(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: [
+                          // Section: passengers at this dropoff location
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                            child: Row(
+                              children: const [
+                                Icon(Icons.place, size: 16),
+                                SizedBox(width: 6),
+                                Text(
+                                  'At this dropoff location',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ...groupList.map((booking) {
+                            final isSelected = selected[booking.id] ?? false;
+                            final isManual = booking.isManualBooking;
+                            final passengerId = booking.passengerId;
 
-                    return FutureBuilder<String?>(
-                      future: passengerId == null || passengerId.isEmpty
-                          ? Future.value(null)
-                          : PassengerNameService.instance
-                              .getDisplayNameForPassengerId(passengerId),
-                      builder: (context, snapshot) {
-                        final hasName =
-                            snapshot.connectionState == ConnectionState.done &&
-                                snapshot.data != null &&
-                                snapshot.data!.isNotEmpty;
-                        final String primaryText =
-                            hasName ? snapshot.data! : '# ${booking.id}';
-                        final discountLabel = booking.discountLabel;
+                            return FutureBuilder<String?>(
+                              future: passengerId == null || passengerId.isEmpty
+                                  ? Future.value(null)
+                                  : PassengerNameService.instance
+                                      .getDisplayNameForPassengerId(
+                                          passengerId),
+                              builder: (context, snapshot) {
+                                final hasName = snapshot.connectionState ==
+                                        ConnectionState.done &&
+                                    snapshot.data != null &&
+                                    snapshot.data!.isNotEmpty;
+                                final String primaryText = hasName
+                                    ? snapshot.data!
+                                    : '# ${booking.id}';
+                                final discountLabel = booking.discountLabel;
+                                final dropoffAddr =
+                                    booking.dropoffAddress?.isNotEmpty == true
+                                        ? booking.dropoffAddress!
+                                        : 'Unknown dropoff';
 
-                        return CheckboxListTile(
-                          value: isSelected,
-                          activeColor: Constants.GREEN_COLOR,
-                          onChanged: (value) {
-                            setState(() {
-                              selected[booking.id] = value ?? false;
-                            });
-                          },
-                          title: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  primaryText,
-                                  overflow: TextOverflow.ellipsis,
+                                return CheckboxListTile(
+                                  value: isSelected,
+                                  activeColor: Constants.GREEN_COLOR,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      selected[booking.id] = value ?? false;
+                                    });
+                                  },
+                                  title: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          primaryText,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      if (discountLabel != null)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 4, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue
+                                                .withValues(alpha: 0.15),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            discountLabel.toUpperCase(),
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.blue,
+                                            ),
+                                          ),
+                                        ),
+                                      const SizedBox(width: 4),
+                                      if (isManual)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 4, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red
+                                                .withValues(alpha: 0.2),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: const Text(
+                                            'MANUAL',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  subtitle: Text(
+                                    '${hasName ? '# ${booking.id} • ' : ''}Dropoff: $dropoffAddr • Seat: ${booking.seatType}',
+                                  ),
+                                );
+                              },
+                            );
+                          }),
+                          const Divider(height: 16),
+                          // Section: other passengers
+                          if (otherList.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                              child: Row(
+                                children: const [
+                                  Icon(Icons.list_alt, size: 16),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Other passengers',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ...otherList.map((booking) {
+                            final isSelected = selected[booking.id] ?? false;
+                            final isManual = booking.isManualBooking;
+                            final passengerId = booking.passengerId;
+
+                            return FutureBuilder<String?>(
+                              future: passengerId == null || passengerId.isEmpty
+                                  ? Future.value(null)
+                                  : PassengerNameService.instance
+                                      .getDisplayNameForPassengerId(
+                                          passengerId),
+                              builder: (context, snapshot) {
+                                final hasName = snapshot.connectionState ==
+                                        ConnectionState.done &&
+                                    snapshot.data != null &&
+                                    snapshot.data!.isNotEmpty;
+                                final String primaryText = hasName
+                                    ? snapshot.data!
+                                    : '# ${booking.id}';
+                                final discountLabel = booking.discountLabel;
+                                final dropoffAddr =
+                                    booking.dropoffAddress?.isNotEmpty == true
+                                        ? booking.dropoffAddress!
+                                        : 'Unknown dropoff';
+
+                                return CheckboxListTile(
+                                  value: isSelected,
+                                  activeColor: Constants.GREEN_COLOR,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      selected[booking.id] = value ?? false;
+                                    });
+                                  },
+                                  title: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          primaryText,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      if (discountLabel != null)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 4, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue
+                                                .withValues(alpha: 0.15),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            discountLabel.toUpperCase(),
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.blue,
+                                            ),
+                                          ),
+                                        ),
+                                      const SizedBox(width: 4),
+                                      if (isManual)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 4, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red
+                                                .withValues(alpha: 0.2),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: const Text(
+                                            'MANUAL',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  subtitle: Text(
+                                    '${hasName ? '# ${booking.id} • ' : ''}Dropoff: $dropoffAddr • Seat: ${booking.seatType}',
+                                  ),
+                                );
+                              },
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () => Navigator.of(sheetContext).pop(null),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 10, horizontal: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  'Cancel',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 6),
-                              if (discountLabel != null)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 4, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    discountLabel.toUpperCase(),
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blue,
-                                    ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () {
+                                final result = [
+                                  ...groupList,
+                                  ...otherList,
+                                ]
+                                    .where((b) => selected[b.id] ?? false)
+                                    .toList();
+                                Navigator.of(sheetContext).pop(result);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 10, horizontal: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  'Confirm',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
                                   ),
                                 ),
-                              const SizedBox(width: 4),
-                              if (isManual)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 4, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Text(
-                                    'MANUAL',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.red,
-                                    ),
-                                  ),
-                                ),
-                            ],
+                              ),
+                            ),
                           ),
-                          subtitle: Text(
-                            hasName
-                                ? '# ${booking.id} • Seat: ${booking.seatType}'
-                                : 'Seat: ${booking.seatType}',
-                          ),
-                        );
-                      },
-                    );
-                  },
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              actions: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: () => Navigator.of(dialogContext).pop(null),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 10, horizontal: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            alignment: Alignment.center,
-                            child: const Text(
-                              'Cancel',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: () {
-                            final result = bookings
-                                .where((b) => selected[b.id] ?? false)
-                                .toList();
-                            Navigator.of(dialogContext).pop(result);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 10, horizontal: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.orange,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            alignment: Alignment.center,
-                            child: const Text(
-                              'Confirm',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             );
           },
         );
@@ -383,8 +576,11 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
                 }
 
                 // Let driver select which passengers at this location to drop off
-                final selected =
-                    await _showBulkSelectionDialog(context, bookingsToProcess);
+                final selected = await _showBulkSelectionDialog(
+                  context,
+                  bookingsToProcess,
+                  provider.bookings,
+                );
                 if (!mounted) return;
                 if (selected == null || selected.isEmpty) {
                   // User cancelled or deselected all

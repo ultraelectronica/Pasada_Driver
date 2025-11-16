@@ -7,7 +7,9 @@ class Booking {
   final String id;
   final String? passengerId; // Nullable for manual bookings
   final String rideStatus;
+  final String? pickupAddress;
   final LatLng pickupLocation;
+  final String? dropoffAddress;
   final LatLng dropoffLocation;
   final String seatType;
   final String? passengerIdImagePath;
@@ -21,7 +23,9 @@ class Booking {
     required this.id,
     this.passengerId, // Nullable for manual bookings
     required this.rideStatus,
+    this.pickupAddress,
     required this.pickupLocation,
+    this.dropoffAddress,
     required this.dropoffLocation,
     required this.seatType,
     this.passengerIdImagePath,
@@ -36,8 +40,11 @@ class Booking {
     final bookingId = json[BookingConstants.fieldBookingId];
     final passengerId = json[BookingConstants.fieldPassengerId];
     final rideStatus = json[BookingConstants.fieldRideStatus];
+    final pickupAddress = json[BookingConstants.fieldPickupAddress] as String?;
     final pickupLat = json[BookingConstants.fieldPickupLat];
     final pickupLng = json[BookingConstants.fieldPickupLng];
+    final dropoffAddress =
+        json[BookingConstants.fieldDropoffAddress] as String?;
     final dropoffLat = json[BookingConstants.fieldDropoffLat];
     final dropoffLng = json[BookingConstants.fieldDropoffLng];
 
@@ -75,10 +82,12 @@ class Booking {
       id: bookingId.toString(),
       passengerId: passengerId?.toString(), // Nullable for manual bookings
       rideStatus: rideStatus as String,
+      pickupAddress: pickupAddress,
       pickupLocation: LatLng(
         (pickupLat as num).toDouble(),
         (pickupLng as num).toDouble(),
       ),
+      dropoffAddress: dropoffAddress,
       dropoffLocation: LatLng(
         (dropoffLat as num).toDouble(),
         (dropoffLng as num).toDouble(),
@@ -97,8 +106,10 @@ class Booking {
       BookingConstants.fieldBookingId: id,
       BookingConstants.fieldPassengerId: passengerId,
       BookingConstants.fieldRideStatus: rideStatus,
+      BookingConstants.fieldPickupAddress: pickupAddress,
       BookingConstants.fieldPickupLat: pickupLocation.latitude,
       BookingConstants.fieldPickupLng: pickupLocation.longitude,
+      BookingConstants.fieldDropoffAddress: dropoffAddress,
       BookingConstants.fieldDropoffLat: dropoffLocation.latitude,
       BookingConstants.fieldDropoffLng: dropoffLocation.longitude,
       BookingConstants.fieldSeatType: seatType,
@@ -113,7 +124,9 @@ class Booking {
     String? id,
     String? passengerId,
     String? rideStatus,
+    String? pickupAddress,
     LatLng? pickupLocation,
+    String? dropoffAddress,
     LatLng? dropoffLocation,
     String? seatType,
     String? passengerIdImagePath,
@@ -125,7 +138,9 @@ class Booking {
       id: id ?? this.id,
       passengerId: passengerId ?? this.passengerId,
       rideStatus: rideStatus ?? this.rideStatus,
+      pickupAddress: pickupAddress ?? this.pickupAddress,
       pickupLocation: pickupLocation ?? this.pickupLocation,
+      dropoffAddress: dropoffAddress ?? this.dropoffAddress,
       dropoffLocation: dropoffLocation ?? this.dropoffLocation,
       seatType: seatType ?? this.seatType,
       passengerIdImagePath: passengerIdImagePath ?? this.passengerIdImagePath,
@@ -193,8 +208,8 @@ class Booking {
   @override
   String toString() {
     return 'Booking(id: $id, passengerId: $passengerId, status: $rideStatus, '
-        'pickup: (${pickupLocation.latitude}, ${pickupLocation.longitude}), '
-        'dropoff: (${dropoffLocation.latitude}, ${dropoffLocation.longitude}), '
+        'pickup: $pickupAddress (${pickupLocation.latitude}, ${pickupLocation.longitude}), '
+        'dropoff: $dropoffAddress (${dropoffLocation.latitude}, ${dropoffLocation.longitude}), '
         'seatType: $seatType, passengerIdImagePath: $passengerIdImagePath, '
         'isIdAccepted: $isIdAccepted, passengerType: $passengerType, distance: $distanceToDriver)';
   }
