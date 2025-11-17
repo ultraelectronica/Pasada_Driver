@@ -4,14 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/common/constants/constants.dart';
-import 'package:pasada_driver_side/common/constants/message.dart';
 import 'package:pasada_driver_side/presentation/pages/activity/activity_page.dart';
 import 'package:pasada_driver_side/presentation/pages/home/home_page.dart';
 import 'package:pasada_driver_side/presentation/pages/profile/profile_page.dart';
+import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
-import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
-import 'package:pasada_driver_side/common/constants/text_styles.dart';
 import 'package:provider/provider.dart';
+import 'package:pasada_driver_side/domain/services/presence_service.dart';
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -26,6 +27,7 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
   Timer? _inactiveDebounceTimer;
   bool hasShownDrivingPrompt = true;
   AppLifecycleState? _lastLifecycleState;
+  DateTime? _lastBackPressAt;
 
   final List<Widget> pages = const [
     HomeScreen(),
@@ -38,6 +40,16 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     super.initState();
     // _startTimer();
     WidgetsBinding.instance.addObserver(this);
+    // Start presence heartbeat only when on MainPage and logged in
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final bool isLoggedIn =
+          context.read<DriverProvider>().driverID.isNotEmpty;
+      if (isLoggedIn && !PresenceService.instance.isRunning) {
+        PresenceService.instance
+            .start(context, interval: const Duration(seconds: 10));
+      }
+    });
   }
 
   @override
@@ -45,6 +57,10 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     // _timer?.cancel();
     _inactiveDebounceTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
+    // Stop presence when leaving MainPage
+    if (PresenceService.instance.isRunning) {
+      PresenceService.instance.stop();
+    }
     super.dispose();
   }
 
@@ -55,6 +71,15 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
     if (kDebugMode) {
       print('[Lifecycle] State changed from $_lastLifecycleState to $state');
+    }
+
+    // Ensure presence is running on resume if logged in
+    if (state == AppLifecycleState.resumed) {
+      final bool isLoggedIn = driverProv.driverID.isNotEmpty;
+      if (isLoggedIn && !PresenceService.instance.isRunning) {
+        PresenceService.instance
+            .start(context, interval: const Duration(seconds: 10));
+      }
     }
 
     // Handle transitions to inactive state (notification opened, app switching, etc.)
@@ -171,10 +196,30 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // backgroundColor: Constants.BLACK_COLOR,
-      body: IndexedStack(index: _currentIndex, children: pages),
-      bottomNavigationBar: _buildBottomNavBar(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          // Double-back-to-exit: first back shows toast, second back within 2s exits.
+          () async {
+            final now = DateTime.now();
+            if (_lastBackPressAt == null ||
+                now.difference(_lastBackPressAt!) >
+                    const Duration(seconds: 2)) {
+              _lastBackPressAt = now;
+              Fluttertoast.showToast(msg: 'Press back again to exit');
+              return;
+            }
+            // Second back within window: exit app
+            await SystemNavigator.pop();
+          }();
+        }
+      },
+      child: Scaffold(
+        // backgroundColor: Constants.BLACK_COLOR,
+        body: IndexedStack(index: _currentIndex, children: pages),
+        bottomNavigationBar: _buildBottomNavBar(),
+      ),
     );
   }
 
@@ -196,38 +241,38 @@ class MainPageState extends State<MainPage> with WidgetsBindingObserver {
     },
   };
 
-  BottomNavigationBar _buildBottomNavBar() {
-    return BottomNavigationBar(
-      backgroundColor: Constants.WHITE_COLOR,
-      currentIndex: _currentIndex,
+  // Per-tab background colors for the curved nav
+  final List<Color> _navColors = <Color>[
+    Constants.GREEN_COLOR, // Home
+    Constants.YELLOW_COLOR, // Activity
+    Constants.RED_COLOR, // Profile
+  ];
+
+  CurvedNavigationBar _buildBottomNavBar() {
+    return CurvedNavigationBar(
+      backgroundColor: _navColors[_currentIndex],
+      color: Colors.white,
+      buttonBackgroundColor: Constants.WHITE_COLOR,
+      height: 60,
+      index: _currentIndex,
       onTap: _onTap,
-      showSelectedLabels: true,
-      showUnselectedLabels: false,
-      selectedLabelStyle:
-          Styles().textStyle(12, Styles.bold, Styles.customBlackFont),
-      unselectedLabelStyle:
-          Styles().textStyle(12, Styles.bold, Styles.customBlackFont),
-      selectedItemColor: Constants.GREEN_COLOR,
-      type: BottomNavigationBarType.fixed,
+      animationDuration: const Duration(milliseconds: 400),
       items: navigation.entries
-          .map((e) => _buildNavItem(e.key, e.value['Label']!,
-              e.value['SelectedIcon']!, e.value['UnselectedIcon']!))
+          .map((e) => _buildNavItem(
+              e.key, e.value['UnselectedIcon']!, e.value['SelectedIcon']!))
           .toList(),
     );
   }
 
-  BottomNavigationBarItem _buildNavItem(
-      int idx, String label, String selectedIcon, String unselectedIcon) {
+  Widget _buildNavItem(int idx, String unselectedIcon, String selectedIcon) {
     final isSelected = _currentIndex == idx;
-    return BottomNavigationBarItem(
-      label: label,
-      icon: SvgPicture.asset(
-        'assets/svg/${isSelected ? selectedIcon : unselectedIcon}',
-        width: isSelected ? 28 : 24,
-        height: isSelected ? 28 : 24,
-        colorFilter: isSelected
-            ? ColorFilter.mode(Constants.GREEN_COLOR, BlendMode.srcIn)
-            : null,
+    return SvgPicture.asset(
+      'assets/svg/${isSelected ? selectedIcon : unselectedIcon}',
+      width: 28,
+      height: 28,
+      colorFilter: ColorFilter.mode(
+        isSelected ? _navColors[idx] : Constants.BLACK_COLOR,
+        BlendMode.srcIn,
       ),
     );
   }

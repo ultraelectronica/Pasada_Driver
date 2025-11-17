@@ -39,6 +39,7 @@ dependencies:
   flutter_animate: ^4.5.2
   flutter_dotenv: ^5.2.1
   flutter_local_notifications: ^18.0.1
+  flutter_markdown: ^0.7.4+1
   flutter_polyline_points: ^1.0.0
   flutter_secure_storage: ^9.2.4
   flutter_svg: 2.0.9
@@ -61,6 +62,9 @@ dependencies:
   webview_flutter: ^4.10.0
   flutter_background_service: ^5.0.10
   flutter_background_service_android: ^6.2.4
+  curved_navigation_bar: ^1.0.6
+  pdf: ^3.11.1
+  printing: ^5.13.3
 
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1
@@ -145,6 +149,7 @@ flutter:
     - .env
 
     - assets/map_style/map_style.json # dark mode map style
+    - assets/docs/privacy_policy.md
 
   # To add assets to your application, add an assets section, like this:
   # assets:

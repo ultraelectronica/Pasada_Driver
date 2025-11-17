@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:pasada_driver_side/Services/auth_service.dart';
 import 'package:pasada_driver_side/common/constants/message.dart';
@@ -17,6 +16,7 @@ import 'package:pasada_driver_side/common/utils/result.dart';
 import 'package:pasada_driver_side/common/logging.dart';
 import 'package:pasada_driver_side/presentation/pages/route_setup/route_selection_sheet.dart';
 import 'package:pasada_driver_side/domain/services/background_location_service.dart';
+import 'package:pasada_driver_side/domain/services/booking_background_service.dart';
 
 /// A gatekeeper widget that decides which tree to show: the authenticated
 /// application (`MainPage`) or the authentication flow (`AuthPagesView`). It
@@ -39,36 +39,38 @@ class _AuthGateState extends State<AuthGate> {
     _checkSession();
   }
 
+  /// Determine if we have a locally stored driver context that can be used to
+  /// restore a logged-in session. This no longer relies on Supabase Auth and
+  /// only checks secure storage via [AuthService] / [DriverProvider].
   Future<bool> _hasValidSession() async {
-    final auth = Supabase.instance.client.auth;
-    final session = auth.currentSession;
-    if (session == null) return false;
-    // Enforce client-side soft expiry window
-    final softExpired = await AuthService.isSessionExpired();
-    if (softExpired) {
-      try {
-        debugPrint('[SESSION] session expired, please log in again.');
-        await auth.signOut();
-      } catch (_) {}
-      await AuthService.deleteSession();
+    try {
+      // First try to hydrate the provider from secure storage.
+      final driverProv = context.read<DriverProvider>();
+      final restored = await driverProv.loadFromSecureStorage(context);
+      if (restored && driverProv.driverID.isNotEmpty) {
+        return true;
+      }
+
+      // As a fallback, inspect raw driver context directly from storage.
+      final ctx = await AuthService.getDriverContext();
+      final driverId = ctx[AuthService.keyDriverId] ?? ctx['driver_id'];
+      if (driverId != null && driverId.toString().isNotEmpty) {
+        driverProv.setDriverID(driverId.toString());
+        final vehicleId = ctx[AuthService.keyVehicleId] ?? ctx['vehicle_id'];
+        if (vehicleId != null && vehicleId.toString().isNotEmpty) {
+          driverProv.setVehicleID(vehicleId.toString());
+        }
+        final routeIdRaw = ctx[AuthService.keyRouteId] ?? ctx['route_id'];
+        final routeId = int.tryParse(routeIdRaw?.toString() ?? '0') ?? 0;
+        if (routeId > 0) {
+          driverProv.setRouteID(routeId);
+        }
+        return true;
+      }
+      return false;
+    } catch (_) {
       return false;
     }
-    try {
-      final expiresAtSec = session.expiresAt; // seconds since epoch (UTC)
-      if (expiresAtSec != null) {
-        final expiresAt = DateTime.fromMillisecondsSinceEpoch(
-                expiresAtSec * 1000,
-                isUtc: true)
-            .toLocal();
-        if (expiresAt
-            .isBefore(DateTime.now().add(const Duration(minutes: 1)))) {
-          // Proactively refresh if expiring
-          final refreshed = await auth.refreshSession();
-          return refreshed.session != null;
-        }
-      }
-    } catch (_) {}
-    return true;
   }
 
   Future<void> _checkSession() async {
@@ -87,41 +89,21 @@ class _AuthGateState extends State<AuthGate> {
     // User is still logged in, load additional data
     if (hasSession) {
       await _loadUserData();
+      // Ensure background booking watcher is active while "logged in"
+      if (mounted) {
+        BookingBackgroundService.instance.start(context);
+      }
     }
   }
 
   Future<void> _loadUserData() async {
     try {
-      // Load driver data
+      // Load driver data purely from local driver context / provider.
       final driverProv = context.read<DriverProvider>();
-      final supa = Supabase.instance.client;
 
-      // Attempt to restore domain context from secure storage
-      await driverProv.loadFromSecureStorage(context);
-
-      // Fallback: if context is missing, derive from auth user linkage
+      // Ensure provider is hydrated from secure storage if needed.
       if (driverProv.driverID.isEmpty || driverProv.vehicleID.isEmpty) {
-        final uid = supa.auth.currentUser?.id;
-        if (uid != null) {
-          final resp = await supa
-              .from('driverTable')
-              .select('driver_id, vehicle_id')
-              .eq('auth_user_id', uid)
-              .maybeSingle();
-          if (resp != null) {
-            final driverId = resp['driver_id']?.toString() ?? '';
-            final vehicleId = resp['vehicle_id']?.toString() ?? '';
-            if (driverId.isNotEmpty) driverProv.setDriverID(driverId);
-            if (vehicleId.isNotEmpty) driverProv.setVehicleID(vehicleId);
-            // Fetch route and persist domain context
-            await driverProv.getDriverRoute();
-            await AuthService.saveDriverContext(
-              driverId: driverProv.driverID,
-              routeId: driverProv.routeID.toString(),
-              vehicleId: driverProv.vehicleID,
-            );
-          }
-        }
+        await driverProv.loadFromSecureStorage(context);
       }
 
       // Start foreground service to keep app running in background

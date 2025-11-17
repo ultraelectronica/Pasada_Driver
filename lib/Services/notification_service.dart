@@ -361,6 +361,19 @@ class NotificationService {
     }
   }
 
+  /// Specialized helper: show a "booking cancelled" notification
+  /// Uses a prefixed booking ID key so generic auto-cancel logic tied to the
+  /// base booking ID will not immediately dismiss this notification.
+  Future<int> showCancelledNotification(String bookingId) {
+    final String prefixedId = 'Cancelled: $bookingId';
+    return showBasicNotification(
+      'Booking Cancelled',
+      'The passenger cancelled the booking.',
+      bookingId: prefixedId,
+      payload: bookingId,
+    );
+  }
+
   /// Get all active notification booking IDs
   List<String> getActiveNotificationBookingIds() {
     return _activeNotifications.keys.toList();

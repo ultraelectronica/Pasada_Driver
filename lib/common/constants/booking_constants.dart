@@ -18,14 +18,17 @@ class BookingConstants {
   static const String fieldPassengerId = 'passenger_id';
   static const String fieldDriverId = 'driver_id';
   static const String fieldRideStatus = 'ride_status';
+  static const String fieldPickupAddress = 'pickup_address';
   static const String fieldPickupLat = 'pickup_lat';
   static const String fieldPickupLng = 'pickup_lng';
+  static const String fieldDropoffAddress = 'dropoff_address';
   static const String fieldDropoffLat = 'dropoff_lat';
   static const String fieldDropoffLng = 'dropoff_lng';
   static const String fieldSeatType = 'seat_type';
   static const String fieldPassengerIdImagePath = 'passenger_id_image_path';
   static const String fieldIsIdAccepted = 'is_id_accepted';
   static const String fieldFare = 'fare';
+  static const String fieldPassengerType = 'passenger_type';
 
   // Default values
   static const String defaultSeatType = 'Sitting';

@@ -10,6 +10,7 @@ import 'package:pasada_driver_side/common/exceptions/booking_exception.dart';
 import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 
 import 'booking_repository.dart';
+import 'package:pasada_driver_side/Services/notification_service.dart';
 
 /// Concrete Supabase implementation of [BookingRepository].
 class SupabaseBookingRepository implements BookingRepository {
@@ -36,13 +37,16 @@ class SupabaseBookingRepository implements BookingRepository {
       const selectFields = '${BookingConstants.fieldBookingId}, '
           '${BookingConstants.fieldPassengerId}, '
           '${BookingConstants.fieldRideStatus}, '
+          '${BookingConstants.fieldPickupAddress}, '
           '${BookingConstants.fieldPickupLat}, '
           '${BookingConstants.fieldPickupLng}, '
+          '${BookingConstants.fieldDropoffAddress}, '
           '${BookingConstants.fieldDropoffLat}, '
           '${BookingConstants.fieldDropoffLng}, '
           '${BookingConstants.fieldSeatType}, '
           '${BookingConstants.fieldPassengerIdImagePath}, '
-          '${BookingConstants.fieldIsIdAccepted}';
+          '${BookingConstants.fieldIsIdAccepted}, '
+          '${BookingConstants.fieldPassengerType}';
 
       const statusFilter =
           '${BookingConstants.fieldRideStatus}.eq.${BookingConstants.statusRequested},'
@@ -151,9 +155,17 @@ class SupabaseBookingRepository implements BookingRepository {
   }
 
   @override
-  Future<bool> updateBookingStatus(String bookingId, String newStatus) async {
+  Future<bool> updateBookingStatus(
+    String bookingId,
+    String newStatus, {
+    Map<String, dynamic>? extraFields,
+  }) async {
     return _withRetry<bool>(
-      () => _updateBookingStatusInternal(bookingId, newStatus),
+      () => _updateBookingStatusInternal(
+        bookingId,
+        newStatus,
+        extraFields: extraFields,
+      ),
       'updateBookingStatus',
       maxRetries: BookingConstants.defaultMaxRetries,
     );
@@ -258,11 +270,19 @@ class SupabaseBookingRepository implements BookingRepository {
   }
 
   Future<bool> _updateBookingStatusInternal(
-      String bookingId, String newStatus) async {
+    String bookingId,
+    String newStatus, {
+    Map<String, dynamic>? extraFields,
+  }) async {
     try {
+      final Map<String, dynamic> updatePayload = {
+        BookingConstants.fieldRideStatus: newStatus,
+        if (extraFields != null) ...extraFields,
+      };
+
       await _supabase
           .from('bookings')
-          .update({BookingConstants.fieldRideStatus: newStatus})
+          .update(updatePayload)
           .eq(BookingConstants.fieldBookingId, bookingId)
           .timeout(
             const Duration(seconds: AppConfig.databaseOperationTimeout),
@@ -382,6 +402,13 @@ class SupabaseBookingRepository implements BookingRepository {
                 // CRITICAL: If the booking is no longer active (completed/cancelled),
                 // stop tracking it entirely so it won't be re-added on future stream emissions
                 if (!isActive) {
+                  // If this booking is still ours and specifically transitioned to cancelled,
+                  // inform the driver via a local notification.
+                  if (isValidDriver &&
+                      status == BookingConstants.statusCancelled) {
+                    // Use bookingId-derived ID so any existing notification is updated in place
+                    NotificationService.instance.showCancelledNotification(id);
+                  }
                   trackedBookingIds.remove(id);
 
                   if (kDebugMode) {
@@ -454,18 +481,29 @@ class SupabaseBookingRepository implements BookingRepository {
 
   @override
   Future<List<BookingReceipt>> fetchTodayBookings(String driverId) async {
-    // Use local device day boundaries but query Supabase using UTC timestamps.
-    // This avoids server interpreting local timestamps as UTC when no offset is provided.
-    final nowLocal = DateTime.now();
-    final startOfDayLocal =
-        DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
-    final endOfDayLocal =
-        DateTime(nowLocal.year, nowLocal.month, nowLocal.day, 23, 59, 59, 999);
+    // IMPORTANT:
+    // The database stores booking timestamps in UTC and we want "today"
+    // to be interpreted using the SAME calendar day as the UTC timestamps.
+    //
+    // Using local day boundaries (and then converting to UTC) can cause
+    // late‑night bookings (e.g. 21:59:xx+00) to fall outside the computed
+    // [start, end] window depending on the device timezone. That was
+    // causing completed manual bookings like:
+    //
+    //   2025-11-14 21:59:09.734429+00
+    //
+    // to be excluded from "Today's Bookings" even though they share the
+    // same UTC calendar date as earlier bookings (e.g. 13:55:26.031+00).
+    //
+    // To avoid this, we define today's window purely in UTC:
+    // [00:00:00.000, 23:59:59.999] for the current UTC day.
+    final nowUtc = DateTime.now().toUtc();
+    final startOfDayUtc =
+        DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day, 0, 0, 0, 0);
+    final endOfDayUtc =
+        DateTime.utc(nowUtc.year, nowUtc.month, nowUtc.day, 23, 59, 59, 999);
 
-    final startUtc = startOfDayLocal.toUtc();
-    final endUtc = endOfDayLocal.toUtc();
-
-    return fetchBookingsByDateRange(driverId, startUtc, endUtc);
+    return fetchBookingsByDateRange(driverId, startOfDayUtc, endOfDayUtc);
   }
 
   @override

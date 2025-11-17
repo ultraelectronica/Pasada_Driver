@@ -90,15 +90,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _precacheAssets();
-    // Start presence heartbeat after first frame when context is available
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !_presenceService.isRunning) {
-        _presenceService.start(
-          context,
-          interval: const Duration(seconds: 10),
-        );
-      }
-    });
   }
 
   @override
@@ -127,11 +118,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       case AppLifecycleState.resumed:
         // App came back to foreground
         _cancelBackgroundTimer();
-        // Immediate heartbeat on resume
-        PresenceService.instance.start(
-          context,
-          interval: const Duration(seconds: 10),
-        );
         break;
       case AppLifecycleState.detached:
       case AppLifecycleState.inactive:
@@ -144,6 +130,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     // Cancel any existing timers
     _backgroundTimer?.cancel();
     _periodicTimer?.cancel();
+
+    // Only run background timers/service for authenticated drivers
+    final driverProvider = context.read<DriverProvider>();
+    final bool isLoggedIn = driverProvider.driverID.isNotEmpty;
+    if (!isLoggedIn) {
+      if (kDebugMode) {
+        logDebug(
+            '[Lifecycle][Timer] Skipping background timers (not logged in)');
+      }
+      return;
+    }
 
     if (kDebugMode) {
       logDebug('[Lifecycle][Timer] Starting background timers');
@@ -168,8 +165,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         }
       }
     }
-
-    final driverProvider = context.read<DriverProvider>();
 
     _backgroundStartTime = DateTime.now();
 
@@ -236,7 +231,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     } else if (_backgroundTimer != null && !_backgroundTimer!.isActive) {
       // Timer already fired, meaning service was stopped
       // Restart the service if it's not running
-      _restartServiceIfNeeded();
+      final driverProvider = context.read<DriverProvider>();
+      final bool isLoggedIn = driverProvider.driverID.isNotEmpty;
+      if (isLoggedIn) {
+        _restartServiceIfNeeded();
+      } else if (kDebugMode) {
+        logDebug(
+            '[Lifecycle] Skip restarting background service (not logged in)');
+      }
     }
   }
 

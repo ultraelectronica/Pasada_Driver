@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:pasada_driver_side/Services/auth_service.dart';
-import 'package:pasada_driver_side/presentation/pages/profile/pages/settings_page.dart';
+import 'package:pasada_driver_side/presentation/pages/profile/pages/privacy_policy_page.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
@@ -15,6 +15,8 @@ import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.
 import 'package:pasada_driver_side/domain/services/background_location_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pasada_driver_side/presentation/pages/start/auth_gate.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:cherry_toast/resources/arrays.dart';
 
 // --- Custom Clipper for Background Shape ---
 class ProfileBackgroundClipper extends CustomClipper<Path> {
@@ -70,22 +72,63 @@ class ProfilePageState extends State<ProfilePage> {
 
   bool _trySwitchToOnline(BuildContext context, DriverProvider driverProvider,
       int totalPassengers, String status) {
-    if (totalPassengers > 0) {
+    // Guard: prevent going Online while passengers are still onboard
+    if (status == 'Online' && totalPassengers > 0) {
       SnackBarUtils.show(
         context,
         'Cannot go Online: Vehicle still has $totalPassengers passenger${totalPassengers > 1 ? "s" : ""}',
         'Drop off all passengers to designated stops before going Online',
         backgroundColor: Colors.red,
         duration: const Duration(seconds: 3),
+        position: Position.top,
+        animationType: AnimationType.fromTop,
       );
       return false;
     }
 
-    // driverProvider.updateStatusToDB(status);
-    // // Ensure the new status is preserved if app is backgrounded immediately
-    // driverProvider.setLastDriverStatus(status);
+    // For non-Driving statuses, no further guards
+    if (status != 'Driving') {
+      return true;
+    }
 
-    // SnackBarUtils.show(context, 'Status set to $status', Colors.grey[700]!);
+    // Guards below apply only when switching to Driving
+    final vehicleId = driverProvider.vehicleID;
+    final normalizedVehicleId = vehicleId.trim().toLowerCase();
+    final hasVehicle = normalizedVehicleId.isNotEmpty &&
+        normalizedVehicleId != 'n/a' &&
+        normalizedVehicleId != 'null';
+
+    if (!hasVehicle) {
+      SnackBarUtils.show(
+        context,
+        'Vehicle required to start Driving',
+        'Your account has no vehicle assigned. Please contact your admin before changing status to Driving.',
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+        position: Position.top,
+        animationType: AnimationType.fromTop,
+      );
+      return false;
+    }
+
+    // Guard: require a valid, loaded route when switching to Driving
+    final mapProvider = context.read<MapProvider>();
+    final bool hasValidRoute = driverProvider.routeID > 0 &&
+        mapProvider.routeState == RouteState.loaded;
+
+    if (!hasValidRoute) {
+      SnackBarUtils.show(
+        context,
+        'Route required to start Driving',
+        'Select an active route before changing status to Driving.',
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+        position: Position.top,
+        animationType: AnimationType.fromTop,
+      );
+      return false;
+    }
+
     return true;
   }
 
@@ -362,28 +405,58 @@ class ProfilePageState extends State<ProfilePage> {
             //   onTap: () {/* TODO: Implement navigation */},
             // ),
             // _buildDivider(),
+            // _buildActionTile(
+            //   icon: Icons.settings_outlined, // Material Icon
+            //   text: 'Settings',
+            //   onTap: () {
+            //     Navigator.push(
+            //         context,
+            //         MaterialPageRoute(
+            //           builder: (context) => const SettingsPage(),
+            //         ));
+            //   },
+            // ),
+            // _buildDivider(),
             _buildActionTile(
-              icon: Icons.settings_outlined, // Material Icon
-              text: 'Settings',
-              onTap: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SettingsPage(),
-                    ));
+              icon: Icons.help_outline, // Material Icon
+              text: 'Contact Support',
+              onTap: () async {
+                final String emailAddress = 'contact.pasada@gmail.com';
+                final String subject = 'Support Request';
+                final Uri emailLaunchUri = Uri(
+                  scheme: 'mailto',
+                  path: emailAddress,
+                  queryParameters: {
+                    'subject': subject,
+                  },
+                );
+                // Attempt to launch the email client externally
+                final bool launched = await launchUrl(
+                  emailLaunchUri,
+                  mode: LaunchMode.externalApplication,
+                );
+                if (!launched) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Could not launch email client.'),
+                      ),
+                    );
+                  }
+                }
               },
             ),
             _buildDivider(),
             _buildActionTile(
-              icon: Icons.help_outline, // Material Icon
-              text: 'Help & Support',
-              onTap: () {/* TODO: Implement navigation */},
-            ),
-            _buildDivider(),
-            _buildActionTile(
               icon: Icons.info_outline, // Material Icon
-              text: 'About',
-              onTap: () {/* TODO: Implement navigation */},
+              text: 'Privacy Policy',
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PrivacyPolicyPage(),
+                    ));
+              },
             ),
           ],
         ),

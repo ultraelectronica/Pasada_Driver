@@ -45,10 +45,10 @@ class AppConfig {
 
   // TEST MODE VALUES
   static bool isTestMode = true; // Set to false for production values
-  static const double testPickupProximityThreshold = 10000;
-  static const double testPickupApproachThreshold = 10000;
-  static const double testDropoffProximityThreshold = 10000;
-  static const double testDropoffApproachThreshold = 10000;
+  static const double testPickupProximityThreshold = 40000;
+  static const double testPickupApproachThreshold = 40000;
+  static const double testDropoffProximityThreshold = 40000;
+  static const double testDropoffApproachThreshold = 40000;
 
   // Getters that return either test or production values based on mode
 

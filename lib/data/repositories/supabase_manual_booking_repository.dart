@@ -135,7 +135,7 @@ class SupabaseManualBookingRepository implements ManualBookingRepository {
     required String passengerType,
     required double farePerPassenger,
   }) async {
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
 
     // Generate unique booking ID in format: 10000XXXXXX
     final bookingId = await _generateUniqueBookingId();

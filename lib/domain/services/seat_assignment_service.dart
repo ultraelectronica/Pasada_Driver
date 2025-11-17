@@ -1,6 +1,7 @@
 // ignore_for_file: constant_identifier_names
 
 import 'package:flutter/foundation.dart';
+import 'package:pasada_driver_side/domain/services/capacity_config.dart';
 
 /// Service for managing priority-based seat assignments for manual bookings
 ///
@@ -11,10 +12,9 @@ import 'package:flutter/foundation.dart';
 /// 4. Regular - Can sit or stand
 class SeatAssignmentService {
   // Maximum capacity constants (matching PassengerCapacity)
-  static const int MAX_SITTING_CAPACITY = 23;
-  static const int MAX_STANDING_CAPACITY = 5;
-  static const int MAX_TOTAL_CAPACITY =
-      MAX_SITTING_CAPACITY + MAX_STANDING_CAPACITY;
+  static const int MAX_SITTING_CAPACITY = CapacityConfig.MAX_SITTING_CAPACITY;
+  static const int MAX_STANDING_CAPACITY = CapacityConfig.MAX_STANDING_CAPACITY;
+  static const int MAX_TOTAL_CAPACITY = CapacityConfig.MAX_TOTAL_CAPACITY;
 
   /// Result of seat assignment calculation
   static SeatAssignmentResult assignSeats({
@@ -25,9 +25,14 @@ class SeatAssignmentService {
     required int studentCount,
     required int regularCount,
   }) {
-    // Calculate available capacity
-    final availableSitting = MAX_SITTING_CAPACITY - currentSitting;
-    final availableStanding = MAX_STANDING_CAPACITY - currentStanding;
+    // Calculate available capacity (defensive: clamp to avoid negatives
+    // if current values are already above configured limits)
+    final int availableSittingRaw = MAX_SITTING_CAPACITY - currentSitting;
+    final int availableStandingRaw = MAX_STANDING_CAPACITY - currentStanding;
+    final int availableSitting =
+        availableSittingRaw < 0 ? 0 : availableSittingRaw;
+    final int availableStanding =
+        availableStandingRaw < 0 ? 0 : availableStandingRaw;
     final availableTotal = availableSitting + availableStanding;
     final totalPassengers =
         pwdCount + seniorCount + studentCount + regularCount;
