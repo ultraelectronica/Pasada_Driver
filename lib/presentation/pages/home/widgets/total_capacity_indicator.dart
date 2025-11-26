@@ -361,142 +361,6 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
 
                     const SizedBox(height: 24),
 
-                    // // Seat Type Selection
-                    // Padding(
-                    //   padding: const EdgeInsets.symmetric(horizontal: 10),
-                    //   child: Text(
-                    //     'Select Seat Type:',
-                    //     style: Styles()
-                    //         .textStyle(16, FontWeight.w500, Colors.black),
-                    //   ),
-                    // ),
-                    // const SizedBox(height: 12),
-
-                    // Padding(
-                    //   padding: const EdgeInsets.symmetric(horizontal: 10),
-                    //   child: Row(
-                    //     children: [
-                    //       Expanded(
-                    //         child: GestureDetector(
-                    //           onTap: () {
-                    //             setState(() => selectedSeatType = 'Sitting');
-                    //           },
-                    //           child: Container(
-                    //             padding: const EdgeInsets.symmetric(
-                    //                 vertical: 16, horizontal: 20),
-                    //             decoration: BoxDecoration(
-                    //               color: selectedSeatType == 'Sitting'
-                    //                   ? Constants.GRADIENT_COLOR_1
-                    //                   : Colors.white,
-                    //               borderRadius: BorderRadius.circular(12),
-                    //               border: Border.all(
-                    //                 color: selectedSeatType == 'Sitting'
-                    //                     ? Constants.GRADIENT_COLOR_1
-                    //                     : Colors.grey[300]!,
-                    //                 width: 2,
-                    //               ),
-                    //             ),
-                    //             child: Row(
-                    //               mainAxisAlignment: MainAxisAlignment.center,
-                    //               children: [
-                    //                 Icon(
-                    //                   Icons.event_seat,
-                    //                   color: selectedSeatType == 'Sitting'
-                    //                       ? Colors.white
-                    //                       : Colors.grey[700],
-                    //                 ),
-                    //                 const SizedBox(width: 8),
-                    //                 Text(
-                    //                   'Sitting',
-                    //                   style: Styles().textStyle(
-                    //                     16,
-                    //                     FontWeight.w600,
-                    //                     selectedSeatType == 'Sitting'
-                    //                         ? Colors.white
-                    //                         : Colors.grey[700]!,
-                    //                   ),
-                    //                 ),
-                    //               ],
-                    //             ),
-                    //           ),
-                    //         ),
-                    //       ),
-                    //       const SizedBox(width: 12),
-                    //       Expanded(
-                    //         child: GestureDetector(
-                    //           onTap: () {
-                    //             setState(() => selectedSeatType = 'Standing');
-                    //           },
-                    //           child: Container(
-                    //             padding: const EdgeInsets.symmetric(
-                    //                 vertical: 16, horizontal: 20),
-                    //             decoration: BoxDecoration(
-                    //               color: selectedSeatType == 'Standing'
-                    //                   ? Constants.GRADIENT_COLOR_1
-                    //                   : Colors.white,
-                    //               borderRadius: BorderRadius.circular(12),
-                    //               border: Border.all(
-                    //                 color: selectedSeatType == 'Standing'
-                    //                     ? Constants.GRADIENT_COLOR_1
-                    //                     : Colors.grey[300]!,
-                    //                 width: 2,
-                    //               ),
-                    //             ),
-                    //             child: Row(
-                    //               mainAxisAlignment: MainAxisAlignment.center,
-                    //               children: [
-                    //                 Icon(
-                    //                   Icons.accessibility_new,
-                    //                   color: selectedSeatType == 'Standing'
-                    //                       ? Colors.white
-                    //                       : Colors.grey[700],
-                    //                 ),
-                    //                 const SizedBox(width: 8),
-                    //                 Text(
-                    //                   'Standing',
-                    //                   style: Styles().textStyle(
-                    //                     16,
-                    //                     FontWeight.w600,
-                    //                     selectedSeatType == 'Standing'
-                    //                         ? Colors.white
-                    //                         : Colors.grey[700]!,
-                    //                   ),
-                    //                 ),
-                    //               ],
-                    //             ),
-                    //           ),
-                    //         ),
-                    //       ),
-                    //     ],
-                    //   ),
-                    // ),
-                    // const SizedBox(height: 24),
-
-                    // // Pickup Selection
-                    // Padding(
-                    //   padding: const EdgeInsets.symmetric(horizontal: 10),
-                    //   child: Row(
-                    //     children: [
-                    //       Icon(Icons.place,
-                    //           color: Constants.GRADIENT_COLOR_1, size: 18),
-                    //       const SizedBox(width: 5),
-                    //       Text(
-                    //         'Select Pickup:',
-                    //         style: Styles().textStyle(
-                    //             16, Styles.semiBold, Styles.customBlackFont),
-                    //       ),
-                    //     ],
-                    //   ),
-                    // ),
-                    // const SizedBox(height: 8),
-                    // isLoadingStops
-                    //     ? const Center(
-                    //         child: Padding(
-                    //           padding: EdgeInsets.all(16.0),
-                    //           child: CircularProgressIndicator(),
-                    //         ),
-                    //       )
-                    //     :
                     _buildStopDropdown(
                       label: 'Pick-up location',
                       value: selectedPickup,
@@ -515,25 +379,6 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                       },
                       isPickup: true,
                     ),
-
-                    // const SizedBox(height: 16),
-
-                    // // Destination Selection
-                    // Padding(
-                    //   padding: const EdgeInsets.symmetric(horizontal: 10),
-                    //   child: Row(
-                    //     children: [
-                    //       const Icon(Icons.location_on,
-                    //           color: Colors.red, size: 18),
-                    //       const SizedBox(width: 5),
-                    //       Text(
-                    //         'Select Destination:',
-                    //         style: Styles().textStyle(
-                    //             16, Styles.semiBold, Styles.customBlackFont),
-                    //       ),
-                    //     ],
-                    //   ),
-                    // ),
 
                     SizedBox(
                       height: 1,
@@ -611,32 +456,6 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                       ),
 
                     const SizedBox(height: 24),
-
-                    // Trip Distance Display
-                    // if (tripDistanceInKm != null)
-                    //   Container(
-                    //     padding: const EdgeInsets.all(12),
-                    //     decoration: BoxDecoration(
-                    //       color: Colors.blue[50],
-                    //       borderRadius: BorderRadius.circular(8),
-                    //       border:
-                    //           Border.all(color: Colors.blue[200]!, width: 1),
-                    //     ),
-                    //     child: Row(
-                    //       children: [
-                    //         Icon(Icons.route,
-                    //             color: Colors.blue[700], size: 20),
-                    //         const SizedBox(width: 8),
-                    //         Text(
-                    //           'Distance: ${tripDistanceInKm!.toStringAsFixed(2)} km',
-                    //           style: Styles().textStyle(
-                    //               14, FontWeight.w500, Colors.blue[900]!),
-                    //         ),
-                    //       ],
-                    //     ),
-                    //   ),
-
-                    // if (tripDistanceInKm != null) const SizedBox(height: 12),
 
                     // Fare Breakdown
                     if (selectedPickup != null && selectedDestination != null)
@@ -1286,10 +1105,9 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
       return;
     }
 
-    debugPrint('=== Manual Booking - Seat Assignment ===');
-    debugPrint('Sitting: ${assignmentResult.sittingAssignments}');
-    debugPrint('Standing: ${assignmentResult.standingAssignments}');
-    debugPrint('=========================================');
+    debugPrint('\tManual Booking - Seat Assignment');
+    debugPrint('\tSitting: ${assignmentResult.sittingAssignments}');
+    debugPrint('\tStanding: ${assignmentResult.standingAssignments}');
 
     // Set processing state to disable button and show loading
     setState(() {

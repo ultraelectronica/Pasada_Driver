@@ -89,13 +89,6 @@ class ActivityPageState extends State<ActivityPage> {
                                 color: Constants.BLACK_COLOR
                                     .withValues(alpha: 0.2),
                                 width: 1),
-                            // boxShadow: [
-                            //   BoxShadow(
-                            //     color: Constants.BLACK_COLOR.withValues(alpha: 0.1),
-                            //     blurRadius: 15,
-                            //     offset: const Offset(0, 15),
-                            //   ),
-                            // ],
                           ),
                           child: Column(
                             children: [
@@ -127,13 +120,6 @@ class ActivityPageState extends State<ActivityPage> {
                                 color: Constants.BLACK_COLOR
                                     .withValues(alpha: 0.2),
                                 width: 1),
-                            // boxShadow: [
-                            //   BoxShadow(
-                            //     color: Constants.BLACK_COLOR.withValues(alpha: 0.1),
-                            //     blurRadius: 15,
-                            //     offset: const Offset(0, 15),
-                            //   ),
-                            // ],
                           ),
                           child: Column(
                             children: [
@@ -165,13 +151,6 @@ class ActivityPageState extends State<ActivityPage> {
                       border: Border.all(
                           color: Constants.BLACK_COLOR.withValues(alpha: 0.2),
                           width: 1),
-                      // boxShadow: [
-                      //   BoxShadow(
-                      //     color: Constants.BLACK_COLOR.withValues(alpha: 0.1),
-                      //     blurRadius: 15,
-                      //     offset: const Offset(0, 15),
-                      //   ),
-                      // ],
                     ),
                     child: Column(
                       children: [
@@ -508,7 +487,6 @@ class ActivityPageState extends State<ActivityPage> {
 
   Widget _buildBookingItem(booking) {
     final timeFormat = DateFormat('hh:mm a');
-    // Database stores timestamps in UTC; convert to local time for display.
     final timeString = booking.createdAt != null
         ? timeFormat.format(booking.createdAt!.toLocal())
         : booking.startTime ?? 'N/A';

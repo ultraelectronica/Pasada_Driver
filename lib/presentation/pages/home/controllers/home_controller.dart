@@ -13,12 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:pasada_driver_side/presentation/pages/map/utils/marker_icons.dart';
 import 'package:pasada_driver_side/Services/notification_service.dart';
 
-/// Encapsulates **non-UI** logic for the Home page: proximity checks, periodic
-/// booking fetches, and map-marker updates.
-///
-/// This class is **change-notifier** driven so the UI can subscribe only to the
-/// fields it cares about instead of re-building the entire page on every state
-/// change.
 class HomeController extends ChangeNotifier {
   HomeController({
     required this.driverProvider,
@@ -29,17 +23,13 @@ class HomeController extends ChangeNotifier {
     _init();
   }
 
-  //--------------------------------------------------------------------------
   // Dependencies
-  //--------------------------------------------------------------------------
   final DriverProvider driverProvider;
   final MapProvider mapProvider;
   final PassengerProvider passengerProvider;
   final GlobalKey<MapPageState> mapScreenKey;
 
-  //--------------------------------------------------------------------------
   // Public reactive fields (read-only outside)
-  //--------------------------------------------------------------------------
   List<PassengerStatus> get nearbyPassengers =>
       List.unmodifiable(_nearbyPassengers);
 
@@ -61,9 +51,7 @@ class HomeController extends ChangeNotifier {
   bool get isLoadingBookings => _isLoadingBookings;
   bool _isLoadingBookings = false;
 
-  //--------------------------------------------------------------------------
   // Private
-  //--------------------------------------------------------------------------
   // DateTime? _lastProximityNotificationTime;
   Timer? _proximityCheckTimer;
   Timer? _bookingFetchTimer;
@@ -102,9 +90,7 @@ class HomeController extends ChangeNotifier {
     passengerProvider.addListener(_onBookingsChanged);
   }
 
-  //--------------------------------------------------------------------------
   // Booking fetch
-  //--------------------------------------------------------------------------
   Future<void> fetchBookings() async {
     if (_isDisposed) return;
     if (_isLoadingBookings) return;
@@ -132,9 +118,7 @@ class HomeController extends ChangeNotifier {
     }
   }
 
-  //--------------------------------------------------------------------------
   // Proximity logic
-  //--------------------------------------------------------------------------
   void _checkProximity() {
     if (_isDisposed) return;
     // Bail if not in driving mode.
@@ -271,9 +255,7 @@ class HomeController extends ChangeNotifier {
     if (!_isDisposed) notifyListeners();
   }
 
-  //--------------------------------------------------------------------------
   // Helpers
-  //--------------------------------------------------------------------------
   void _resetState() {
     if (_isDisposed) return;
     _nearbyPassengers = [];
@@ -296,16 +278,16 @@ class HomeController extends ChangeNotifier {
   /// Checks for state transitions and triggers notifications only once
   /// when the driver first becomes near a pickup or dropoff location.
   void _checkAndTriggerNotifications() {
-    debugPrint('========== Checking notifications ==========');
-    debugPrint('  Nearby passengers: ${_nearbyPassengers.length}');
+    debugPrint('[Checking notifications]');
+    debugPrint('\tNearby passengers: ${_nearbyPassengers.length}');
     debugPrint(
-        '   PICKUP - isNear: $_isNearPickupLocation, previous: $_previousIsNearPickupLocation');
+        '\tPICKUP - isNear: $_isNearPickupLocation, previous: $_previousIsNearPickupLocation');
     debugPrint(
-        '      bookingId: $nearestBookingId, lastNotified: $_lastNotifiedPickupBookingId');
+        '\tbookingId: $nearestBookingId, lastNotified: $_lastNotifiedPickupBookingId');
     debugPrint(
-        '   DROPOFF - isNear: $_isNearDropoffLocation, previous: $_previousIsNearDropoffLocation');
+        '\tDROPOFF - isNear: $_isNearDropoffLocation, previous: $_previousIsNearDropoffLocation');
     debugPrint(
-        '      bookingId: $ongoingBookingId, lastNotified: $_lastNotifiedDropoffBookingId');
+        '\tbookingId: $ongoingBookingId, lastNotified: $_lastNotifiedDropoffBookingId');
 
     // Check pickup location proximity change
     checkPickupProximity();
@@ -443,9 +425,7 @@ class HomeController extends ChangeNotifier {
     }
   }
 
-  //--------------------------------------------------------------------------
   // Public API used by UI layer
-  //--------------------------------------------------------------------------
   /// Handle selection from UI: updates internal selection state, toggles
   /// proximity flags, focuses the map on the appropriate location, and
   /// refreshes passenger markers.
@@ -493,7 +473,6 @@ class HomeController extends ChangeNotifier {
     if (!_isDisposed) notifyListeners();
   }
 
-  //--------------------------------------------------------------------------
   @override
   void dispose() {
     _isDisposed = true;

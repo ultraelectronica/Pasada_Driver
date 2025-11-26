@@ -10,7 +10,6 @@ import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.
 import 'package:cherry_toast/resources/arrays.dart';
 
 /// Button to start driving.
-/// - Shows validation when trying to start driving while passengers are onboard.
 class FloatingStartDrivingButton extends StatelessWidget {
   const FloatingStartDrivingButton({
     super.key,
@@ -124,53 +123,6 @@ class FloatingStartDrivingButton extends StatelessWidget {
     );
   }
 
-// return Positioned(
-//   bottom: screenHeight * 0.11,
-//   left: screenWidth * 0.025,
-//   child: SizedBox(
-//     width: 135,
-//     height: 50,
-//     child: Material(
-//       color: Colors.white,
-//       elevation: 4,
-//       borderRadius: BorderRadius.circular(15),
-//       child: Padding(
-//         padding: const EdgeInsets.only(left: 12.0, right: 7.0),
-//         child: Row(
-//           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//           children: [
-//             Text(
-//               isDriving ? 'Driving' : 'Online',
-//               style: Styles().textStyle(
-//                 14,
-//                 Styles.semiBold,
-//                 isDriving ? Constants.GREEN_COLOR_DARK : Colors.grey[700]!,
-//               ),
-//             ),
-//             Switch(
-//               value: isDriving,
-//               activeThumbColor: Constants.GREEN_COLOR,
-//               activeTrackColor: Constants.GREEN_COLOR_LIGHT,
-//               inactiveThumbColor: Constants.SWITCH_GREY_COLOR_DARK,
-//               inactiveTrackColor: Constants.SWITCH_GREY_COLOR,
-//               trackOutlineWidth: WidgetStateProperty.all(1.5),
-//               onChanged: (value) {
-//                 if (value) {
-//                   _switchToDriving(context, driverProvider);
-//                 } else {
-//                   _trySwitchToOnline(
-//                       context, driverProvider, totalPassengers);
-//                 }
-//               },
-//             ),
-//           ],
-//         ),
-//       ),
-//     ),
-//   ),
-// );
-// }
-
   void _startDriving(
       BuildContext context, DriverProvider driverProvider) async {
     final mapProvider = context.read<MapProvider>();
@@ -217,9 +169,6 @@ class FloatingStartDrivingButton extends StatelessWidget {
     driverProvider.setLastDriverStatus('Driving');
 
     // Trigger initial bookings fetch
-    // Note: downstream flows depend on Driving status now being set
-    // so we fetch bookings after status flips.
-    // ignore: use_build_context_synchronously
     context.read<PassengerProvider>().getBookingRequestsID(context);
 
     // ignore: use_build_context_synchronously

@@ -699,29 +699,4 @@ class ProfilePageState extends State<ProfilePage> {
           ),
         ));
   }
-
-  // Remove or comment out old/unused helper widgets if no longer needed
-  /*
-  Widget _buildDriverDetails(
-      DriverProvider driverProvider, MapProvider mapProvider) {
-    // ... Now handled directly in build method ...
-  }
-
-  Widget _buildAdditionalDriverInfo(
-      DriverProvider driverProvider, double paddingValue) {
-    // ... Replaced by _buildInfoCard and _buildInfoRow ...
-  }
-
-  Widget _buildSectionTitle(String title, double paddingValue) {
-    // ... Not directly used in the new structure ...
-  }
-
-  Widget _buildProfileListItem({ ... }) {
-     // ... Replaced by _buildActionTile ...
-  }
-
-  Widget _buildProfileSection({ ... }) {
-    // ... Replaced by individual cards ...
-  }
-  */
 }

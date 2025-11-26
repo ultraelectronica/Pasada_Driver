@@ -16,8 +16,6 @@ buildscript {
     }
 }
 
-// def mapsApiKey = properties.getProperty("mapsApiKey", "")
-
 rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"

@@ -34,8 +34,6 @@ class AuthService {
     }
   }
 
-  // ───────────────────────── DRIVER CONTEXT HELPERS (JWT-friendly) ─────────────────────────
-  // Store only domain context; JWT/session is handled by supabase_flutter internally.
   static Future<void> saveDriverContext({
     required String driverId,
     required String routeId,
@@ -62,7 +60,6 @@ class AuthService {
         final value = await _storage.read(key: key);
         print('  $key: $value');
       }
-      // Optionally check for unexpected keys (though readAll might be better here)
     }
   }
 
@@ -74,7 +71,6 @@ class AuthService {
     return base64Url.encode(values);
   }
 
-  // ───────────────────────── SOFT SESSION EXPIRY (CLIENT-SIDE) ─────────────────────────
   static Future<void> setSessionExpiry(Duration duration) async {
     final expiresAt = DateTime.now().add(duration).toIso8601String();
     await _storage.write(key: keySoftSessionExpiresAt, value: expiresAt);

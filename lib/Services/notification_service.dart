@@ -50,7 +50,7 @@ class NotificationService {
     return bookingId.hashCode.abs();
   }
 
-  /// Ensures Firebase is initialized (safe to call multiple times).
+  /// Ensures Firebase is initialized
   static Future<void> ensureFirebaseInitialized() async {
     try {
       // If already initialized, this will throw on some platforms; guard via try.
@@ -203,10 +203,6 @@ class NotificationService {
   }
 
   void _handleNotificationNavigation(RemoteMessage message) {
-    // Implement deep-linking or navigation based on payload.
-    // For example, use a navigator key stored in your app-level router/provider.
-    // final route = message.data['route'];
-    // if (route != null) navigatorKey.currentState?.pushNamed(route);
   }
 
   String? _buildPayloadFromData(Map<String, dynamic> data) {
@@ -386,7 +382,7 @@ class NotificationService {
   }
 
   Future<void> debugNotificationStatus() async {
-    debugPrint('========== Notification Debug ==========');
+    debugPrint('[Notification Debug]');
     debugPrint('Initialized: $_initialized');
     debugPrint('Active tracked notifications: ${_activeNotifications.length}');
 
@@ -404,7 +400,5 @@ class NotificationService {
       final enabled = await androidPlugin?.areNotificationsEnabled();
       debugPrint('Android notifications enabled: $enabled');
     }
-
-    debugPrint('========================================');
   }
 }

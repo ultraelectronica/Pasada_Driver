@@ -24,7 +24,7 @@ class BookingProcessor {
     required LatLng endingLocation,
     required String driverId,
   }) async {
-    // 1. Split by status --------------------------------------------------
+    // Split by status
     final Map<String, List<Booking>> byStatus =
         _categorizeByStatus(activeBookings);
     final List<Booking> requested = byStatus['requested']!;
@@ -35,7 +35,7 @@ class BookingProcessor {
           'BOOKINGS (before validation) -> Requested: ${requested.length}, Accepted/Ongoing: $totalAcceptedOngoing');
     }
 
-    // 2. Validate requested bookings --------------------------------------
+    // Validate requested bookings
     final List<Booking> validRequested =
         BookingFilterService.filterValidRequestedBookings(
       bookings: requested,
@@ -43,20 +43,18 @@ class BookingProcessor {
       destinationLocation: endingLocation,
     );
 
-    // 3. Update DB statuses for requested bookings ------------------------
+    // Update DB statuses for requested bookings
     if (requested.isNotEmpty) {
       await _updateStatuses(requested, validRequested);
     }
 
-    // 4. Re-query DB so we include newly accepted bookings ----------------
+    // Re-query DB so we include newly accepted bookings
     final List<Booking> refreshed =
         await _repository.fetchActiveBookings(driverId);
 
-    // 5. Calculate distances and prioritise -------------------------------
+    // Calculate distances and prioritise
     return _prioritise(refreshed, driverLocation);
   }
-
-  // ───────────────────────── helpers ─────────────────────────
 
   Map<String, List<Booking>> _categorizeByStatus(List<Booking> bookings) {
     final List<Booking> requested = bookings
@@ -87,7 +85,7 @@ class BookingProcessor {
         );
         updates.add(fut.then((_) => null));
       } catch (_) {
-        // swallow; other updates should proceed
+        // other updates should proceed
       }
     }
     await Future.wait(updates);

@@ -16,9 +16,6 @@ import 'package:pasada_driver_side/presentation/pages/map/widgets/custom_locatio
 import 'package:pasada_driver_side/presentation/pages/map/widgets/map_error_view.dart';
 import 'package:pasada_driver_side/presentation/pages/map/widgets/map_status_indicator.dart';
 
-/// Refactored map page following clean architecture principles
-/// Reduced from 1,148 lines to focused UI-only code
-/// Business logic moved to domain services and providers
 class MapPage extends StatefulWidget {
   final LatLng? initialLocation;
   final LatLng? finalLocation;
@@ -70,20 +67,17 @@ class MapPageState extends State<MapPage> {
     super.dispose();
   }
 
-  /// Single controlled initialization flow
   Future<void> _initializeMap() async {
     try {
       _updateMapState(_mapState.copyWith(
         initState: MapInitState.loadingLocation,
       ));
 
-      // Delegate heavy work to provider
       final ok = await context.read<MapProvider>().initialize(context);
       if (!ok) {
         throw Exception('Error: MapProvider initialization failed');
       }
 
-      // Use provider's current location immediately so the map renders
       final prov = context.read<MapProvider>();
       if (prov.currentLocation != null) {
         _updateMapState(_mapState.copyWith(
@@ -105,7 +99,6 @@ class MapPageState extends State<MapPage> {
     }
   }
 
-  /// Update map state and trigger UI rebuild
   void _updateMapState(MapState newState) {
     if (!mounted) return;
 
