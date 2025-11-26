@@ -6,7 +6,7 @@ import 'package:pasada_driver_side/common/constants/booking_constants.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_capacity.dart';
-import 'package:pasada_driver_side/common/config/app_config.dart';
+// import 'package:pasada_driver_side/common/config/app_config.dart';
 
 class SeatCapacityControl extends StatelessWidget {
   const SeatCapacityControl({

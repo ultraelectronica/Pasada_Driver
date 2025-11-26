@@ -447,7 +447,7 @@ class SupabaseBookingRepository implements BookingRepository {
 
       // STEP 14: Handle stream errors
       subscription.onError((error) {
-        if (kDebugMode) debugPrint('❌ Booking stream error: $error');
+        if (kDebugMode) debugPrint('\t[ERROR]Booking stream error: $error');
 
         controller.addError(BookingException(
           message: error.toString(),
@@ -458,8 +458,9 @@ class SupabaseBookingRepository implements BookingRepository {
 
       // STEP 15: Clean up resources when the stream is cancelled
       controller.onCancel = () {
-        if (kDebugMode)
-          debugPrint('🛑 Booking stream cancelled for driver: $driverId');
+        if (kDebugMode){
+          debugPrint('\tBooking stream cancelled for driver: $driverId');
+        }
         subscription.cancel();
       };
 

@@ -400,7 +400,7 @@ class MapProvider with ChangeNotifier {
         position: pos,
         icon: icon,
         infoWindow: InfoWindow(title: title),
-        zIndex: zIndex,
+        zIndexInt: zIndex.toInt(),
         alpha: alpha,
       );
 

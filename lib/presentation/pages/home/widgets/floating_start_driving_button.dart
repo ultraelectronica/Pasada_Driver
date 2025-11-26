@@ -173,6 +173,9 @@ class FloatingStartDrivingButton extends StatelessWidget {
 
     // ignore: use_build_context_synchronously
     SnackBarUtils.show(context, 'Status set to Driving', 'Ingat manong!',
-        backgroundColor: Constants.GREEN_COLOR);
+        backgroundColor: Constants.GREEN_COLOR,
+        duration: const Duration(seconds: 2),
+        position: Position.top,
+        animationType: AnimationType.fromTop);
   }
 }

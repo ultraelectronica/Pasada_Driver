@@ -266,7 +266,7 @@ class ActivityPageState extends State<ActivityPage> {
             ),
             child: Column(
               children: [
-                Icon(Icons.error_outline, color: Colors.red, size: 48),
+                const Icon(Icons.error_outline, color: Colors.red, size: 48),
                 const SizedBox(height: 12),
                 Text(
                   provider.errorMessage ?? 'Failed to load bookings',

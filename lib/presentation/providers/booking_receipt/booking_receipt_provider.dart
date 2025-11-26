@@ -128,7 +128,7 @@ class BookingReceiptProvider with ChangeNotifier {
     // Get end of week (Sunday)
     final endOfWeekLocal = DateTime(startOfWeek.year, startOfWeek.month,
             startOfWeek.day, 23, 59, 59, 999)
-        .add(Duration(days: 6));
+        .add(const Duration(days: 6));
 
     final startUtc = startOfWeekLocal.toUtc();
     final endUtc = endOfWeekLocal.toUtc();

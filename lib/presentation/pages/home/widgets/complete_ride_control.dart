@@ -73,8 +73,12 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
           for (final b in groupBookings) b.id,
         };
         final List<Booking> groupList = List<Booking>.from(groupBookings);
-        final List<Booking> otherList =
-            allBookings.where((b) => !groupIds.contains(b.id)).toList();
+        //show only ongoing bookings
+        final List<Booking> otherList = allBookings
+            .where((b) =>
+                !groupIds.contains(b.id) &&
+                b.rideStatus == BookingConstants.statusOngoing)
+            .toList();
 
         final Map<String, bool> selected = {
           for (final b in groupList) b.id: true,
@@ -107,11 +111,11 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         'Select passengers to drop off at',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
                         ),
@@ -136,10 +140,10 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
                         shrinkWrap: true,
                         children: [
                           // Section: passengers at this dropoff location
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                          const Padding(
+                            padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
                             child: Row(
-                              children: const [
+                              children: [
                                 Icon(Icons.place, size: 16),
                                 SizedBox(width: 6),
                                 Text(
@@ -244,10 +248,10 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
                           const Divider(height: 16),
                           // Section: other passengers
                           if (otherList.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                            const Padding(
+                              padding: EdgeInsets.fromLTRB(16, 0, 16, 4),
                               child: Row(
-                                children: const [
+                                children: [
                                   Icon(Icons.list_alt, size: 16),
                                   SizedBox(width: 6),
                                   Text(
@@ -439,266 +443,153 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
 
     return Stack(
       children: [
-        // Single-ride complete button (original behavior)
-        CompleteRideButton(
+        BulkCompleteRideButton(
           isVisible: true,
           isEnabled: !_isProcessing && !isMutating,
           isLoading: _isProcessing || isMutating,
+          label: groupCount > 1
+              ? 'Drop off $groupCount passengers'
+              : 'Drop off passenger',
           onTap: () async {
-            if (widget.ongoingBookingId == null || _isProcessing) return;
-            final String bookingId = widget.ongoingBookingId!;
+            if (_isProcessing) return;
             setState(() => _isProcessing = true);
-            String seatType = 'Sitting';
-            final passengerProvider =
-                Provider.of<PassengerProvider>(context, listen: false);
-
             try {
-              debugPrint('[COMPLETE] Start completion for booking: $bookingId');
-              String? passengerIdImagePath;
-              bool? isIdAccepted;
-              try {
-                final booking = passengerProvider.bookings
-                    .firstWhere((b) => b.id == bookingId);
-                seatType = booking.seatType;
-                passengerIdImagePath = booking.passengerIdImagePath;
-                isIdAccepted = booking.isIdAccepted;
-                debugPrint(
-                    '[COMPLETE] Loaded booking details. seatType=$seatType hasIdImage=${passengerIdImagePath != null && passengerIdImagePath.isNotEmpty}');
-              } catch (_) {}
+              final provider =
+                  Provider.of<PassengerProvider>(context, listen: false);
+              List<Booking> bookingsToProcess = _getDropoffGroup(provider);
 
-              final success =
-                  await passengerProvider.markBookingAsCompleted(bookingId);
-              if (!mounted) return;
-
-              if (success) {
-                debugPrint(
-                    '[COMPLETE][NOTIFICATION] Cancelling notifications for booking: $bookingId');
-                // Cancel both pickup and dropoff notifications since we're completing the ride
-                await NotificationService.instance
-                    .cancelNotificationByBookingId('Pickup: $bookingId');
-                await NotificationService.instance
-                    .cancelNotificationByBookingId('Dropoff: $bookingId');
-                debugPrint(
-                    '[COMPLETE] Backend status update success. Decrementing capacity...');
-                final capacityResult = await PassengerCapacity()
-                    .decrementCapacity(context, seatType);
-                if (!mounted) return;
-                if (capacityResult.success) {
-                  debugPrint(
-                      '[COMPLETE] Capacity decrement success. Considering auto-accept...');
-                  // Clear any lingering pickup marker and passenger markers
-                  try {
-                    if (mounted) {
-                      context.read<MapProvider>().clearBookingMarkerLocation();
-                    }
-                    if (mounted) {
-                      context.read<MapProvider>().clearPassengerMarkers();
-                    }
-                  } catch (e) {
-                    debugPrint(
-                        '[COMPLETE][ERROR] Failed to clear map markers: $e');
-                  }
-                  // Auto-accept discount ID only if request exists and decision is still pending
-                  try {
-                    if (passengerIdImagePath != null &&
-                        passengerIdImagePath.isNotEmpty &&
-                        isIdAccepted == null) {
-                      debugPrint(
-                          '[COMPLETE] Auto-accepting discount ID for booking: $bookingId');
-                      await IdAcceptanceController().acceptID(bookingId);
-                      debugPrint('[COMPLETE] Auto-accept invoked.');
-                    } else {
-                      debugPrint(
-                          '[COMPLETE] Skipping auto-accept. hasIdImage=${passengerIdImagePath != null && passengerIdImagePath.isNotEmpty} isIdAccepted=$isIdAccepted');
-                    }
-                  } catch (e) {
-                    debugPrint(
-                        '[COMPLETE][ERROR] Failed to auto-accept ID: $e');
-                  }
-                  SnackBarUtils.showSuccess(
-                    context,
-                    'Ride completed successfully',
-                    'Passenger $bookingId has been dropped off successfully',
-                    position: Position.top,
-                    animationType: AnimationType.fromTop,
-                  );
-                  context.read<QuotaProvider>().fetchQuota(context);
-                } else {
-                  debugPrint(
-                      '[COMPLETE][ERROR] Capacity decrement failed: ${capacityResult.errorMessage}');
-                  // rollback booking status if capacity update failed
-                  await passengerProvider.markBookingAsAccepted(bookingId);
-                  SnackBarUtils.showError(
-                      context,
-                      capacityResult.errorMessage ?? 'Capacity update failed',
-                      'Please try again');
-                }
-              } else {
-                debugPrint('[COMPLETE][ERROR] Backend status update failed.');
+              if (bookingsToProcess.isEmpty) {
                 SnackBarUtils.showError(
-                    context, 'Failed to complete ride', 'Please try again');
+                    context,
+                    'No passengers found at this dropoff location',
+                    'Operation cancelled');
+                return;
               }
-            } catch (e, st) {
-              debugPrint('[COMPLETE][ERROR] Failed to complete ride: $e');
-              debugPrint('[COMPLETE][ERROR] Stack trace: $st');
+
+              // Let driver select which passengers at this location to drop off
+              final selected = await _showBulkSelectionDialog(
+                context,
+                bookingsToProcess,
+                provider.bookings,
+              );
               if (!mounted) return;
-              SnackBarUtils.showError(
-                  context, 'Failed to complete ride', 'Please try again');
-            } finally {
-              if (mounted) setState(() => _isProcessing = false);
-              debugPrint(
-                  '[COMPLETE] Completion flow ended for booking: $bookingId');
-            }
-          },
-        ),
+              if (selected == null || selected.isEmpty) {
+                // User cancelled or deselected all
+                return;
+              }
+              bookingsToProcess = selected;
 
-        // Bulk complete button – only when there is more than one passenger at this dropoff
-        if (groupCount > 1)
-          BulkCompleteRideButton(
-            isVisible: true,
-            isEnabled: !_isProcessing && !isMutating,
-            isLoading: _isProcessing || isMutating,
-            label: 'Drop off $groupCount passengers',
-            onTap: () async {
-              if (_isProcessing) return;
-              setState(() => _isProcessing = true);
-              try {
-                final provider =
-                    Provider.of<PassengerProvider>(context, listen: false);
-                List<Booking> bookingsToProcess = _getDropoffGroup(provider);
+              int successCount = 0;
 
-                if (bookingsToProcess.isEmpty) {
-                  SnackBarUtils.showError(
-                      context,
-                      'No passengers found at this dropoff location',
-                      'Operation cancelled');
-                  return;
-                }
+              for (final booking in bookingsToProcess) {
+                final String bookingId = booking.id;
+                final String seatType = booking.seatType;
+                final String? passengerIdImagePath =
+                    booking.passengerIdImagePath;
+                final bool? isIdAccepted = booking.isIdAccepted;
 
-                // Let driver select which passengers at this location to drop off
-                final selected = await _showBulkSelectionDialog(
-                  context,
-                  bookingsToProcess,
-                  provider.bookings,
-                );
+                debugPrint(
+                    '[COMPLETE][BULK] Start completion for booking: $bookingId');
+
+                final success =
+                    await provider.markBookingAsCompleted(bookingId);
                 if (!mounted) return;
-                if (selected == null || selected.isEmpty) {
-                  // User cancelled or deselected all
-                  return;
-                }
-                bookingsToProcess = selected;
 
-                int successCount = 0;
-
-                for (final booking in bookingsToProcess) {
-                  final String bookingId = booking.id;
-                  String seatType = booking.seatType;
-                  String? passengerIdImagePath = booking.passengerIdImagePath;
-                  bool? isIdAccepted = booking.isIdAccepted;
-
+                if (success) {
                   debugPrint(
-                      '[COMPLETE][BULK] Start completion for booking: $bookingId');
-
-                  final success =
-                      await provider.markBookingAsCompleted(bookingId);
+                      '[COMPLETE][BULK][NOTIFICATION] Cancelling notifications for booking: $bookingId');
+                  // Cancel both pickup and dropoff notifications since we're completing the ride
+                  await NotificationService.instance
+                      .cancelNotificationByBookingId('Pickup: $bookingId');
+                  await NotificationService.instance
+                      .cancelNotificationByBookingId('Dropoff: $bookingId');
+                  debugPrint(
+                      '[COMPLETE][BULK] Backend status update success. Decrementing capacity...');
+                  final capacityResult = await PassengerCapacity()
+                      .decrementCapacity(context, seatType);
                   if (!mounted) return;
-
-                  if (success) {
+                  if (capacityResult.success) {
+                    successCount++;
                     debugPrint(
-                        '[COMPLETE][BULK][NOTIFICATION] Cancelling notifications for booking: $bookingId');
-                    // Cancel both pickup and dropoff notifications since we're completing the ride
-                    await NotificationService.instance
-                        .cancelNotificationByBookingId('Pickup: $bookingId');
-                    await NotificationService.instance
-                        .cancelNotificationByBookingId('Dropoff: $bookingId');
-                    debugPrint(
-                        '[COMPLETE][BULK] Backend status update success. Decrementing capacity...');
-                    final capacityResult = await PassengerCapacity()
-                        .decrementCapacity(context, seatType);
-                    if (!mounted) return;
-                    if (capacityResult.success) {
-                      successCount++;
-                      debugPrint(
-                          '[COMPLETE][BULK] Capacity decrement success. Considering auto-accept...');
-                      // Auto-accept discount ID only if request exists and decision is still pending
-                      try {
-                        if (passengerIdImagePath != null &&
-                            passengerIdImagePath.isNotEmpty &&
-                            isIdAccepted == null) {
-                          debugPrint(
-                              '[COMPLETE][BULK] Auto-accepting discount ID for booking: $bookingId');
-                          await IdAcceptanceController().acceptID(bookingId);
-                          debugPrint('[COMPLETE][BULK] Auto-accept invoked.');
-                        } else {
-                          debugPrint(
-                              '[COMPLETE][BULK] Skipping auto-accept. hasIdImage=${passengerIdImagePath != null && passengerIdImagePath.isNotEmpty} isIdAccepted=$isIdAccepted');
-                        }
-                      } catch (e) {
+                        '[COMPLETE][BULK] Capacity decrement success. Considering auto-accept...');
+                    // Auto-accept discount ID only if request exists and decision is still pending
+                    try {
+                      if (passengerIdImagePath != null &&
+                          passengerIdImagePath.isNotEmpty &&
+                          isIdAccepted == null) {
                         debugPrint(
-                            '[COMPLETE][BULK][ERROR] Failed to auto-accept ID: $e');
+                            '[COMPLETE][BULK] Auto-accepting discount ID for booking: $bookingId');
+                        await IdAcceptanceController().acceptID(bookingId);
+                        debugPrint('[COMPLETE][BULK] Auto-accept invoked.');
+                      } else {
+                        debugPrint(
+                            '[COMPLETE][BULK] Skipping auto-accept. hasIdImage=${passengerIdImagePath != null && passengerIdImagePath.isNotEmpty} isIdAccepted=$isIdAccepted');
                       }
-                    } else {
+                    } catch (e) {
                       debugPrint(
-                          '[COMPLETE][BULK][ERROR] Capacity decrement failed: ${capacityResult.errorMessage}');
-                      // rollback booking status if capacity update failed
-                      await provider.markBookingAsAccepted(bookingId);
-                      SnackBarUtils.showError(
-                          context,
-                          capacityResult.errorMessage ??
-                              'Capacity update failed',
-                          'Please try again for booking $bookingId');
+                          '[COMPLETE][BULK][ERROR] Failed to auto-accept ID: $e');
                     }
                   } else {
                     debugPrint(
-                        '[COMPLETE][BULK][ERROR] Backend status update failed for booking: $bookingId.');
+                        '[COMPLETE][BULK][ERROR] Capacity decrement failed: ${capacityResult.errorMessage}');
+                    // rollback booking status if capacity update failed
+                    await provider.markBookingAsAccepted(bookingId);
                     SnackBarUtils.showError(
                         context,
-                        'Failed to complete ride for passenger $bookingId',
-                        'Please try again');
+                        capacityResult.errorMessage ?? 'Capacity update failed',
+                        'Please try again for booking $bookingId');
                   }
-                }
-
-                if (!mounted) return;
-
-                if (successCount > 0) {
+                } else {
                   debugPrint(
-                      '[COMPLETE][BULK] Successfully completed rides for $successCount passenger(s).');
-                  // Clear any lingering pickup marker and passenger markers
-                  try {
-                    if (mounted) {
-                      context.read<MapProvider>().clearBookingMarkerLocation();
-                    }
-                    if (mounted) {
-                      context.read<MapProvider>().clearPassengerMarkers();
-                    }
-                  } catch (e) {
-                    debugPrint(
-                        '[COMPLETE][BULK][ERROR] Failed to clear map markers: $e');
-                  }
-
-                  SnackBarUtils.showSuccess(
-                    context,
-                    'Rides completed successfully',
-                    '$successCount passengers have been dropped off successfully',
-                    position: Position.top,
-                    animationType: AnimationType.fromTop,
-                  );
-                  context.read<QuotaProvider>().fetchQuota(context);
+                      '[COMPLETE][BULK][ERROR] Backend status update failed for booking: $bookingId.');
+                  SnackBarUtils.showError(
+                      context,
+                      'Failed to complete ride for passenger $bookingId',
+                      'Please try again');
                 }
-              } catch (e, st) {
-                debugPrint(
-                    '[COMPLETE][BULK][ERROR] Failed to complete rides: $e');
-                debugPrint('[COMPLETE][BULK][ERROR] Stack trace: $st');
-                if (!mounted) return;
-                SnackBarUtils.showError(
-                    context, 'Failed to complete rides', 'Please try again');
-              } finally {
-                if (mounted) setState(() => _isProcessing = false);
-                debugPrint(
-                    '[COMPLETE][BULK] Bulk completion flow ended for dropoff group');
               }
-            },
-          ),
+
+              if (!mounted) return;
+
+              if (successCount > 0) {
+                debugPrint(
+                    '[COMPLETE][BULK] Successfully completed rides for $successCount passenger(s).');
+                // Clear any lingering pickup marker and passenger markers
+                try {
+                  if (mounted) {
+                    context.read<MapProvider>().clearBookingMarkerLocation();
+                  }
+                  if (mounted) {
+                    context.read<MapProvider>().clearPassengerMarkers();
+                  }
+                } catch (e) {
+                  debugPrint(
+                      '[COMPLETE][BULK][ERROR] Failed to clear map markers: $e');
+                }
+
+                SnackBarUtils.showSuccess(
+                  context,
+                  'Rides completed successfully',
+                  '$successCount passengers have been dropped off successfully',
+                  position: Position.top,
+                  animationType: AnimationType.fromTop,
+                );
+                context.read<QuotaProvider>().fetchQuota(context);
+              }
+            } catch (e, st) {
+              debugPrint(
+                  '[COMPLETE][BULK][ERROR] Failed to complete rides: $e');
+              debugPrint('[COMPLETE][BULK][ERROR] Stack trace: $st');
+              if (!mounted) return;
+              SnackBarUtils.showError(
+                  context, 'Failed to complete rides', 'Please try again');
+            } finally {
+              if (mounted) setState(() => _isProcessing = false);
+              debugPrint(
+                  '[COMPLETE][BULK] Bulk completion flow ended for dropoff group');
+            }
+          },
+        ),
       ],
     );
   }

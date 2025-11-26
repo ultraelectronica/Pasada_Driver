@@ -101,8 +101,7 @@ class BulkCompleteRideButton extends StatelessWidget {
     final enabled = isEnabled && !isLoading;
 
     return Positioned(
-      // Slightly above the single CompleteRideButton
-      bottom: size.height * (HomeConstants.actionButtonBottomFraction + 0.08),
+      bottom: size.height * HomeConstants.actionButtonBottomFraction,
       left: size.width * HomeConstants.actionButtonHorizontalInsetFraction,
       right: size.width * HomeConstants.actionButtonHorizontalInsetFraction,
       child: Material(

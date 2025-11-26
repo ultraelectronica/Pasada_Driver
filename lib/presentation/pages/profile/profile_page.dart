@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:pasada_driver_side/Services/auth_service.dart';
 import 'package:pasada_driver_side/presentation/pages/profile/pages/privacy_policy_page.dart';
@@ -421,8 +420,8 @@ class ProfilePageState extends State<ProfilePage> {
               icon: Icons.help_outline, // Material Icon
               text: 'Contact Support',
               onTap: () async {
-                final String emailAddress = 'contact.pasada@gmail.com';
-                final String subject = 'Support Request';
+                const String emailAddress = 'contact.pasada@gmail.com';
+                const String subject = 'Support Request';
                 final Uri emailLaunchUri = Uri(
                   scheme: 'mailto',
                   path: emailAddress,

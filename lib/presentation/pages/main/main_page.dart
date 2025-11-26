@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pasada_driver_side/common/constants/constants.dart';
 import 'package:pasada_driver_side/presentation/pages/activity/activity_page.dart';
