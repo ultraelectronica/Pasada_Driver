@@ -119,7 +119,7 @@ class DriverProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ───────────────────────── location update ─────────────────────────
+  // location update
   Future<void> updateCurrentLocation(LocationData newLocation) async {
     try {
       final wktPoint =
@@ -138,7 +138,7 @@ class DriverProvider with ChangeNotifier {
     }
   }
 
-  // ───────────────────────── network-state helpers ─────────────────────────
+  // network-state helpers
   void setLoading(bool value) {
     _isLoading = value;
     notifyListeners();

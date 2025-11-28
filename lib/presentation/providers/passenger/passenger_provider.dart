@@ -26,12 +26,10 @@ import 'package:pasada_driver_side/Services/notification_service.dart';
 
 /// Provider to manage passenger booking state and expose it to Flutter UI.
 class PassengerProvider with ChangeNotifier {
-  // ───────────────────────── Dependencies ─────────────────────────
   final BookingRepository _repository;
   late final BookingStreamService _streamService;
   late final BookingProcessor _bookingProcessor;
 
-  // ───────────────────────── State ─────────────────────────
   int _passengerCapacity = 0;
   int _completedBooking = 0;
   List<Booking> _bookings = [];
@@ -47,7 +45,6 @@ class PassengerProvider with ChangeNotifier {
 
   bool _isDisposed = false;
 
-  // ───────────────────────── Getters ─────────────────────────
   int get passengerCapacity => _passengerCapacity;
   int get completedBooking => _completedBooking;
   List<Booking> get bookings => List.unmodifiable(_bookings);
@@ -62,7 +59,6 @@ class PassengerProvider with ChangeNotifier {
   // 3-state loading alias
   bool get isLoading => _isProcessingBookings;
 
-  // ───────────────────────── ctor / dispose ─────────────────────────
   PassengerProvider({BookingRepository? repository})
       : _repository = repository ?? SupabaseBookingRepository() {
     BookingLogger.init();
@@ -80,7 +76,6 @@ class PassengerProvider with ChangeNotifier {
     super.dispose();
   }
 
-  // ───────────────────────── Stream control ─────────────────────────
   void startBookingStream(String driverId) {
     if (_isDisposed) return;
     _bookingsSubscription?.cancel();
@@ -103,7 +98,6 @@ class PassengerProvider with ChangeNotifier {
     _streamService.stop();
   }
 
-  // ───────────────────────── Mutators ─────────────────────────
   void setPassengerCapacity(int value) {
     if (_isDisposed) return;
     _passengerCapacity = value;
@@ -132,7 +126,6 @@ class PassengerProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ───────────────────────── Public API ─────────────────────────
   Future<void> getBookingRequestsID(BuildContext? ctx) async {
     final mountedCtx = ctx?.mounted == true;
     if (_isProcessingBookings || _isDisposed) return;
@@ -221,7 +214,6 @@ class PassengerProvider with ChangeNotifier {
     }
   }
 
-  // ───────────────────────── Helpers ─────────────────────────
   Future<LatLng?> _getCurrentLocation(BuildContext context) async {
     try {
       final pos = await Geolocator.getCurrentPosition(
@@ -316,8 +308,7 @@ class PassengerProvider with ChangeNotifier {
             setBookings(updated);
           }
         }
-        // If we didn't have the booking locally (e.g., after optimistic removal),
-        // refresh the list to reflect the backend state.
+        // If we didn't have the booking locally, refresh the list to reflect the backend state.
         if (booking == null && !_isDisposed) {
           await getBookingRequestsID(null);
         }

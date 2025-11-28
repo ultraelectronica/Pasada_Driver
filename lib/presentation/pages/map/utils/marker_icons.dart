@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-/// Centralized loader/cacher for custom map marker icons.
 class MarkerIcons {
   static BitmapDescriptor? pinGreen;
   static BitmapDescriptor? pinOrange;
@@ -10,7 +9,7 @@ class MarkerIcons {
 
   static Future<void>? _loadingFuture;
 
-  /// Ensure icons are loaded once. Safe to call multiple times.
+  /// Ensure icons are loaded once.
   static Future<void> ensureLoaded() async {
     if (pinGreen != null && pinOrange != null && pinRed != null) {
       return;

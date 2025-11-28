@@ -6,9 +6,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:pasada_driver_side/common/utils/network/network_utility.dart';
 
-/// Pure-Dart service that talks to Google Routes API and returns the decoded
-/// polyline coordinates for a route.  No Flutter widgets/UI code here – it can
-/// be unit-tested in isolation.
 class RouteService {
   RouteService._();
 

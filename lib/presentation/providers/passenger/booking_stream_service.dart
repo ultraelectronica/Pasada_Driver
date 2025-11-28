@@ -76,8 +76,6 @@ class BookingStreamService {
     _isDisposed = true;
   }
 
-  // ───────────────────────── Internal helpers ─────────────────────────
-
   void _onData(List<Booking> data) {
     if (_isDisposed) return;
     error = null;

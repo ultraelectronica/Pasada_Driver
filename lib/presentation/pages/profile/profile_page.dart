@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:pasada_driver_side/Services/auth_service.dart';
 import 'package:pasada_driver_side/presentation/pages/profile/pages/privacy_policy_page.dart';
@@ -421,8 +420,8 @@ class ProfilePageState extends State<ProfilePage> {
               icon: Icons.help_outline, // Material Icon
               text: 'Contact Support',
               onTap: () async {
-                final String emailAddress = 'contact.pasada@gmail.com';
-                final String subject = 'Support Request';
+                const String emailAddress = 'contact.pasada@gmail.com';
+                const String subject = 'Support Request';
                 final Uri emailLaunchUri = Uri(
                   scheme: 'mailto',
                   path: emailAddress,
@@ -699,29 +698,4 @@ class ProfilePageState extends State<ProfilePage> {
           ),
         ));
   }
-
-  // Remove or comment out old/unused helper widgets if no longer needed
-  /*
-  Widget _buildDriverDetails(
-      DriverProvider driverProvider, MapProvider mapProvider) {
-    // ... Now handled directly in build method ...
-  }
-
-  Widget _buildAdditionalDriverInfo(
-      DriverProvider driverProvider, double paddingValue) {
-    // ... Replaced by _buildInfoCard and _buildInfoRow ...
-  }
-
-  Widget _buildSectionTitle(String title, double paddingValue) {
-    // ... Not directly used in the new structure ...
-  }
-
-  Widget _buildProfileListItem({ ... }) {
-     // ... Replaced by _buildActionTile ...
-  }
-
-  Widget _buildProfileSection({ ... }) {
-    // ... Replaced by individual cards ...
-  }
-  */
 }

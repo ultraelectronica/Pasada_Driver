@@ -8,9 +8,6 @@ class SnackBarUtils {
   const SnackBarUtils._();
 
   /// Shows a cherry toast snackbar
-  /// [ctx] - The context of the widget to show the snackbar
-  /// [message] - The message to show in the snackbar
-  ///
   static void show(
     BuildContext ctx,
     String message,
@@ -46,27 +43,6 @@ class SnackBarUtils {
         width: MediaQuery.of(ctx).size.width * 0.9,
         toastDuration: duration,
       ).show(ctx);
-      // ScaffoldMessenger.of(ctx).showSnackBar(
-      //   SnackBar(
-      //     content: Text(
-      //       message,
-      //       style:
-      //           Styles().textStyle(14, FontWeight.w600, Styles.customWhiteFont),
-      //       textAlign: TextAlign.center,
-      //     ),
-      //     backgroundColor: background,
-      //     duration: duration,
-      //     behavior: SnackBarBehavior.floating,
-      //     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      //     shape: RoundedRectangleBorder(
-      //       borderRadius: BorderRadius.circular(8),
-      //     ),
-      //     animation: animationController != null
-      //         ? CurvedAnimation(
-      //             parent: animationController, curve: Curves.easeInOut)
-      //         : null,
-      //   ),
-      // );
     }
   }
 

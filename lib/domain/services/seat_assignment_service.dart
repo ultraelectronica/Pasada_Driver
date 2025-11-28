@@ -116,7 +116,6 @@ class SeatAssignmentService {
         'After Regular assignment: $remainingSitting sitting, $remainingStanding standing available');
     debugPrint('Final sitting: ${sitting.total}');
     debugPrint('Final standing: ${standing.total}');
-    debugPrint('===================================');
 
     return SeatAssignmentResult.success(
       sittingAssignments: sitting,

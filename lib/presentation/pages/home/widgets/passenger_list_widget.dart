@@ -24,7 +24,7 @@ class PassengerListWidget extends StatelessWidget {
     required this.onSelected,
   });
 
-  // Helper to determine priority level (1-4)
+  // method todetermine priority level (1-4)
   int _getPriorityLevel(PassengerStatus passenger) {
     if (passenger.isNearPickup || passenger.isNearDropoff) return 1; // Ready
     if (passenger.isApproachingPickup || passenger.isApproachingDropoff) {
@@ -236,15 +236,6 @@ class PassengerListWidget extends StatelessWidget {
                   ? Colors.blue.withValues(alpha: 0.2)
                   : Colors.orange.withValues(alpha: 0.2))
               : Colors.transparent,
-          // border: Border(
-          // left: BorderSide(
-          //   color: isSelected
-          //       ? statusColor
-          //       : (isPickup ? Colors.blue : Colors.orange),
-          //   width: isSelected ? 3 : 2,
-          // ),
-          // bottom: BorderSide(color: Colors.grey.withValues(alpha: 1), width: 1),
-          // ),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         child: Row(
@@ -312,8 +303,6 @@ class PassengerListWidget extends StatelessWidget {
     );
   }
 
-  /// Builds the title row showing either passenger name (if available) or booking id,
-  /// plus manual / discount badges.
   Widget _buildPassengerTitle(
       PassengerStatus passenger, bool isManualBooking, bool isUrgent) {
     final booking = passenger.booking;

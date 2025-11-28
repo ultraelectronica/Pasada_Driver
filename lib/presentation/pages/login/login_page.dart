@@ -15,7 +15,6 @@ import 'package:pasada_driver_side/presentation/providers/passenger/passenger_pr
 import 'package:pasada_driver_side/presentation/widgets/error_retry_widget.dart';
 import 'package:pasada_driver_side/common/utils/result.dart';
 import 'package:pasada_driver_side/Services/encryption_service.dart';
-import 'package:pasada_driver_side/domain/services/background_location_service.dart';
 import 'package:pasada_driver_side/Services/password_util.dart';
 
 class LogIn extends StatefulWidget {

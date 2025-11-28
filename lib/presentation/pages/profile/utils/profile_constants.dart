@@ -1,5 +1,3 @@
-/// Layout fractions & durations for ProfilePage.
-/// Keep all magic numbers here to ease tweaking and theming.
 class ProfileConstants {
   // Fractions multiplied by screen *height*
   static const double headerHeightFraction = 0.42;

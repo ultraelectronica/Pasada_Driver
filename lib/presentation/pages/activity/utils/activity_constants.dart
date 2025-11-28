@@ -1,4 +1,3 @@
-/// Constants specific to the Activity (driver stats) module.
 class ActivityConstants {
   const ActivityConstants._();
 

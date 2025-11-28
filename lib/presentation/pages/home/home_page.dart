@@ -4,7 +4,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pasada_driver_side/domain/services/passenger_capacity.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
-// booking constants used in controller/widgets
 import 'package:pasada_driver_side/presentation/pages/map/map_page.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
@@ -16,7 +15,6 @@ import 'package:pasada_driver_side/presentation/pages/home/utils/home_constants.
 import 'package:pasada_driver_side/presentation/pages/home/controllers/home_controller.dart';
 import 'package:pasada_driver_side/presentation/pages/home/models/passenger_status.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/passenger_list_widget.dart';
-// import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_refresh_booking_button.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_start_driving_button.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/floating_route_button.dart';
 import 'package:pasada_driver_side/presentation/pages/route_setup/route_selection_sheet.dart';
@@ -179,14 +177,6 @@ class HomePageState extends State<HomePage> {
                   },
                 ),
               ),
-
-            // FLOATING REFRESH BOOKING BUTTON
-            // FloatingRefreshBookingButton(
-            //   screenHeight: screenHeight,
-            //   screenWidth: screenWidth,
-            //   isLoading: _isLoadingBookings,
-            //   onRefresh: () => fetchBookings(context),
-            // ),
 
             // Floating Start Driving Button
             if (driverStatus != 'Driving')

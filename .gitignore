@@ -91,3 +91,6 @@ coverage/
 # Root Gradle cache
 /.gradle/
 android/app/google-services.json
+
+# Firebase config
+android/app/src/google-services.json
