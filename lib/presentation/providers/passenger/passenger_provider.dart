@@ -20,6 +20,7 @@ import 'package:pasada_driver_side/data/repositories/supabase_booking_repository
 import 'package:pasada_driver_side/data/models/booking_model.dart';
 import 'package:pasada_driver_side/presentation/providers/driver/driver_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/passenger/booking_action_model.dart';
 import 'booking_processor.dart';
 import 'booking_stream_service.dart';
 import 'package:pasada_driver_side/Services/notification_service.dart';
@@ -55,6 +56,42 @@ class PassengerProvider with ChangeNotifier {
   Stream<List<Booking>> get bookingsStream => _bookingsStreamController.stream;
   String? get error => _error;
   String? get errorType => _errorType;
+
+  final List<BookingAction> _actionHistory = [];
+  List<BookingAction> get actionHistory => List.unmodifiable(_actionHistory);
+
+  void addAction(BookingAction action) {
+    _actionHistory.add(action);
+    // Limit history to the last 2 actions
+    if (_actionHistory.length > 3) {
+      _actionHistory.removeAt(0);
+    }
+    notifyListeners();
+  }
+
+  void popAction() {
+    if (_actionHistory.isNotEmpty) {
+      _actionHistory.removeLast();
+      notifyListeners();
+    }
+  }
+
+  void updateLastActionBookings(List<Booking> remainingBookings) {
+    if (_actionHistory.isEmpty) return;
+
+    if (remainingBookings.isEmpty) {
+      popAction();
+    } else {
+      final last = _actionHistory.last;
+      final updated = BookingAction(
+        type: last.type,
+        bookings: remainingBookings,
+        timestamp: last.timestamp,
+      );
+      _actionHistory[_actionHistory.length - 1] = updated;
+      notifyListeners();
+    }
+  }
 
   // 3-state loading alias
   bool get isLoading => _isProcessingBookings;

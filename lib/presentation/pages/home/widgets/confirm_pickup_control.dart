@@ -9,6 +9,7 @@ import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.
 import 'package:pasada_driver_side/presentation/pages/home/widgets/confirm_pickup_button.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/passenger/booking_action_model.dart';
 import 'package:pasada_driver_side/Services/notification_service.dart';
 import 'package:pasada_driver_side/Services/passenger_name_service.dart';
 import 'package:pasada_driver_side/common/constants/constants.dart';
@@ -477,6 +478,7 @@ class _ConfirmPickupControlState extends State<ConfirmPickupControl> {
               bookingsToProcess = selected;
 
               int successCount = 0;
+              final List<Booking> successfulBookings = [];
 
               for (final booking in bookingsToProcess) {
                 final bookingId = booking.id;
@@ -497,6 +499,7 @@ class _ConfirmPickupControlState extends State<ConfirmPickupControl> {
                   if (!mounted) return;
                   if (capacityResult.success) {
                     successCount++;
+                    successfulBookings.add(booking);
                   } else {
                     // rollback booking status if capacity update failed
                     await provider.markBookingAsAccepted(bookingId);
@@ -514,6 +517,13 @@ class _ConfirmPickupControlState extends State<ConfirmPickupControl> {
               }
 
               if (!mounted) return;
+
+              if (successfulBookings.isNotEmpty) {
+                provider.addAction(BookingAction(
+                  type: BookingActionType.pickup,
+                  bookings: successfulBookings,
+                ));
+              }
 
               if (successCount > 0) {
                 final message = successCount > 1

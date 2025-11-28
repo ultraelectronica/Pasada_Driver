@@ -10,6 +10,7 @@ import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.
 import 'package:pasada_driver_side/presentation/pages/home/widgets/complete_ride_button.dart';
 import 'package:pasada_driver_side/presentation/providers/map_provider.dart';
 import 'package:pasada_driver_side/presentation/providers/passenger/passenger_provider.dart';
+import 'package:pasada_driver_side/presentation/providers/passenger/booking_action_model.dart';
 import 'package:pasada_driver_side/presentation/providers/quota/quota_provider.dart';
 import 'package:pasada_driver_side/Services/notification_service.dart';
 import 'package:pasada_driver_side/Services/passenger_name_service.dart';
@@ -480,6 +481,7 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
               bookingsToProcess = selected;
 
               int successCount = 0;
+              final List<Booking> successfulBookings = [];
 
               for (final booking in bookingsToProcess) {
                 final String bookingId = booking.id;
@@ -510,6 +512,7 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
                   if (!mounted) return;
                   if (capacityResult.success) {
                     successCount++;
+                    successfulBookings.add(booking);
                     debugPrint(
                         '[COMPLETE][BULK] Capacity decrement success. Considering auto-accept...');
                     // Auto-accept discount ID only if request exists and decision is still pending
@@ -550,6 +553,13 @@ class _CompleteRideControlState extends State<CompleteRideControl> {
               }
 
               if (!mounted) return;
+
+              if (successfulBookings.isNotEmpty) {
+                provider.addAction(BookingAction(
+                  type: BookingActionType.dropoff,
+                  bookings: successfulBookings,
+                ));
+              }
 
               if (successCount > 0) {
                 debugPrint(

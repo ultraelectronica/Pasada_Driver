@@ -233,7 +233,8 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(
                   'Manually Add Passenger',
-                  style: Styles().textStyle(18, FontWeight.bold, Colors.black),
+                  style: Styles()
+                      .textStyle(18, Styles.bold, Styles.customBlackFont),
                 ),
               ),
 
@@ -944,7 +945,7 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
         value: value,
         isExpanded: true,
         underline: const SizedBox(),
-        dropdownColor: Constants.GREY_COLOR,
+        dropdownColor: Constants.WHITE_COLOR,
         style: Styles().textStyle(16, Styles.semiBold, Styles.customBlackFont),
         icon: Icon(Icons.keyboard_arrow_down, color: Constants.BLACK_COLOR),
         // padding: const EdgeInsets.symmetric(horizontal: 0),
@@ -997,11 +998,13 @@ class _ManualAddPassengerSheetState extends State<ManualAddPassengerSheet> {
                 const SizedBox(
                   width: 15,
                 ),
-                Text(
-                  stop.stopName,
-                  overflow: TextOverflow.ellipsis,
-                  style: Styles()
-                      .textStyle(17, Styles.semiBold, Styles.customBlackFont),
+                Expanded(
+                  child: Text(
+                    stop.stopName,
+                    overflow: TextOverflow.ellipsis,
+                    style: Styles()
+                        .textStyle(17, Styles.semiBold, Styles.customBlackFont),
+                  ),
                 ),
               ],
             ),

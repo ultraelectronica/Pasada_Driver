@@ -21,6 +21,7 @@ import 'package:pasada_driver_side/presentation/pages/route_setup/route_selectio
 import 'package:pasada_driver_side/presentation/pages/home/widgets/seat_capacity_control.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/total_capacity_indicator.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/reset_capacity_button.dart';
+import 'package:pasada_driver_side/presentation/pages/home/widgets/undo_action_button.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/confirm_pickup_control.dart';
 import 'package:pasada_driver_side/presentation/pages/home/widgets/complete_ride_control.dart';
 import 'package:pasada_driver_side/presentation/pages/home/utils/snackbar_utils.dart';
@@ -219,6 +220,8 @@ class HomePageState extends State<HomePage> {
                 rightFraction: HomeConstants.sideButtonRightFraction,
                 seatType: 'Sitting',
               ),
+
+            if (driverStatus == 'Driving') const UndoActionButton(),
 
             ConfirmPickupControl(
               isVisible: _isNearPickupLocation && _nearestBookingId != null,
