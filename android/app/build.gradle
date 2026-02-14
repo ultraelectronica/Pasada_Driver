@@ -4,6 +4,7 @@ plugins {
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id "dev.flutter.flutter-gradle-plugin"
     id "com.google.gms.google-services"
+    id "com.google.android.libraries.mapsplatform.secrets-gradle-plugin"
 }
 
 dependencies {
@@ -14,7 +15,7 @@ dependencies {
 }
 
 def env = new Properties()
-def envFile = rootProject.file('.env')
+def envFile = rootProject.file('../.env')
 if (envFile.exists()) {
     envFile.withReader('UTF-8') { reader ->
         env.load(reader)
@@ -33,7 +34,12 @@ def getLocalProperties = {
 }
 
 def properties = getLocalProperties()
-def mapsApiKey = properties.getProperty("mapsApiKey", "")
+def mapsApiKey = (env.getProperty("ANDROID_MAPS_API_KEY", "")
+        ?: properties.getProperty("mapsApiKey", "")).trim()
+if ((mapsApiKey.startsWith('"') && mapsApiKey.endsWith('"')) ||
+        (mapsApiKey.startsWith("'") && mapsApiKey.endsWith("'"))) {
+    mapsApiKey = mapsApiKey.substring(1, mapsApiKey.length() - 1).trim()
+}
 
 android {
     namespace = "com.example.pasada_driver_side"
