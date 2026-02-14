@@ -13,8 +13,6 @@ dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
 }
 
-apply plugin: 'com.android.application'
-
 def env = new Properties()
 def envFile = rootProject.file('.env')
 if (envFile.exists()) {

@@ -82,8 +82,6 @@ coverage/
 # Dart/Flutter legacy
 .packages
 
-# Flutter metadata
-.metadata
 
 # iOS generated config
 /ios/Flutter/Generated.xcconfig
